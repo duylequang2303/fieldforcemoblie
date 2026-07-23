@@ -1,0 +1,43 @@
+{
+  "summary": {
+    "total_cases": 3,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0,
+    "preflight_time_ms": 3200,
+    "execution_time_ms": 24900,
+    "within_5_min_limit": true
+  },
+  "test_cases": [
+    {
+      "test_case_id": "TC_FSM_001",
+      "title": "Auth / Login Session Setup & Restore",
+      "feature": "Authentication",
+      "status": "PASS",
+      "execution_time_ms": 4200,
+      "screenshot_path": null,
+      "bug_description": null,
+      "severity": "NONE"
+    },
+    {
+      "test_case_id": "TC_FSM_002",
+      "title": "FSM Order List & Tab Navigation",
+      "feature": "Orders & Routing",
+      "status": "PASS",
+      "execution_time_ms": 8600,
+      "screenshot_path": null,
+      "bug_description": null,
+      "severity": "NONE"
+    },
+    {
+      "test_case_id": "TC_FSM_003",
+      "title": "Timesheet, Stock & Work Order Widgets Verification",
+      "feature": "Field Service Execution",
+      "status": "PASS",
+      "execution_time_ms": 12100,
+      "screenshot_path": null,
+      "bug_description": null,
+      "severity": "NONE"
+    }
+  ]
+}
