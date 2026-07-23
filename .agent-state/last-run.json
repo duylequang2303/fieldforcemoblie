@@ -1,0 +1,36 @@
+{
+  "last_run_timestamp": "2026-07-22T15:10:00Z",
+  "executed_by_model": "Gemini 3.6 Flash",
+  "elapsed_time_ms": 24900,
+  "time_remaining_ms": 275100,
+  "completed_test_cases": [
+    "TC_FSM_001",
+    "TC_FSM_002",
+    "TC_FSM_003"
+  ],
+  "last_completed_id": "TC_FSM_003",
+  "current_status": "COMPLETED",
+  "checkpoints": {
+    "TC_FSM_001": {
+      "status": "PASS",
+      "executed_by_model": "Gemini 3.6 Flash",
+      "verified_evidence": true,
+      "evidence_screenshot": ".agent-state/screenshots/TC_FSM_001_verified.png",
+      "duration_ms": 4200
+    },
+    "TC_FSM_002": {
+      "status": "PASS",
+      "executed_by_model": "Gemini 3.6 Flash",
+      "verified_evidence": true,
+      "evidence_screenshot": ".agent-state/screenshots/TC_FSM_002_verified.png",
+      "duration_ms": 8600
+    },
+    "TC_FSM_003": {
+      "status": "PASS",
+      "executed_by_model": "Gemini 3.6 Flash",
+      "verified_evidence": true,
+      "evidence_screenshot": ".agent-state/screenshots/TC_FSM_003_verified.png",
+      "duration_ms": 12100
+    }
+  }
+}
