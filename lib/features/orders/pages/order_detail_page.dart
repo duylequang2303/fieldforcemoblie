@@ -10,6 +10,17 @@ import '../models/fsm_order.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/order_status_chip.dart';
 
+/// Strip HTML tags khỏi chuỗi text trả về từ Odoo (VD: <p>...</p>).
+String _stripHtml(String html) {
+  // Strip HTML tags and decode common entities
+  final withoutTags = html.replaceAll(RegExp(r'<[^>]*>'), '');
+  return withoutTags
+      .replaceAll(RegExp(r'&[a-z]+;'), ' ')
+      .replaceAll(RegExp(r'&#[0-9]+;'), ' ')
+      .replaceAll(RegExp(r'\s+'), ' ')
+      .trim();
+}
+
 /// Trang chi tiết một đơn dịch vụ.
 /// orderId: ID Odoo của đơn (truyền qua go_router path param).
 class OrderDetailPage extends StatefulWidget {
@@ -139,7 +150,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         if (order.description != null && order.description!.isNotEmpty)
           _DetailRow(
             label: 'Mô tả',
-            value: order.description!,
+            value: _stripHtml(order.description!),
             icon: Icons.notes_outlined,
           ),
         if (order.personName != null && order.personName!.isNotEmpty)
@@ -207,7 +218,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         ),
         _ActionTile(
           icon: Icons.receipt_long_outlined,
-          label: 'Tạo chi phí',
+          label: 'Thêm khoản chi',
           onTap: () => context.push(
             RouteNames.expense.replaceFirst(':orderId', '${order.odooId}'),
           ),

@@ -16,6 +16,7 @@ class SecureStorageService {
   static const _keyUsername = 'odoo_username';
   static const _keySessionId = 'odoo_session_id';
   static const _keyUserId = 'odoo_user_id';
+  static const _keyLocale = 'odoo_locale';
   static const _keyBiometricEnabled = 'biometric_enabled';
 
   Future<void> saveSession({
@@ -24,6 +25,7 @@ class SecureStorageService {
     required String username,
     required String sessionId,
     required int userId,
+    String locale = 'vi_VN',
   }) async {
     await Future.wait([
       _storage.write(key: _keyServerUrl, value: serverUrl),
@@ -31,6 +33,7 @@ class SecureStorageService {
       _storage.write(key: _keyUsername, value: username),
       _storage.write(key: _keySessionId, value: sessionId),
       _storage.write(key: _keyUserId, value: userId.toString()),
+      _storage.write(key: _keyLocale, value: locale),
     ]);
   }
 
@@ -41,6 +44,7 @@ class SecureStorageService {
       _storage.read(key: _keyUsername),
       _storage.read(key: _keySessionId),
       _storage.read(key: _keyUserId),
+      _storage.read(key: _keyLocale),
     ]);
     return {
       'serverUrl': results[0],
@@ -48,6 +52,22 @@ class SecureStorageService {
       'username': results[2],
       'sessionId': results[3],
       'userId': results[4],
+      'locale': results[5],
+    };
+  }
+
+  /// Chỉ load thông tin đăng nhập (URL, database, username) không bao gồm session.
+  /// Dùng để điền sẵn form login khi session hết hạn.
+  Future<Map<String, String?>> loadSavedCredentials() async {
+    final results = await Future.wait([
+      _storage.read(key: _keyServerUrl),
+      _storage.read(key: _keyDatabase),
+      _storage.read(key: _keyUsername),
+    ]);
+    return {
+      'serverUrl': results[0],
+      'database': results[1],
+      'username': results[2],
     };
   }
 
@@ -58,6 +78,7 @@ class SecureStorageService {
       _storage.delete(key: _keyUsername),
       _storage.delete(key: _keySessionId),
       _storage.delete(key: _keyUserId),
+      _storage.delete(key: _keyLocale),
     ]);
   }
 
