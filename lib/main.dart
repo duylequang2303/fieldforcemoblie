@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'core/database/isar_service.dart';
+import 'core/locale/locale_service.dart';
 // Isar schemas — import generated .g.dart files
 import 'features/auth/models/user_session.dart';
 import 'features/orders/models/fsm_order.dart';
@@ -15,6 +18,12 @@ import 'app/app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Khởi tạo locale/date formatting mặc định để tránh lỗi Intl.
+  const defaultLocale = 'vi_VN';
+  Intl.defaultLocale = defaultLocale;
+  await initializeDateFormatting(defaultLocale, null);
+  LocaleService.instance.setLocale(defaultLocale);
 
   // Chỉ cho phép xoay dọc (portrait) trên thiết bị di động
   if (!kIsWeb) {

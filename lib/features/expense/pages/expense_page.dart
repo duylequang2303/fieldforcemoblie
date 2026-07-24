@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/locale/locale_service.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 import '../models/expense.dart';
@@ -40,7 +41,7 @@ class _ExpensePageState extends State<ExpensePage> {
             backgroundColor: AppColors.secondary,
             foregroundColor: Colors.white,
             title: const Text(
-              'Chi Phí',
+              'Khoản Chi',
               style: TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
@@ -119,7 +120,7 @@ class _ExpensePageState extends State<ExpensePage> {
             backgroundColor: _showForm ? AppColors.error : AppColors.secondary,
             icon: Icon(_showForm ? Icons.close : Icons.add, color: Colors.white),
             label: Text(
-              _showForm ? 'Đóng' : 'Thêm chi phí',
+              _showForm ? 'Đóng' : 'Thêm khoản chi',
               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
             ),
           ),
@@ -136,13 +137,13 @@ class _ExpensePageState extends State<ExpensePage> {
           Icon(Icons.receipt_long_outlined,
               size: 72, color: AppColors.onSurfaceMuted.withValues(alpha: 0.4)),
           const SizedBox(height: 16),
-          const Text('Chưa có chi phí nào',
+          const Text('Chưa có khoản chi nào',
               style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: AppColors.onSurfaceMuted)),
           const SizedBox(height: 8),
-          const Text('Nhấn "Thêm chi phí" để khai báo',
+          const Text('Nhấn "Thêm khoản chi" để khai báo',
               style: TextStyle(fontSize: 13, color: AppColors.onSurfaceMuted)),
         ],
       ),
@@ -158,7 +159,8 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+    final locale = LocaleService.instance.currentLocale;
+    final fmt = NumberFormat.currency(locale: locale, symbol: '₫', decimalDigits: 0);
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -225,7 +227,8 @@ class _ExpenseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = NumberFormat.currency(locale: 'vi_VN', symbol: '₫', decimalDigits: 0);
+    final locale = LocaleService.instance.currentLocale;
+    final fmt = NumberFormat.currency(locale: locale, symbol: '₫', decimalDigits: 0);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),

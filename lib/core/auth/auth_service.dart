@@ -1,4 +1,5 @@
 import '../api/odoo_session_manager.dart';
+import '../locale/locale_service.dart';
 import 'secure_storage.dart';
 import 'biometric_service.dart';
 
@@ -34,6 +35,7 @@ class AuthService {
       username: username,
       sessionId: session.sessionId,
       userId: session.userId,
+      locale: session.locale,
     );
   }
 
@@ -47,16 +49,23 @@ class AuthService {
     final serverUrl = saved['serverUrl'];
     final sessionId = saved['sessionId'];
     final database = saved['database'];
+    final locale = saved['locale'];
 
     if (serverUrl == null || sessionId == null || database == null) {
       return false;
     }
 
-    return _sessionManager.restoreSession(
+    final restored = await _sessionManager.restoreSession(
       serverUrl: serverUrl,
       database: database,
       sessionId: sessionId,
     );
+
+    if (restored && locale != null && locale.isNotEmpty) {
+      LocaleService.instance.setLocale(locale);
+    }
+
+    return restored;
   }
 
   /// Đăng nhập bằng biometric (nếu có session đã lưu + biometric bật).
