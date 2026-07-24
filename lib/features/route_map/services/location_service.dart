@@ -21,12 +21,23 @@ class LocationService {
         permission == LocationPermission.whileInUse;
   }
 
+  /// Kiểm tra dịch vụ GPS có bật không.
+  Future<bool> isLocationEnabled() async {
+    return Geolocator.isLocationServiceEnabled();
+  }
+
   /// Lấy vị trí hiện tại (high accuracy).
   Future<Position?> getCurrentPosition() async {
     try {
       final hasPermission = await requestPermission();
       if (!hasPermission) {
         logger.w('LocationService: permission denied');
+        return null;
+      }
+
+      final gpsEnabled = await isLocationEnabled();
+      if (!gpsEnabled) {
+        logger.w('LocationService: GPS not enabled');
         return null;
       }
 

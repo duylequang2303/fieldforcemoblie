@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/server_url_field.dart';
+import '../../../core/auth/secure_storage.dart';
 import '../../../core/routing/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/loading_overlay.dart';
@@ -25,6 +26,22 @@ class _LoginPageState extends State<LoginPage> {
   final _usernameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final creds = await SecureStorageService.instance.loadSavedCredentials();
+    if (!mounted) return;
+    setState(() {
+      _serverUrlCtrl.text = creds['serverUrl'] ?? 'https://';
+      _databaseCtrl.text = creds['database'] ?? '';
+      _usernameCtrl.text = creds['username'] ?? '';
+    });
+  }
 
   @override
   void dispose() {

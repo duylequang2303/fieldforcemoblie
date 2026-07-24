@@ -249,16 +249,32 @@ class _RouteMapPageState extends State<RouteMapPage>
   }
 
   Future<void> _openNavigation(RouteStop stop) async {
-    if (stop.latitude == null || stop.longitude == null) return;
+    if (stop.latitude == null || stop.longitude == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Điểm đến chưa có tọa độ GPS')),
+        );
+      }
+      return;
+    }
     final url = LocationService.instance
         .buildNavigationUrl(stop.latitude!, stop.longitude!);
+    final uri = Uri.parse(url);
     try {
-      await launchUrl(
-        Uri.parse(url),
-        mode: LaunchMode.externalApplication,
-      );
+      final canLaunch = await canLaunchUrl(uri);
+      if (canLaunch) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        // Fallback: mở bằng Chrome
+        await launchUrl(uri, mode: LaunchMode.inAppWebView);
+      }
     } catch (e) {
       logger.e('Cannot launch navigation URL', error: e);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không thể mở bản đồ: $e')),
+        );
+      }
     }
   }
 }

@@ -10,6 +10,7 @@ class OdooSessionData {
     required this.username,
     required this.userId,
     required this.sessionId,
+    this.locale = 'vi_VN',
   });
 
   final String serverUrl;
@@ -17,6 +18,7 @@ class OdooSessionData {
   final String username;
   final int userId;
   final String sessionId;
+  final String locale;
 }
 
 /// Quản lý toàn bộ vòng đời session Odoo: đăng nhập, kiểm tra, đăng xuất.
@@ -46,12 +48,29 @@ class OdooSessionManager {
       // odoo_rpc authenticate signature: (db, login, password)
       final session = await client.authenticate(database, username, password);
 
+      String userLang = 'vi_VN';
+      try {
+        final userData = await OdooApiClient.instance.callKw(
+          model: 'res.users',
+          method: 'read',
+          args: [session.userId],
+          kwargs: {'fields': ['lang']},
+        );
+        if (userData is List && userData.isNotEmpty) {
+          userLang = (userData.first['lang'] as String?) ?? 'vi_VN';
+        }
+      } catch (_) {
+        // Nếu không đọc được lang từ Odoo, giữ mặc định vi_VN
+        userLang = 'vi_VN';
+      }
+
       _currentSession = OdooSessionData(
         serverUrl: serverUrl,
         database: database,
         username: username,
         userId: session.userId,
         sessionId: session.id,
+        locale: userLang,
       );
 
       return _currentSession!;
