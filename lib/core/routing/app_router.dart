@@ -19,6 +19,9 @@ import '../../features/timesheet/pages/timesheet_page.dart';
 import '../../features/expense/pages/expense_page.dart';
 // Work Order page (Phase 12)
 import '../../features/work_order/pages/work_order_page.dart';
+// UI Redesign screens
+import '../../screens/schedule_screen.dart';
+import '../../screens/work_order_detail_screen.dart';
 // Schedule pages
 import '../../features/schedule/pages/schedule_page.dart';
 import '../../features/schedule/pages/schedule_properties_list_page.dart';
@@ -101,6 +104,17 @@ final GoRouter appRouter = GoRouter(
         final orderId = state.pathParameters['orderId'] ?? '0';
         return ExpensePage(orderId: int.tryParse(orderId) ?? 0);
       },
+    ),
+    // UI Redesign Routes
+    GoRoute(
+      path: RouteNames.scheduleScreen,
+      name: 'scheduleScreenUI',
+      builder: (context, state) => const ScheduleScreen(),
+    ),
+    GoRoute(
+      path: RouteNames.workOrderDetailScreen,
+      name: 'workOrderDetailScreenUI',
+      builder: (context, state) => const WorkOrderDetailScreen(),
     ),
     // Schedule routes
     GoRoute(
