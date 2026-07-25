@@ -4,8 +4,15 @@ import '../widgets/quick_action_button.dart';
 import '../widgets/section_header.dart';
 import '../widgets/attachment_grid.dart';
 
+import '../features/orders/models/fsm_order.dart';
+
 class WorkOrderDetailScreen extends StatefulWidget {
-  const WorkOrderDetailScreen({super.key});
+  final FsmOrder order;
+
+  const WorkOrderDetailScreen({
+    super.key,
+    required this.order,
+  });
 
   @override
   State<WorkOrderDetailScreen> createState() => _WorkOrderDetailScreenState();
@@ -32,6 +39,24 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
 
   Widget _buildStickyHeader() {
     final theme = Theme.of(context);
+    
+    // Helpers format data
+    String formatDate(DateTime? date) {
+      if (date == null) return 'Chưa xác định ngày';
+      return '${date.day} Thg ${date.month}, ${date.year}';
+    }
+
+    String calculateDuration(DateTime? start, DateTime? end) {
+      if (start == null || end == null) return 'N/A hrs';
+      return '${end.difference(start).inHours} hrs';
+    }
+
+    double calculatePrice(DateTime? start, DateTime? end) {
+      if (start == null || end == null) return 0.0;
+      final hours = end.difference(start).inMinutes / 60.0;
+      return hours * 50; // Mock $50/hour
+    }
+
     return Card(
       margin: EdgeInsets.zero,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
@@ -53,7 +78,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                           Icon(Icons.calendar_today, size: 14, color: theme.colorScheme.onSurface.withOpacity(0.6)),
                           const SizedBox(width: 6),
                           Text(
-                            '25 Thg 7, 2026',
+                            formatDate(widget.order.scheduledDateStart),
                             style: TextStyle(
                               fontSize: 14,
                               color: theme.colorScheme.onSurface.withOpacity(0.6),
@@ -65,7 +90,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                       const SizedBox(height: 8),
                       // Address
                       Text(
-                        '42 Garden Street\nSydney NSW 2000',
+                        widget.order.locationAddress ?? widget.order.name,
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
                           height: 1.3,
@@ -74,7 +99,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                       const SizedBox(height: 8),
                       // Customer name
                       Text(
-                        'Acme Corporation',
+                        widget.order.partnerName ?? 'Khách hàng ẩn',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -118,7 +143,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Today\n(Does not repeat)',
+                        '${formatDate(widget.order.scheduledDateStart)}\n(Does not repeat)',
                         style: TextStyle(
                           fontSize: 14,
                           color: theme.colorScheme.onSurface,
@@ -142,7 +167,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '2 hrs\n\$ 120.00',
+                        '${calculateDuration(widget.order.scheduledDateStart, widget.order.scheduledDateEnd)}\n\$ ${calculatePrice(widget.order.scheduledDateStart, widget.order.scheduledDateEnd).toStringAsFixed(2)}',
                         style: TextStyle(
                           fontSize: 14,
                           color: theme.colorScheme.onSurface,
@@ -160,6 +185,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
               children: [
                 Expanded(
                   child: FilledButton(
+                    key: const Key('btn_mark_complete'),
                     onPressed: () {},
                     style: FilledButton.styleFrom(
                       backgroundColor: theme.colorScheme.primary,
@@ -175,6 +201,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton(
+                    key: const Key('btn_skip'),
                     onPressed: () {},
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -208,7 +235,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
           icon: const Icon(Icons.close),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('42 Garden Street'),
+        title: Text(widget.order.locationAddress ?? widget.order.name),
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
@@ -260,6 +287,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                         const Divider(height: 1),
                         const SizedBox(height: 8),
                         TextButton.icon(
+                          key: const Key('btn_add_material'),
                           onPressed: () {},
                           icon: const Icon(Icons.add),
                           label: const Text('Add material'),
@@ -276,6 +304,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                           children: [
                             Expanded(
                               child: OutlinedButton.icon(
+                                key: const Key('btn_check_in'),
                                 onPressed: () {},
                                 icon: const Icon(Icons.play_arrow),
                                 label: const Text('Check-in'),
@@ -284,6 +313,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                             const SizedBox(width: 8),
                             Expanded(
                               child: OutlinedButton.icon(
+                                key: const Key('btn_check_out'),
                                 onPressed: () {},
                                 icon: const Icon(Icons.stop),
                                 label: const Text('Check-out'),
@@ -314,6 +344,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: Signature(
+                              key: const Key('signature_pad'),
                               controller: _signatureController,
                               height: 150,
                               backgroundColor: Colors.grey[100]!,

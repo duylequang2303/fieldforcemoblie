@@ -22,7 +22,8 @@ class ExpandableSection extends StatelessWidget {
       elevation: 1,
       child: ExpansionTile(
         initiallyExpanded: initiallyExpanded,
-        shape: const Border(), // Xoá border mặc định của ExpansionTile khi mở
+        shape: const RoundedRectangleBorder(side: BorderSide.none),
+        collapsedShape: const RoundedRectangleBorder(side: BorderSide.none),
         title: Text(
           title,
           style: theme.textTheme.titleSmall?.copyWith(
