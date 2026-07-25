@@ -15,22 +15,20 @@ void main() {
       expect(order.isPendingSync, isTrue);
     });
 
-    test('ORD-02: Chuyển trạng thái sang Done yêu cầu phải có thời gian kết thúc (date_end)', () {
+    test('ORD-02: Chuyển trạng thái sang Done yêu cầu phải có thời gian bắt đầu thực tế (dateStart)', () {
       final order = FsmOrderFactory.sampleDone();
       
-      // Giả định logic: Nếu done thì phải có thời gian end
-      // Ở đây ta mô phỏng validate chưa gán endTime -> sẽ false
+      // Giả định logic: Nếu done thì phải có thời gian bắt đầu thực tế
       bool canMarkDone(FsmOrder o) {
-        // Trong sample_data, sampleDone() chưa định nghĩa rõ endTime (dateEnd)
-        // Chúng ta mock validation logic tại đây
-        return o.dateStart != null && o.dateEnd != null;
+        return o.dateStart != null && o.stage == FsmOrderStage.done;
       }
 
-      expect(canMarkDone(order), isFalse, reason: 'Chưa set dateEnd nên không thể hoàn thành hợp lệ.');
+      // Xóa thử dateStart
+      order.dateStart = null;
+      expect(canMarkDone(order), isFalse, reason: 'Chưa set dateStart nên không thể hoàn thành hợp lệ.');
       
-      // Fix lại cho đúng
+      // Gán lại cho đúng
       order.dateStart = DateTime.now().subtract(const Duration(hours: 2));
-      order.dateEnd = DateTime.now();
       expect(canMarkDone(order), isTrue);
     });
 

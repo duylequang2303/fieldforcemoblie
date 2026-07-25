@@ -1,12 +1,12 @@
 /// Test fixtures và factory methods cho các model chính.
 /// Dùng cho Unit Test, Integration Test (Isar in-memory).
 
-import '../features/orders/models/fsm_order.dart';
-import '../features/stock/models/product.dart';
-import '../features/stock/models/stock_move.dart';
-import '../features/timesheet/models/timesheet_entry.dart';
-import '../features/expense/models/expense.dart';
-import '../features/work_order/models/work_report.dart';
+import 'package:fieldforce_mobile/features/orders/models/fsm_order.dart';
+import 'package:fieldforce_mobile/features/stock/models/product.dart';
+import 'package:fieldforce_mobile/features/stock/models/stock_move.dart';
+import 'package:fieldforce_mobile/features/timesheet/models/timesheet_entry.dart';
+import 'package:fieldforce_mobile/features/expense/models/expense.dart';
+import 'package:fieldforce_mobile/features/work_order/models/work_report.dart';
 
 // ═══════════════════════════════════════════════════════════════
 // ORDERS
@@ -25,7 +25,7 @@ class FsmOrderFactory {
       ..name = name
       ..description = 'Sample work order for testing'
       ..stageId = 2
-      ..stageName = 'In Progress"
+      ..stageName = 'In Progress'
       ..stage = stage
       ..locationName = 'Test Location'
       ..locationAddress = '123 Test Street'
@@ -40,7 +40,7 @@ class FsmOrderFactory {
       ..personName = 'Test Worker'
       ..routeSequence = 1
       ..routeId = 1
-      ..routeState = "planned"
+      ..routeState = 'planned'
       ..requireSignature = requireSignature
       ..isPendingSync = isPendingSync
       ..lastSyncAt = DateTime.now();
@@ -79,18 +79,14 @@ class ProductFactory {
     String name = 'Test Product',
   }) {
     return Product()
-      ..id = id
+      ..odooId = id
       ..barcode = barcode
       ..name = name
-      ..description = 'Sample product for testing'
-      ..qtyOnHand = 100.0
-      ..qtyReserved = 10.0
-      ..listPrice = 50000.0
-      ..standardPrice = 40000.0
-      ..categoryId = 1
+      ..defaultCode = 'INT-001'
       ..categoryName = 'Test Category'
-      ..uomId = 1
-      ..uomName = 'Unit';
+      ..uomName = 'Unit'
+      ..standardPrice = 40000.0
+      ..lastSyncAt = DateTime.now();
   }
 }
 
@@ -101,28 +97,24 @@ class StockMoveFactory {
     String productName = 'Test Product',
     String barcode = 'PROD-001',
     double quantity = 10.0,
-    String moveType = 'outbound',
+    MoveType moveType = MoveType.out,
     String state = 'draft',
     bool isPendingSync = false,
   }) {
     return StockMove()
-      ..id = id
-      ..odooId = id
+      ..moveOdooId = id
+      ..orderOdooId = 1
       ..productId = productId
       ..productName = productName
-      ..barcode = barcode
-      ..quantity = quantity
+      ..productCode = 'INT-001'
+      ..productBarcode = barcode
+      ..uomName = 'Unit'
+      ..demandQty = quantity
+      ..doneQty = state == 'done' ? quantity : 0.0
+      ..pickingState = state
       ..moveType = moveType
-      ..state = state
-      ..fromLocationId = 1
-      ..fromLocationName = 'Stock'
-      ..toLocationId = 2
-      ..toLocationName = 'Customers'
-      ..orderId = 1
-      ..orderName = 'WO/2024/001'
-      ..scheduledDate = DateTime(2024, 12, 1, 10, 0)
       ..isPendingSync = isPendingSync
-      ..lastSyncAt = DateTime.now();
+      ..createdAt = DateTime.now();
   }
 
   static StockMove sampleInbound() => sample(
@@ -131,7 +123,7 @@ class StockMoveFactory {
     productName: 'Test Product',
     barcode: 'PROD-001',
     quantity: 20.0,
-    moveType: 'inbound',
+    moveType: MoveType.in_,
     state: 'draft',
   );
 
@@ -141,7 +133,7 @@ class StockMoveFactory {
     productName: 'Test Product',
     barcode: 'PROD-001',
     quantity: 5.0,
-    moveType: 'outbound',
+    moveType: MoveType.out,
     state: 'draft',
     isPendingSync: true,
   );
@@ -161,17 +153,19 @@ class TimesheetEntryFactory {
     bool isPendingSync = false,
   }) {
     final now = DateTime.now();
+    final start = startTime ?? DateTime(2024, 12, 1, 8, 0);
+    final end = endTime ?? DateTime(2024, 12, 1, 12, 0);
+    final hours = end.difference(start).inMinutes / 60.0;
+    
     return TimesheetEntry()
-      ..id = id
       ..odooId = id
-      ..orderId = orderId
-      ..orderName = orderName
-      ..startTime = startTime ?? DateTime(2024, 12, 1, 8, 0)
-      ..endTime = endTime ?? DateTime(2024, 12, 1, 12, 0)
-      ..duration = 4.0
-      ..description = 'Test timesheet entry'
+      ..orderOdooId = orderId
+      ..date = start
+      ..hours = hours
+      ..name = 'Test timesheet entry'
+      ..employeeName = 'Test Employee'
       ..isPendingSync = isPendingSync
-      ..lastSyncAt = now;
+      ..createdAt = now;
   }
 
   static TimesheetEntry samplePending() => sample(
@@ -195,21 +189,19 @@ class ExpenseFactory {
     String orderName = 'WO/2024/001',
     String name = 'Test Expense',
     double amount = 500000.0,
-    String category = 'Fuel',
+    ExpenseCategory category = ExpenseCategory.fuel,
     bool isPendingSync = false,
   }) {
     return Expense()
-      ..id = id
       ..odooId = id
-      ..orderId = orderId
-      ..orderName = orderName
+      ..orderOdooId = orderId
       ..name = name
       ..amount = amount
-      ..category = category
       ..date = DateTime(2024, 12, 1)
-      ..notes = 'Sample expense for testing'
+      ..category = category
+      ..note = 'Sample expense for testing'
       ..isPendingSync = isPendingSync
-      ..lastSyncAt = DateTime.now();
+      ..createdAt = DateTime.now();
   }
 }
 
@@ -226,13 +218,13 @@ class WorkReportFactory {
     bool isPendingSync = false,
   }) {
     return WorkReport()
-      ..id = id
       ..odooId = id
-      ..orderId = orderId
-      ..orderName = orderName
-      ..content = content
-      ..reportDate = DateTime(2024, 12, 1)
+      ..orderOdooId = orderId
+      ..workDone = content
+      ..problemsFound = null
+      ..recommendation = null
+      ..photoPaths = []
       ..isPendingSync = isPendingSync
-      ..lastSyncAt = DateTime.now();
+      ..createdAt = DateTime.now();
   }
 }

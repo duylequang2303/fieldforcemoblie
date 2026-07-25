@@ -34,3 +34,26 @@ flutter pub get
 # Chạy ứng dụng trên thiết bị/emulator
 flutter run
 ```
+
+## 📋 Test Cases
+
+Chiến lược test tổng thể: đọc `docs/TEST_STRATEGY.md`
+
+| File | Nội dung |
+|---|---|
+| `Test_Case_All_Modules.csv` | Tổng hợp 99 Test Cases tất cả module (Auth, Orders, Route Map, Stock, Timesheet, Expense, Work Order) |
+| `Test_Case_Dang_nhap_Dong_bo_Offline.csv` | 9 TC Đăng nhập + Đồng bộ offline |
+| `Test_Case_Orders.csv` | 20 TC Quản lý Đơn hàng & Lịch trình |
+| `Test_Case_Route_Map.csv` | 11 TC Bản đồ lộ trình |
+| `Test_Case_Stock.csv` | 15 TC Quét mã vạch, Xuất/Nhập kho |
+| `Test_Case_Timesheet.csv` | 12 TC Chấm công |
+| `Test_Case_Expense.csv` | 16 TC Quản lý chi phí |
+| `Test_Case_Work_Order.csv` | 16 TC Nghiệm thu & Chữ ký |
+
+**Phân loại test:**
+- **Unit Test** (~10 TC): Validation logic, model parsing
+- **Integration Test** (~40 TC): Auth + Sync + Offline-First với Isar in-memory
+- **E2E Test** (~15 TC): Patrol自动化 (Login, Check-in, Scan, Capture, Sign)
+- **Manual Test** (~44 TC): Thiết bị thật + Odoo server thật
+
+Test fixtures: `test/fixtures/sample_data.dart`

@@ -8,7 +8,7 @@ void main() {
       final report = WorkReportFactory.sample(content: '');
 
       bool isValid(WorkReport r) {
-        return r.content != null && r.content!.trim().isNotEmpty;
+        return r.workDone.trim().isNotEmpty;
       }
 
       expect(isValid(report), isFalse, reason: 'Nội dung báo cáo công việc đang trống.');
@@ -18,7 +18,7 @@ void main() {
       final report = WorkReportFactory.sample(content: 'Đã hoàn tất thay thế linh kiện A và vệ sinh thiết bị.');
 
       bool isValid(WorkReport r) {
-        return r.content != null && r.content!.trim().isNotEmpty;
+        return r.workDone.trim().isNotEmpty;
       }
 
       expect(isValid(report), isTrue);
