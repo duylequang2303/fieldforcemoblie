@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'core/database/isar_service.dart';
 import 'core/locale/locale_service.dart';
+import 'core/database/sync_manager.dart';
 // Isar schemas — import generated .g.dart files
 import 'features/auth/models/user_session.dart';
 import 'features/orders/models/fsm_order.dart';
@@ -14,6 +15,10 @@ import 'features/stock/models/stock_move.dart';
 import 'features/timesheet/models/timesheet_entry.dart';
 import 'features/expense/models/expense.dart';
 import 'features/work_order/models/work_report.dart';
+import 'features/orders/services/orders_service.dart';
+import 'features/timesheet/services/timesheet_service.dart';
+import 'features/expense/services/expense_service.dart';
+import 'features/stock/services/stock_service.dart';
 import 'app/app.dart';
 
 Future<void> main() async {
@@ -47,6 +52,14 @@ Future<void> main() async {
         ExpenseSchema,
         WorkReportSchema,
       ]);
+      // Đăng ký các sync handlers cho offline sync sau khi Isar khởi tạo thành công
+      SyncManager.instance.registerSyncHandler(OrdersService.instance.syncPending);
+      SyncManager.instance.registerSyncHandler(TimesheetService.instance.syncPending);
+      SyncManager.instance.registerSyncHandler(ExpenseService.instance.syncPending);
+      SyncManager.instance.registerSyncHandler(StockService.instance.syncPending);
+
+      // Bắt đầu lắng nghe trạng thái mạng để tự động sync
+      SyncManager.instance.startListening();
     } catch (e) {
       debugPrint('Init Isar Error: $e');
     }

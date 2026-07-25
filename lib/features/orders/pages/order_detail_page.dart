@@ -6,8 +6,10 @@ import '../../../core/routing/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_overlay.dart';
+import '../../../shared/widgets/offline_banner.dart';
 import '../models/fsm_order.dart';
 import '../providers/orders_provider.dart';
+import '../../route_map/providers/route_provider.dart';
 import '../widgets/order_status_chip.dart';
 
 /// Strip HTML tags khỏi chuỗi text trả về từ Odoo (VD: <p>...</p>).
@@ -57,24 +59,29 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
         return Scaffold(
           backgroundColor: AppColors.background,
-          body: CustomScrollView(
-            slivers: [
-              _buildAppBar(context, order),
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    if (provider.errorMessage != null)
-                      ErrorView(
-                        message: provider.errorMessage!,
-                        onRetry: provider.clearError,
-                      ),
-                    _buildInfoCard(order),
-                    _buildScheduleCard(order),
-                    _buildActionsCard(context, provider, order),
-                    const SizedBox(height: 120),
-                  ],
-                ),
+          body: Stack(
+            children: [
+              CustomScrollView(
+                slivers: [
+                  _buildAppBar(context, order),
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        if (provider.errorMessage != null && !provider.isOffline)
+                          ErrorView(
+                            message: provider.errorMessage!,
+                            onRetry: provider.clearError,
+                          ),
+                        _buildInfoCard(order),
+                        _buildScheduleCard(order),
+                        _buildActionsCard(context, provider, order),
+                        const SizedBox(height: 120),
+                      ],
+                    ),
+                  ),
+                ],
               ),
+              if (provider.isOffline) const OfflineBanner(),
             ],
           ),
           bottomNavigationBar: _buildBottomActions(context, provider, order),
@@ -186,6 +193,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             value: _fmt(order.dateStart!),
             icon: Icons.login_outlined,
             highlight: true,
+            trailing: order.isPendingSync
+                ? const Tooltip(
+                    message: 'Đang chờ đồng bộ lên Odoo',
+                    child: Icon(Icons.sync_problem, color: AppColors.warning, size: 18),
+                  )
+                : null,
           ),
       ],
     );
@@ -235,6 +248,25 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
+  Future<bool> _ensureRouteSequence(BuildContext context, OrdersProvider provider, FsmOrder order) async {
+    final routeProvider = context.read<RouteProvider>();
+    if (routeProvider.stops.isEmpty) {
+      await routeProvider.buildRoute(provider.orders);
+    }
+    if (!routeProvider.isAllowedToCheckIn(order.odooId)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bạn phải hoàn thành các điểm trước trong lộ trình trước.'),
+            backgroundColor: AppColors.warning,
+          ),
+        );
+      }
+      return false;
+    }
+    return true;
+  }
+
   Widget _buildBottomActions(
       BuildContext context, OrdersProvider provider, FsmOrder order) {
     return SafeArea(
@@ -252,11 +284,56 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         ),
         child: Row(
           children: [
-            // Check-in button
-            if (order.stage == FsmOrderStage.draft)
+            if (order.stage == FsmOrderStage.done || order.stage == FsmOrderStage.cancelled)
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () => provider.checkIn(order.odooId),
+                  onPressed: null,
+                  icon: const Icon(Icons.lock_outline, size: 18),
+                  label: Text(order.stage == FsmOrderStage.done
+                      ? 'Đã hoàn thành'
+                      : 'Đã huỷ'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.surfaceVariant,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              )
+            else if (order.dateStart == null)
+              // Nút Check-in
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: provider.isLoading
+                      ? null
+                      : () async {
+                          if (!await _ensureRouteSequence(context, provider, order)) return;
+                          
+                          await provider.checkIn(order.odooId);
+                          await context.read<RouteProvider>().buildRoute(provider.orders);
+                          
+                          if (context.mounted) {
+                            if (provider.errorMessage == null) {
+                              final statusText = provider.isOffline
+                                  ? 'Check-in thành công! (Ngoại tuyến, sẽ đồng bộ sau)'
+                                  : 'Check-in thành công!';
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(statusText),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(provider.errorMessage!),
+                                  backgroundColor: AppColors.error,
+                                ),
+                              );
+                            }
+                          }
+                        },
                   icon: const Icon(Icons.login, size: 18),
                   label: const Text('Check-in'),
                   style: FilledButton.styleFrom(
@@ -268,14 +345,22 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   ),
                 ),
               )
-            else if (order.stage == FsmOrderStage.inProgress)
+            else if (order.stage == FsmOrderStage.draft)
+              // Nút Bắt đầu thực hiện (chuyển sang stageId = 2)
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: () => _confirmComplete(context, provider, order),
-                  icon: const Icon(Icons.check_circle_outline, size: 18),
-                  label: const Text('Hoàn thành'),
+                  onPressed: provider.isLoading
+                      ? null
+                      : () async {
+                          if (!await _ensureRouteSequence(context, provider, order)) return;
+                          // Gọi hàm tự động lấy ID trạng thái In Progress
+                          await provider.updateOrderToInProgress(order.odooId);
+                          await context.read<RouteProvider>().buildRoute(provider.orders);
+                        },
+                  icon: const Icon(Icons.play_circle_outline, size: 18),
+                  label: const Text('Bắt đầu thực hiện'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.success,
+                    backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -284,15 +369,19 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 ),
               )
             else
+              // Nút Hoàn thành (chuyển sang stageId = 3)
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: null,
-                  icon: const Icon(Icons.lock_outline, size: 18),
-                  label: Text(order.stage == FsmOrderStage.done
-                      ? 'Đã hoàn thành'
-                      : 'Đã huỷ'),
+                  onPressed: provider.isLoading
+                      ? null
+                      : () async {
+                          if (!await _ensureRouteSequence(context, provider, order)) return;
+                          _confirmComplete(context, provider, order);
+                        },
+                  icon: const Icon(Icons.check_circle_outline, size: 18),
+                  label: const Text('Hoàn thành'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.surfaceVariant,
+                    backgroundColor: AppColors.success,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -330,8 +419,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       ),
     );
     if (confirmed == true && context.mounted) {
-      // stageId 3 là "Done" — cần map đúng với Odoo thực tế
-      await provider.updateOrderStage(order.odooId, 3);
+      await provider.updateOrderToDone(order.odooId);
+      await context.read<RouteProvider>().buildRoute(provider.orders);
     }
   }
 
@@ -403,6 +492,7 @@ class _DetailRow extends StatelessWidget {
     required this.icon,
     this.isAction = false,
     this.highlight = false,
+    this.trailing,
   });
 
   final String label;
@@ -410,6 +500,7 @@ class _DetailRow extends StatelessWidget {
   final IconData icon;
   final bool isAction;
   final bool highlight;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -447,6 +538,10 @@ class _DetailRow extends StatelessWidget {
               ],
             ),
           ),
+          if (trailing != null) ...[
+            const SizedBox(width: 8),
+            trailing!,
+          ],
         ],
       ),
     );

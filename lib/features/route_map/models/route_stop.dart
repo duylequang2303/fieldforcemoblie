@@ -1,4 +1,5 @@
 import 'package:isar_community/isar.dart';
+import '../../orders/models/fsm_order.dart';
 
 part 'route_stop.g.dart';
 
@@ -31,6 +32,9 @@ class RouteStop {
   // Thứ tự trong lộ trình (0 = xuất phát)
   late int sequence;
 
+  // Trạng thái của tuyến đường (draft, planned, done...)
+  String? routeState;
+
   // Khoảng cách từ điểm trước (km)
   double? distanceFromPrev;
 
@@ -47,23 +51,25 @@ class RouteStop {
   RouteStop();
 
   /// Tạo từ FsmOrder để xây lộ trình.
-  factory RouteStop.fromOrder({
-    required int orderOdooId,
-    required String orderName,
-    required int sequence,
-    String? partnerName,
-    String? locationName,
-    double? lat,
-    double? lng,
-  }) {
+  factory RouteStop.fromOrder(FsmOrder order, int sequence) {
+    StopStatus status = StopStatus.pending;
+    if (order.stage == FsmOrderStage.done) {
+      status = StopStatus.completed;
+    } else if (order.stage == FsmOrderStage.cancelled) {
+      status = StopStatus.skipped;
+    } else if (order.dateStart != null) {
+      status = StopStatus.current;
+    }
+
     return RouteStop()
-      ..orderOdooId = orderOdooId
-      ..orderName = orderName
+      ..orderOdooId = order.odooId
+      ..orderName = order.name
       ..sequence = sequence
-      ..partnerName = partnerName
-      ..locationName = locationName
-      ..latitude = lat
-      ..longitude = lng
-      ..status = StopStatus.pending;
+      ..partnerName = order.partnerName
+      ..locationName = order.locationName
+      ..latitude = order.locationLat
+      ..longitude = order.locationLng
+      ..routeState = order.routeState
+      ..status = status;
   }
 }

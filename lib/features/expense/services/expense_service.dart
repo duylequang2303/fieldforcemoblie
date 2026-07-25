@@ -43,6 +43,14 @@ class ExpenseService {
       await _isar.db.expenses.put(expense);
     });
 
+    if (expense.odooId != null) {
+      await _isar.db.writeTxn(() async {
+        expense.isPendingSync = false;
+        await _isar.db.expenses.put(expense);
+      });
+      return expense;
+    }
+
     try {
       final result = await _odoo.callKw(
         model: 'hr.expense',
@@ -52,6 +60,7 @@ class ExpenseService {
             'name': name,
             'total_amount': amount,
             'date': date.toIso8601String().substring(0, 10),
+            'fsm_order_id': orderOdooId,
           },
         ],
       );
@@ -74,8 +83,16 @@ class ExpenseService {
         .findAll();
 
     for (final expense in pending) {
+      if (expense.odooId != null) {
+        await _isar.db.writeTxn(() async {
+          expense.isPendingSync = false;
+          await _isar.db.expenses.put(expense);
+        });
+        continue;
+      }
+
       try {
-        await _odoo.callKw(
+        final result = await _odoo.callKw(
           model: 'hr.expense',
           method: 'create',
           args: [
@@ -83,10 +100,12 @@ class ExpenseService {
               'name': expense.name,
               'total_amount': expense.amount,
               'date': expense.date.toIso8601String().substring(0, 10),
+              'fsm_order_id': expense.orderOdooId,
             },
           ],
         );
         await _isar.db.writeTxn(() async {
+          expense.odooId = result as int?;
           expense.isPendingSync = false;
           await _isar.db.expenses.put(expense);
         });

@@ -29,6 +29,15 @@ class TimesheetService {
     required double hours,
     required String description,
   }) async {
+    final order = await _isar.db.fsmOrders.getByOdooId(orderOdooId);
+    if (order == null) {
+      throw const OdooBusinessException('Không tìm thấy đơn hàng cục bộ.');
+    }
+
+    if (order.projectId == null || order.projectTaskId == null) {
+      throw const OdooBusinessException('Đơn chưa gắn dự án/task, không thể ghi giờ công.');
+    }
+
     final entry = TimesheetEntry.create(
       orderOdooId: orderOdooId,
       date: date,
@@ -41,6 +50,14 @@ class TimesheetService {
       await _isar.db.timesheetEntrys.put(entry);
     });
 
+    if (entry.odooId != null) {
+      await _isar.db.writeTxn(() async {
+        entry.isPendingSync = false;
+        await _isar.db.timesheetEntrys.put(entry);
+      });
+      return entry;
+    }
+
     // Cố gắng push lên Odoo ngay
     try {
       final result = await _odoo.callKw(
@@ -51,7 +68,10 @@ class TimesheetService {
             'name': description,
             'date': '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
             'unit_amount': hours,
-            'task_id': orderOdooId, // tuỳ mapping Odoo
+            'project_id': order.projectId,
+            'task_id': order.projectTaskId,
+            'employee_id': _odoo.currentSession?.employeeId,
+            'fsm_order_id': orderOdooId,
           },
         ],
       );
@@ -75,8 +95,22 @@ class TimesheetService {
         .findAll();
 
     for (final entry in pending) {
+      final order = await _isar.db.fsmOrders.getByOdooId(entry.orderOdooId);
+      if (order == null || order.projectId == null || order.projectTaskId == null) {
+        logger.w('TimesheetService.syncPending: Thiếu order hoặc project_id, bỏ qua entry ${entry.id}');
+        continue;
+      }
+
+      if (entry.odooId != null) {
+        await _isar.db.writeTxn(() async {
+          entry.isPendingSync = false;
+          await _isar.db.timesheetEntrys.put(entry);
+        });
+        continue;
+      }
+
       try {
-        await _odoo.callKw(
+        final result = await _odoo.callKw(
           model: 'account.analytic.line',
           method: 'create',
           args: [
@@ -84,10 +118,15 @@ class TimesheetService {
               'name': entry.name,
               'date': entry.date.toIso8601String().substring(0, 10),
               'unit_amount': entry.hours,
+              'project_id': order.projectId,
+              'task_id': order.projectTaskId,
+              'employee_id': _odoo.currentSession?.employeeId,
+              'fsm_order_id': order.odooId,
             },
           ],
         );
         await _isar.db.writeTxn(() async {
+          entry.odooId = result as int?;
           entry.isPendingSync = false;
           await _isar.db.timesheetEntrys.put(entry);
         });

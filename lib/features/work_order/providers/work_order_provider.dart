@@ -3,11 +3,16 @@ import '../../../core/api/api_exception.dart';
 import '../../../core/utils/logger.dart';
 import '../models/work_report.dart';
 import '../services/work_order_service.dart';
+import '../../orders/models/fsm_order.dart';
 
 class WorkOrderProvider extends ChangeNotifier {
-  final _service = WorkOrderService.instance;
+  WorkOrderProvider({WorkOrderService? service})
+    : _service = service ?? WorkOrderService.instance;
+
+  final WorkOrderService _service;
 
   WorkReport? _report;
+  FsmOrder? _order;
   bool _isLoading = false;
   String? _errorMessage;
   bool _isSubmitting = false;
@@ -17,10 +22,13 @@ class WorkOrderProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isSubmitting => _isSubmitting;
   bool get hasSignature => _report?.customerSignaturePath != null;
-  bool get isComplete =>
-      _report != null &&
-      _report!.workDone.isNotEmpty &&
-      _report!.customerSignaturePath != null;
+  bool get isComplete {
+    if (_report == null || _report!.workDone.isEmpty) return false;
+    if (_order?.requireSignature == true) {
+      return _report!.customerSignaturePath != null;
+    }
+    return true; // Nếu không yêu cầu chữ ký, chỉ cần có workDone là đủ
+  }
 
   Future<void> loadReport(int orderOdooId) async {
     _isLoading = true;
@@ -28,6 +36,7 @@ class WorkOrderProvider extends ChangeNotifier {
     notifyListeners();
     try {
       _report = await _service.getOrCreateReport(orderOdooId);
+      _order = await _service.getOrder(orderOdooId);
     } catch (e) {
       _errorMessage = 'Lỗi tải báo cáo: $e';
       logger.e('WorkOrderProvider.loadReport', error: e);

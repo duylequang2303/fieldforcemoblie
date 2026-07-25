@@ -8,7 +8,10 @@ import '../services/location_service.dart';
 
 /// State management cho bản đồ lộ trình.
 class RouteProvider extends ChangeNotifier {
-  final _locationService = LocationService.instance;
+  RouteProvider({LocationService? locationService}) 
+    : _locationService = locationService ?? LocationService.instance;
+
+  final LocationService _locationService;
 
   List<RouteStop> _stops = [];
   Position? _currentPosition;
@@ -32,23 +35,15 @@ class RouteProvider extends ChangeNotifier {
     try {
       final sorted = [...orders]
         ..sort((a, b) {
-          if (a.scheduledDateStart == null) return 1;
-          if (b.scheduledDateStart == null) return -1;
-          return a.scheduledDateStart!.compareTo(b.scheduledDateStart!);
+          final seqA = a.routeSequence ?? 9999;
+          final seqB = b.routeSequence ?? 9999;
+          return seqA.compareTo(seqB);
         });
 
       _stops = sorted.asMap().entries.map((entry) {
         final i = entry.key;
         final order = entry.value;
-        return RouteStop.fromOrder(
-          orderOdooId: order.odooId,
-          orderName: order.name,
-          sequence: i,
-          partnerName: order.partnerName,
-          locationName: order.locationName,
-          lat: order.locationLat,
-          lng: order.locationLng,
-        );
+        return RouteStop.fromOrder(order, i);
       }).toList();
 
       // Tính khoảng cách giữa các điểm
@@ -127,5 +122,78 @@ class RouteProvider extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  /// Kiểm tra xem nhân viên có được phép check-in tại order này không
+  /// dựa trên thứ tự ưu tiên Optimal Route, GPS location và deadline.
+  /// 
+  /// Logic:
+  /// 1. Không có trong lộ trình -> Cho phép (true)
+  /// 2. Route state = 'draft' -> Bỏ qua enforcement (true)
+  /// 3. GPS validation: Nếu worker cách location > 500m -> Không cho phép (true cho phép nhưng cảnh báo)
+  /// 4. Deadline validation: Nếu check-in trước scheduled_date_start -> Cho phép
+  /// 5. Sequential check: Phải hoàn thành các điểm trước trong route 'planned'/'done'
+  bool isAllowedToCheckIn(
+    int orderOdooId, {
+    Position? currentLocation,
+    double maxDistanceMeters = 500.0, // Default 500m
+  }) {
+    final stopIdx = _stops.indexWhere((s) => s.orderOdooId == orderOdooId);
+    if (stopIdx == -1) return true; // Không có trong lộ trình thì cho phép
+
+    final currentStop = _stops[stopIdx];
+    final routeState = currentStop.routeState;
+
+    // Route state = 'draft' -> Bỏ qua enforcement (thường là route chưa được lên lịch)
+    if (routeState == 'draft') {
+      return true;
+    }
+
+    // GPS validation: Kiểm tra khoảng cách đến location
+    // Nếu worker ở quá xa location (> 500m), có thể cho phép nhưng cảnh báo
+    // Hoặc có thể khóa hoàn toàn nếu cần strict enforcement
+    if (currentLocation != null &&
+        currentStop.latitude != null &&
+        currentStop.longitude != null) {
+      final distance = _locationService.distanceBetween(
+        currentLocation.latitude,
+        currentLocation.longitude,
+        currentStop.latitude!,
+        currentStop.longitude!,
+      );
+      
+      // Nếu cách xa hơn 500m -> Không cho phép check-in (strict enforcement)
+      if (distance > maxDistanceMeters / 1000) { // Convert km to meters
+        logger.w('RouteProvider.isAllowedToCheckIn: Worker quá xa location (${distance * 1000}m > ${maxDistanceMeters}m)');
+        return false;
+      }
+    }
+
+    // Deadline validation: Kiểm tra scheduled_date_start
+    // Cho phép worker check-in trước deadline nếu cần (thường là cho phép)
+    final now = DateTime.now();
+    if (currentStop.estimatedMinutes != null) {
+      // Nếu có ước tính thời gian đến, có thể check xem đã đến giờ chưa
+      final estimatedArrival = now.add(Duration(minutes: currentStop.estimatedMinutes!));
+      logger.i('RouteProvider.isAllowedToCheckIn: Ước tính đến lúc ${estimatedArrival.toIso8601String()}');
+    }
+
+    // Sequential check: Phải hoàn thành các điểm trước trong route 'planned'/'done'
+    // Route đã hoàn thành ('done') -> Không cho phép check-in bất kỳ điểm nào
+    if (routeState == 'done') {
+      logger.w('RouteProvider.isAllowedToCheckIn: Route đã hoàn thành');
+      return false;
+    }
+
+    // Kiểm tra tất cả các điểm trước đó (có sequence < current)
+    for (int i = 0; i < stopIdx; i++) {
+      final prev = _stops[i];
+      // Nếu có điểm trước nào chưa hoàn thành hoặc chưa bị bỏ qua -> Không cho phép check-in
+      if (prev.status != StopStatus.completed && prev.status != StopStatus.skipped) {
+        logger.w('RouteProvider.isAllowedToCheckIn: Điểm trước (${prev.orderName}) chưa hoàn thành');
+        return false;
+      }
+    }
+    return true;
   }
 }

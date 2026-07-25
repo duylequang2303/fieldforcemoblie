@@ -35,11 +35,23 @@ class FsmOrder {
   double? locationLng;        // Kinh độ GPS
   String? partnerName;        // Tên khách hàng
   String? partnerPhone;       // SĐT khách hàng
+  int? partnerId;             // Từ fsm.location partner_id
+
+  // Kho hàng liên kết
+  int? warehouseId;           // Từ order warehouse_id
+  int? inventoryLocationId;   // Từ fsm.location inventory_location_id
+
+  // Dự án & Chấm công
+  int? projectId;             // Từ order project_id
+  int? projectTaskId;         // Từ order project_task_id
 
   // Lịch hẹn
   DateTime? scheduledDateStart;
   DateTime? scheduledDateEnd;
   DateTime? dateStart;        // Giờ bắt đầu thực tế
+  int? routeSequence;         // Thứ tự lộ trình từ Odoo optimal route
+  int? routeId;               // ID của lộ trình fsm.route
+  String? routeState;         // state của lộ trình ('draft', 'planned', 'done')
 
   // Worker
   int? personId;              // fsm.person.id
@@ -48,11 +60,14 @@ class FsmOrder {
   // Sync
   late bool isPendingSync;    // true = có thay đổi chưa push lên Odoo
   late DateTime lastSyncAt;
+  
+  // Rules
+  bool requireSignature = false;
 
   FsmOrder();
 
   /// Tạo từ JSON trả về từ Odoo API.
-  factory FsmOrder.fromJson(Map<String, dynamic> json) {
+  factory FsmOrder.fromJson(Map<String, dynamic> json, {Map<int, Map<String, dynamic>>? locationCoordinates}) {
     final order = FsmOrder()
       ..odooId = (json['id'] as int)
       ..name = (json['name'] as String?) ?? ''
@@ -69,8 +84,33 @@ class FsmOrder {
       ..dateStart = _dateOrNull(json['date_start'])
       ..personId = _idOrNull(json['person_id'])
       ..personName = _nameFromMany(json['person_id'])
+      ..routeSequence = json['route_sequence'] as int?
+      ..routeId = _idOrNull(json['route_id'])
+      ..routeState = json['route_state'] as String? // Sẽ được merge từ query riêng hoặc related field
+      ..requireSignature = json['require_signature'] == true
       ..isPendingSync = false
       ..lastSyncAt = DateTime.now();
+
+    
+    // Parse location coordinates & additional data if available
+    if (json['location_id'] != null && json['location_id'] is List && locationCoordinates != null) {
+      final locationId = (json['location_id'] as List)[0] as int;
+      final locationData = locationCoordinates[locationId];
+      if (locationData != null) {
+        order.locationLat = locationData['partner_latitude'] as double?;
+        order.locationLng = locationData['partner_longitude'] as double?;
+        order.partnerId = _idOrNull(locationData['partner_id']);
+        order.inventoryLocationId = _idOrNull(locationData['inventory_location_id']);
+      }
+    }
+    
+    // Parse warehouse
+    order.warehouseId = _idOrNull(json['warehouse_id']);
+    
+    // Parse project
+    order.projectId = _idOrNull(json['project_id']);
+    order.projectTaskId = _idOrNull(json['project_task_id']);
+    
     return order;
   }
 
