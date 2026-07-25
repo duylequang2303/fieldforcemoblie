@@ -123,6 +123,7 @@ class _CustomerSignatureWidgetState extends State<CustomerSignatureWidget> {
           RepaintBoundary(
             key: _repaintKey,
             child: SignaturePad(
+              key: const Key('signature_pad'),
               onChanged: (bool hasDrawing) {
                 if (hasDrawing && !_hasSigned) {
                   setState(() => _hasSigned = true);
