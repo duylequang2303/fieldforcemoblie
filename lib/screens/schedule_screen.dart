@@ -113,7 +113,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           return ScheduleCard(
             order: order,
             onTap: () {
-              context.push(RouteNames.workOrderDetailScreen);
+              context.push(RouteNames.workOrderDetailScreen, extra: order);
             },
             onChatTap: () {
               // TODO: Mở màn hình chat/ghi chú
