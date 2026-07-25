@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import '../features/stock/models/product.dart';
 
 class MaterialEntryForm extends StatefulWidget {
-  final VoidCallback onSaved;
+  final void Function(Product? product, int quantity) onSaved;
   final List<Product>? availableProducts;
 
   const MaterialEntryForm({
@@ -62,7 +62,7 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
       );
       return;
     }
-    widget.onSaved();
+    widget.onSaved(_selectedProduct, _quantity);
   }
 
   @override
