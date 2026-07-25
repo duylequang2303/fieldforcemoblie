@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../widgets/empty_state_widget.dart';
+import '../widgets/date_navigation_bar.dart';
+import '../widgets/schedule_card.dart';
+import '../features/orders/models/fsm_order.dart';
+import '../theme/app_theme.dart';
 
-/// Màn hình mẫu ScheduleScreen tuân thủ cấu trúc Scaffold mới.
-/// Có Loading state, Empty state và Date Navigation Bar theo chuẩn Sortscape.
+/// Màn hình mẫu ScheduleScreen tuân thủ cấu trúc Scaffold mới
+/// và thiết kế Sortscape (Card-based List).
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
 
@@ -13,12 +17,28 @@ class ScheduleScreen extends StatefulWidget {
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
   int _currentIndex = 0;
-  
-  // Biến state mô phỏng dữ liệu
   bool _isLoading = false;
-  
-  // Đổi thành list rỗng [] để test Empty State
-  final List<int> _jobs = [1000, 1001, 1002, 1003]; 
+  DateTime _selectedDate = DateTime.now();
+
+  // Mock dữ liệu dựa theo FsmOrder cho UI mẫu
+  final List<FsmOrder> _orders = [
+    FsmOrder()
+      ..odooId = 1
+      ..name = "WO/2026/001"
+      ..locationAddress = "42 Garden Street, Sydney NSW"
+      ..partnerName = "John Doe"
+      ..scheduledDateStart = DateTime.now().copyWith(hour: 9, minute: 0)
+      ..scheduledDateEnd = DateTime.now().copyWith(hour: 11, minute: 0)
+      ..isPendingSync = false,
+    FsmOrder()
+      ..odooId = 2
+      ..name = "WO/2026/002"
+      ..locationAddress = "150 George Street, Brisbane"
+      ..partnerName = "Acme Corp"
+      ..scheduledDateStart = DateTime.now().copyWith(hour: 13, minute: 0)
+      ..scheduledDateEnd = DateTime.now().copyWith(hour: 14, minute: 30)
+      ..isPendingSync = true,
+  ];
 
   void _onTabTapped(int index) {
     setState(() {
@@ -26,100 +46,97 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     });
   }
 
-  /// Date Navigation Bar Component
-  Widget _buildDateNavigationBar() {
-    return Container(
-      color: Theme.of(context).colorScheme.surface,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left),
-            onPressed: () {
-              // TODO: Logic lùi ngày
-            },
-          ),
-          Column(
-            children: [
-              Text(
-                'Hôm nay',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-              ),
-              Text(
-                '25 Thg 7, 2026',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
-                ),
-              ),
-            ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            onPressed: () {
-              // TODO: Logic tiến ngày
-            },
-          ),
-        ],
-      ),
-    );
+  Future<void> _onRefresh() async {
+    setState(() {
+      _isLoading = true;
+    });
+    // Giả lập gọi API sync
+    await Future.delayed(const Duration(seconds: 1));
+    setState(() {
+      _isLoading = false;
+    });
   }
 
-  /// Main List Component
   Widget _buildJobList() {
     if (_isLoading) {
+      // TODO: Có thể thay thế bằng Shimmer Loading thật
       return const Center(
         child: CircularProgressIndicator(),
       );
     }
 
-    if (_jobs.isEmpty) {
+    if (_orders.isEmpty) {
       return const EmptyStateWidget(
-        message: 'Không có công việc nào trong ngày này.',
+        message: 'No jobs scheduled for this day',
         icon: Icons.event_available,
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: _jobs.length,
-      itemBuilder: (context, index) {
-        return Card(
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            leading: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.work_outline,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            title: Text(
-              'Job #${_jobs[index]}',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            subtitle: const Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Text('42 Garden Street, Sydney NSW\n09:00 AM - 11:00 AM'),
-            ),
-            isThreeLine: true,
-            trailing: const Icon(Icons.chevron_right),
+    return RefreshIndicator(
+      onRefresh: _onRefresh,
+      color: AppTheme.primary,
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        itemCount: _orders.length,
+        itemBuilder: (context, index) {
+          final order = _orders[index];
+          return ScheduleCard(
+            order: order,
             onTap: () {
               // TODO: Mở chi tiết công việc
             },
-          ),
-        );
-      },
+            onChatTap: () {
+              // TODO: Mở màn hình chat/ghi chú
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildBottomSummaryBar() {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(
+          top: BorderSide(color: theme.dividerColor),
+        ),
+      ),
+      child: SafeArea(
+        top: false,
+        bottom: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '15.00 hrs (\$ 350)',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: () {
+                // TODO: Tạo công việc mới
+              },
+              icon: Icon(Icons.add, color: theme.colorScheme.primary),
+              label: Text(
+                'Add Visit',
+                style: TextStyle(color: theme.colorScheme.primary),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: theme.colorScheme.primary),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -127,27 +144,63 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        // TODO: Chuyển sang dùng AppLocalizations khi dự án setup xong i18n
-        // title: Text(AppLocalizations.of(context)!.schedule),
-        title: const Text('Lịch trình'),
+        title: const Text('Schedule'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.search),
+            icon: const Icon(Icons.filter_list),
             onPressed: () {},
+          ),
+          IconButton(
+            icon: const Icon(Icons.calendar_today),
+            onPressed: () async {
+              final date = await showDatePicker(
+                context: context,
+                initialDate: _selectedDate,
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+              if (date != null) {
+                setState(() => _selectedDate = date);
+              }
+            },
           ),
         ],
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildDateNavigationBar(),
-            // Thêm divider nhẹ giữa Date bar và list
-            const Divider(height: 1, thickness: 1),
-            Expanded(
-              child: _buildJobList(),
-            ),
-          ],
-        ),
+      body: Column(
+        children: [
+          DateNavigationBar(
+            selectedDate: _selectedDate,
+            onPrevious: () {
+              setState(() {
+                _selectedDate = _selectedDate.subtract(const Duration(days: 1));
+              });
+            },
+            onNext: () {
+              setState(() {
+                _selectedDate = _selectedDate.add(const Duration(days: 1));
+              });
+            },
+            onCalendarTap: () async {
+              final date = await showDatePicker(
+                context: context,
+                initialDate: _selectedDate,
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+              if (date != null) {
+                setState(() => _selectedDate = date);
+              }
+            },
+            onDropdownChanged: (value) {
+              // TODO: Xử lý đổi view Ngày/Tuần/Tháng
+            },
+          ),
+          const Divider(height: 1, thickness: 1),
+          Expanded(
+            child: _buildJobList(),
+          ),
+          _buildBottomSummaryBar(),
+        ],
       ),
       bottomNavigationBar: CustomBottomNav(
         currentIndex: _currentIndex,
