@@ -305,6 +305,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               // Nút Check-in
               Expanded(
                 child: FilledButton.icon(
+                  key: const Key('btn_check_in'),
                   onPressed: provider.isLoading
                       ? null
                       : () async {
@@ -372,6 +373,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               // Nút Hoàn thành (chuyển sang stageId = 3)
               Expanded(
                 child: FilledButton.icon(
+                  key: const Key('btn_mark_complete'),
                   onPressed: provider.isLoading
                       ? null
                       : () async {
