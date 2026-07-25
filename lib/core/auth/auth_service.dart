@@ -50,8 +50,10 @@ class AuthService {
     final sessionId = saved['sessionId'];
     final database = saved['database'];
     final locale = saved['locale'];
+    final userIdStr = saved['userId'];
+    final userId = userIdStr != null ? int.tryParse(userIdStr) : null;
 
-    if (serverUrl == null || sessionId == null || database == null) {
+    if (serverUrl == null || sessionId == null || database == null || userId == null) {
       return false;
     }
 
@@ -59,6 +61,7 @@ class AuthService {
       serverUrl: serverUrl,
       database: database,
       sessionId: sessionId,
+      savedUserId: userId,
     );
 
     if (restored && locale != null && locale.isNotEmpty) {

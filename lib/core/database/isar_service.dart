@@ -24,6 +24,11 @@ class IsarService {
     return _db!;
   }
 
+  @visibleForTesting
+  set dbForTest(Isar isarDB) {
+    _db = isarDB;
+  }
+
   bool get isInitialized => _db != null && _db!.isOpen;
 
   /// Khởi tạo Isar với danh sách schema.

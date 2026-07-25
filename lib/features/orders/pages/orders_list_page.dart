@@ -45,7 +45,7 @@ class _OrdersListPageState extends State<OrdersListPage> {
                 ],
                 body: provider.isLoading
                     ? const LoadingOverlay(message: 'Đang tải đơn dịch vụ...')
-                    : provider.errorMessage != null
+                    : (provider.errorMessage != null && provider.orders.isEmpty)
                         ? ErrorView(
                             message: provider.errorMessage!,
                             onRetry: () {

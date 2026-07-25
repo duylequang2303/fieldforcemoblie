@@ -67,13 +67,18 @@ const RouteStopSchema = CollectionSchema(
       name: r'partnerName',
       type: IsarType.string,
     ),
-    r'sequence': PropertySchema(
+    r'routeState': PropertySchema(
       id: 10,
+      name: r'routeState',
+      type: IsarType.string,
+    ),
+    r'sequence': PropertySchema(
+      id: 11,
       name: r'sequence',
       type: IsarType.long,
     ),
     r'status': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'status',
       type: IsarType.string,
       enumMap: _RouteStopstatusEnumValueMap,
@@ -126,6 +131,12 @@ int _routeStopEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.routeState;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.status.name.length * 3;
   return bytesCount;
 }
@@ -146,8 +157,9 @@ void _routeStopSerialize(
   writer.writeString(offsets[7], object.orderName);
   writer.writeLong(offsets[8], object.orderOdooId);
   writer.writeString(offsets[9], object.partnerName);
-  writer.writeLong(offsets[10], object.sequence);
-  writer.writeString(offsets[11], object.status.name);
+  writer.writeString(offsets[10], object.routeState);
+  writer.writeLong(offsets[11], object.sequence);
+  writer.writeString(offsets[12], object.status.name);
 }
 
 RouteStop _routeStopDeserialize(
@@ -168,9 +180,10 @@ RouteStop _routeStopDeserialize(
   object.orderName = reader.readString(offsets[7]);
   object.orderOdooId = reader.readLong(offsets[8]);
   object.partnerName = reader.readStringOrNull(offsets[9]);
-  object.sequence = reader.readLong(offsets[10]);
+  object.routeState = reader.readStringOrNull(offsets[10]);
+  object.sequence = reader.readLong(offsets[11]);
   object.status =
-      _RouteStopstatusValueEnumMap[reader.readStringOrNull(offsets[11])] ??
+      _RouteStopstatusValueEnumMap[reader.readStringOrNull(offsets[12])] ??
           StopStatus.pending;
   return object;
 }
@@ -203,8 +216,10 @@ P _routeStopDeserializeProp<P>(
     case 9:
       return (reader.readStringOrNull(offset)) as P;
     case 10:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 11:
+      return (reader.readLong(offset)) as P;
+    case 12:
       return (_RouteStopstatusValueEnumMap[reader.readStringOrNull(offset)] ??
           StopStatus.pending) as P;
     default:
@@ -1473,6 +1488,157 @@ extension RouteStopQueryFilter
     });
   }
 
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition> routeStateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'routeState',
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition>
+      routeStateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'routeState',
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition> routeStateEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'routeState',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition>
+      routeStateGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'routeState',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition> routeStateLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'routeState',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition> routeStateBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'routeState',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition>
+      routeStateStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'routeState',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition> routeStateEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'routeState',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition> routeStateContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'routeState',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition> routeStateMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'routeState',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition>
+      routeStateIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'routeState',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition>
+      routeStateIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'routeState',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition> sequenceEqualTo(
       int value) {
     return QueryBuilder.apply(this, (query) {
@@ -1786,6 +1952,18 @@ extension RouteStopQuerySortBy on QueryBuilder<RouteStop, RouteStop, QSortBy> {
     });
   }
 
+  QueryBuilder<RouteStop, RouteStop, QAfterSortBy> sortByRouteState() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'routeState', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterSortBy> sortByRouteStateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'routeState', Sort.desc);
+    });
+  }
+
   QueryBuilder<RouteStop, RouteStop, QAfterSortBy> sortBySequence() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sequence', Sort.asc);
@@ -1947,6 +2125,18 @@ extension RouteStopQuerySortThenBy
     });
   }
 
+  QueryBuilder<RouteStop, RouteStop, QAfterSortBy> thenByRouteState() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'routeState', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterSortBy> thenByRouteStateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'routeState', Sort.desc);
+    });
+  }
+
   QueryBuilder<RouteStop, RouteStop, QAfterSortBy> thenBySequence() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sequence', Sort.asc);
@@ -2037,6 +2227,13 @@ extension RouteStopQueryWhereDistinct
     });
   }
 
+  QueryBuilder<RouteStop, RouteStop, QDistinct> distinctByRouteState(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'routeState', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<RouteStop, RouteStop, QDistinct> distinctBySequence() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'sequence');
@@ -2117,6 +2314,12 @@ extension RouteStopQueryProperty
   QueryBuilder<RouteStop, String?, QQueryOperations> partnerNameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'partnerName');
+    });
+  }
+
+  QueryBuilder<RouteStop, String?, QQueryOperations> routeStateProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'routeState');
     });
   }
 

@@ -54,3 +54,14 @@
 - ❌ Không để code unreachable hoặc `TODO` lâu hơn 1 task.
 - ❌ Không gọi Odoo API trực tiếp trong Widget hoặc Provider.
 - ❌ Không import `dart:io` trong code business logic — chỉ trong service.
+
+## 10. Odoo Backend Server
+- **Server URL:** https://demo002.crmhub.vn/
+- **Web Admin Credentials:** `admin` / `<),9853$6Ect`
+- **SSH Target:** `ssh root@demo002.crmhub.vn`
+- **Odoo Config File:** `/etc/odoo19/odoo.conf`
+- **Restart Command:** `systemctl restart odoo19`
+- **SSH Public Key:**
+  ```text
+  ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB92PzdxE/sr9uywTUi6C0YhvcgzRYHJaPT55Owgi83o duylequang588@gmail.com
+  ```

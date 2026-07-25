@@ -23,6 +23,11 @@ final class OdooBusinessException extends OdooApiException {
   const OdooBusinessException(super.message);
 }
 
+/// Lỗi nghiệp vụ khi xuất kho nhưng thiếu tồn kho
+class StockPartialAssignException extends OdooApiException {
+  const StockPartialAssignException(super.message);
+}
+
 /// Lỗi không tìm thấy record (record đã xóa hoặc không có quyền đọc).
 final class OdooNotFoundException extends OdooApiException {
   const OdooNotFoundException(super.message);

@@ -6,12 +6,14 @@ import '../services/orders_service.dart';
 
 /// State management cho danh sách fsm.order.
 class OrdersProvider extends ChangeNotifier {
-  OrdersProvider() {
+  OrdersProvider({OrdersService? service, ConnectivityService? connectivity}) 
+    : _service = service ?? OrdersService.instance,
+      _connectivity = connectivity ?? ConnectivityService.instance {
     _listenConnectivity();
   }
 
-  final _service = OrdersService.instance;
-  final _connectivity = ConnectivityService.instance;
+  final OrdersService _service;
+  final ConnectivityService _connectivity;
 
   List<FsmOrder> _orders = [];
   bool _isLoading = false;
@@ -66,26 +68,82 @@ class OrdersProvider extends ChangeNotifier {
 
   /// Cập nhật stage của một order.
   Future<void> updateOrderStage(int odooId, int newStageId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
     try {
       await _service.updateStage(odooId, newStageId);
-      final idx = _orders.indexWhere((o) => o.odooId == odooId);
-      if (idx != -1) {
-        _orders[idx].stageId = newStageId;
-        notifyListeners();
-      }
+      _orders = await _service.loadCachedOrders();
     } on OdooApiException catch (e) {
       _errorMessage = e.message;
+      if (e is OdooConnectionException) {
+        _isOffline = true;
+      }
+      _orders = await _service.loadCachedOrders();
+    } catch (e) {
+      _errorMessage = 'Lỗi không xác định: $e';
+      _orders = await _service.loadCachedOrders();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Chuyển đơn sang trạng thái Đang thực hiện (In Progress) bằng cách quét từ khoá
+  Future<void> updateOrderToInProgress(int odooId) async {
+    _isLoading = true;
+    notifyListeners();
+    final stageId = await _service.getStageIdByKeywords(['progress', 'thực hiện']);
+    if (stageId != null) {
+      await updateOrderStage(odooId, stageId);
+    } else {
+      _errorMessage = 'Không tìm thấy trạng thái "Đang thực hiện" trên hệ thống.';
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Chuyển đơn sang trạng thái Hoàn thành (Done) qua action chuẩn của Odoo
+  Future<void> updateOrderToDone(int odooId) async {
+    _isLoading = true;
+    _errorMessage = null; // Reset errorMessage trước khi gọi API nghiệp vụ
+    notifyListeners();
+    
+    try {
+      await _service.completeOrder(odooId);
+      _orders = await _service.loadCachedOrders();
+    } on OdooApiException catch (e) {
+      _errorMessage = e.message;
+      if (e is OdooConnectionException) {
+        _isOffline = true;
+      }
+    } catch (e) {
+      _errorMessage = 'Lỗi không xác định: $e';
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
 
   /// Check-in tại địa điểm làm việc.
   Future<void> checkIn(int odooId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
     try {
       await _service.checkIn(odooId);
-      await fetchOrders();
+      _orders = await _service.loadCachedOrders();
     } on OdooApiException catch (e) {
       _errorMessage = e.message;
+      if (e is OdooConnectionException) {
+        _isOffline = true;
+      }
+      _orders = await _service.loadCachedOrders();
+    } catch (e) {
+      _errorMessage = 'Lỗi không xác định: $e';
+      _orders = await _service.loadCachedOrders();
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }

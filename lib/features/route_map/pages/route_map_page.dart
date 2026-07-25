@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
@@ -123,48 +125,28 @@ class _RouteMapPageState extends State<RouteMapPage>
 
   Widget _buildLocationTab(RouteProvider provider) {
     final pos = provider.currentPosition;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+    
+    if (pos == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.location_off_outlined,
+                size: 64,
+                color: AppColors.onSurfaceMuted,
               ),
-              child: Icon(
-                provider.isTracking ? Icons.gps_fixed : Icons.gps_not_fixed,
-                size: 48,
-                color: provider.isTracking
-                    ? AppColors.primary
-                    : AppColors.onSurfaceMuted,
-              ),
-            ),
-            const SizedBox(height: 24),
-            if (pos != null) ...[
-              _GpsInfoTile(label: 'Vĩ độ', value: pos.latitude.toStringAsFixed(6)),
-              _GpsInfoTile(label: 'Kinh độ', value: pos.longitude.toStringAsFixed(6)),
-              _GpsInfoTile(
-                label: 'Độ chính xác',
-                value: '±${pos.accuracy.toStringAsFixed(0)}m',
-              ),
-              _GpsInfoTile(
-                label: 'Tốc độ',
-                value: '${(pos.speed * 3.6).toStringAsFixed(1)} km/h',
-              ),
-            ] else ...[
+              const SizedBox(height: 16),
               const Text(
-                'Chưa có vị trí GPS',
+                'Đang lấy vị trí...',
                 style: TextStyle(
                   fontSize: 16,
                   color: AppColors.onSurfaceMuted,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: provider.refreshLocation,
                 icon: const Icon(Icons.my_location),
@@ -174,9 +156,37 @@ class _RouteMapPageState extends State<RouteMapPage>
                 ),
               ),
             ],
+          ),
+        ),
+      );
+    }
+    
+    // Show map with worker's location
+    return FlutterMap(
+      options: MapOptions(
+        initialCenter: LatLng(pos.latitude, pos.longitude),
+        initialZoom: 16,
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.example.fieldforce_mobile',
+        ),
+        MarkerLayer(
+          markers: [
+            Marker(
+              point: LatLng(pos.latitude, pos.longitude),
+              width: 80,
+              height: 80,
+              child: const Icon(
+                Icons.location_on,
+                color: AppColors.primary,
+                size: 40,
+              ),
+            ),
           ],
         ),
-      ),
+      ],
     );
   }
 
@@ -276,32 +286,5 @@ class _RouteMapPageState extends State<RouteMapPage>
         );
       }
     }
-  }
-}
-
-class _GpsInfoTile extends StatelessWidget {
-  const _GpsInfoTile({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: AppColors.onSurfaceMuted)),
-          Text(
-            value,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: AppColors.onSurface,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

@@ -2,7 +2,6 @@ import 'package:odoo_rpc/odoo_rpc.dart';
 import 'api_exception.dart';
 import 'odoo_client.dart';
 
-/// Data class lưu thông tin session đăng nhập Odoo.
 class OdooSessionData {
   const OdooSessionData({
     required this.serverUrl,
@@ -10,6 +9,7 @@ class OdooSessionData {
     required this.username,
     required this.userId,
     required this.sessionId,
+    this.employeeId,
     this.locale = 'vi_VN',
   });
 
@@ -18,6 +18,7 @@ class OdooSessionData {
   final String username;
   final int userId;
   final String sessionId;
+  final int? employeeId;
   final String locale;
 }
 
@@ -60,8 +61,30 @@ class OdooSessionManager {
           userLang = (userData.first['lang'] as String?) ?? 'vi_VN';
         }
       } catch (_) {
-        // Nếu không đọc được lang từ Odoo, giữ mặc định vi_VN
+        // Nếu không đọc được từ Odoo, giữ mặc định
         userLang = 'vi_VN';
+      }
+
+      // Đọc thông tin hr.employee
+      int? employeeId;
+      try {
+        final employeeData = await OdooApiClient.instance.callKw(
+          model: 'hr.employee',
+          method: 'search_read',
+          args: [
+            [['user_id', '=', session.userId]]
+          ],
+          kwargs: {'fields': ['id'], 'limit': 1},
+        );
+        if (employeeData is List && employeeData.isNotEmpty) {
+          employeeId = employeeData.first['id'] as int?;
+        }
+      } catch (_) {
+        // Có thể catch nếu user không có quyền đọc hr.employee
+      }
+
+      if (employeeId == null) {
+        throw const OdooAuthException('Tài khoản chưa được liên kết với Hồ sơ nhân sự (hr.employee). Vui lòng liên hệ Admin.');
       }
 
       _currentSession = OdooSessionData(
@@ -70,6 +93,7 @@ class OdooSessionManager {
         username: username,
         userId: session.userId,
         sessionId: session.id,
+        employeeId: employeeId,
         locale: userLang,
       );
 
@@ -91,17 +115,18 @@ class OdooSessionManager {
     required String serverUrl,
     required String database,
     required String sessionId,
+    required int savedUserId,
   }) async {
     try {
       OdooApiClient.instance.initialize(serverUrl);
-      // Thử gọi API đơn giản để kiểm tra session còn hiệu lực không
+      // Thử gọi API để kiểm tra session bằng cách đọc chính user hiện tại
       await OdooApiClient.instance.callKw(
         model: 'res.users',
-        method: 'search_read',
+        method: 'read',
         args: [
-          [['id', '=', 1]]
+          [savedUserId]
         ],
-        kwargs: {'fields': <String>['id'], 'limit': 1},
+        kwargs: {'fields': <String>['id']},
       );
       return true;
     } catch (_) {

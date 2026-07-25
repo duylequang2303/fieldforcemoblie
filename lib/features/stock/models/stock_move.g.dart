@@ -37,39 +37,54 @@ const StockMoveSchema = CollectionSchema(
       name: r'isPendingSync',
       type: IsarType.bool,
     ),
-    r'moveType': PropertySchema(
+    r'moveOdooId': PropertySchema(
       id: 4,
+      name: r'moveOdooId',
+      type: IsarType.long,
+    ),
+    r'moveType': PropertySchema(
+      id: 5,
       name: r'moveType',
       type: IsarType.string,
       enumMap: _StockMovemoveTypeEnumValueMap,
     ),
     r'orderOdooId': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'orderOdooId',
       type: IsarType.long,
     ),
+    r'pickingOdooId': PropertySchema(
+      id: 7,
+      name: r'pickingOdooId',
+      type: IsarType.long,
+    ),
+    r'pickingState': PropertySchema(
+      id: 8,
+      name: r'pickingState',
+      type: IsarType.string,
+    ),
     r'productBarcode': PropertySchema(
-      id: 6,
+      id: 9,
       name: r'productBarcode',
       type: IsarType.string,
     ),
     r'productCode': PropertySchema(
-      id: 7,
+      id: 10,
       name: r'productCode',
       type: IsarType.string,
     ),
     r'productId': PropertySchema(
-      id: 8,
+      id: 11,
       name: r'productId',
       type: IsarType.long,
     ),
     r'productName': PropertySchema(
-      id: 9,
+      id: 12,
       name: r'productName',
       type: IsarType.string,
     ),
     r'uomName': PropertySchema(
-      id: 10,
+      id: 13,
       name: r'uomName',
       type: IsarType.string,
     )
@@ -110,6 +125,12 @@ int _stockMoveEstimateSize(
   var bytesCount = offsets.last;
   bytesCount += 3 + object.moveType.name.length * 3;
   {
+    final value = object.pickingState;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.productBarcode;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -141,13 +162,16 @@ void _stockMoveSerialize(
   writer.writeDouble(offsets[1], object.demandQty);
   writer.writeDouble(offsets[2], object.doneQty);
   writer.writeBool(offsets[3], object.isPendingSync);
-  writer.writeString(offsets[4], object.moveType.name);
-  writer.writeLong(offsets[5], object.orderOdooId);
-  writer.writeString(offsets[6], object.productBarcode);
-  writer.writeString(offsets[7], object.productCode);
-  writer.writeLong(offsets[8], object.productId);
-  writer.writeString(offsets[9], object.productName);
-  writer.writeString(offsets[10], object.uomName);
+  writer.writeLong(offsets[4], object.moveOdooId);
+  writer.writeString(offsets[5], object.moveType.name);
+  writer.writeLong(offsets[6], object.orderOdooId);
+  writer.writeLong(offsets[7], object.pickingOdooId);
+  writer.writeString(offsets[8], object.pickingState);
+  writer.writeString(offsets[9], object.productBarcode);
+  writer.writeString(offsets[10], object.productCode);
+  writer.writeLong(offsets[11], object.productId);
+  writer.writeString(offsets[12], object.productName);
+  writer.writeString(offsets[13], object.uomName);
 }
 
 StockMove _stockMoveDeserialize(
@@ -162,15 +186,18 @@ StockMove _stockMoveDeserialize(
   object.doneQty = reader.readDouble(offsets[2]);
   object.id = id;
   object.isPendingSync = reader.readBool(offsets[3]);
+  object.moveOdooId = reader.readLongOrNull(offsets[4]);
   object.moveType =
-      _StockMovemoveTypeValueEnumMap[reader.readStringOrNull(offsets[4])] ??
+      _StockMovemoveTypeValueEnumMap[reader.readStringOrNull(offsets[5])] ??
           MoveType.out;
-  object.orderOdooId = reader.readLong(offsets[5]);
-  object.productBarcode = reader.readStringOrNull(offsets[6]);
-  object.productCode = reader.readStringOrNull(offsets[7]);
-  object.productId = reader.readLong(offsets[8]);
-  object.productName = reader.readString(offsets[9]);
-  object.uomName = reader.readStringOrNull(offsets[10]);
+  object.orderOdooId = reader.readLong(offsets[6]);
+  object.pickingOdooId = reader.readLongOrNull(offsets[7]);
+  object.pickingState = reader.readStringOrNull(offsets[8]);
+  object.productBarcode = reader.readStringOrNull(offsets[9]);
+  object.productCode = reader.readStringOrNull(offsets[10]);
+  object.productId = reader.readLong(offsets[11]);
+  object.productName = reader.readString(offsets[12]);
+  object.uomName = reader.readStringOrNull(offsets[13]);
   return object;
 }
 
@@ -190,19 +217,25 @@ P _stockMoveDeserializeProp<P>(
     case 3:
       return (reader.readBool(offset)) as P;
     case 4:
+      return (reader.readLongOrNull(offset)) as P;
+    case 5:
       return (_StockMovemoveTypeValueEnumMap[reader.readStringOrNull(offset)] ??
           MoveType.out) as P;
-    case 5:
-      return (reader.readLong(offset)) as P;
     case 6:
-      return (reader.readStringOrNull(offset)) as P;
-    case 7:
-      return (reader.readStringOrNull(offset)) as P;
-    case 8:
       return (reader.readLong(offset)) as P;
+    case 7:
+      return (reader.readLongOrNull(offset)) as P;
+    case 8:
+      return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 10:
+      return (reader.readStringOrNull(offset)) as P;
+    case 11:
+      return (reader.readLong(offset)) as P;
+    case 12:
+      return (reader.readString(offset)) as P;
+    case 13:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -649,6 +682,77 @@ extension StockMoveQueryFilter
     });
   }
 
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition> moveOdooIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'moveOdooId',
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      moveOdooIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'moveOdooId',
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition> moveOdooIdEqualTo(
+      int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'moveOdooId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      moveOdooIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'moveOdooId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition> moveOdooIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'moveOdooId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition> moveOdooIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'moveOdooId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<StockMove, StockMove, QAfterFilterCondition> moveTypeEqualTo(
     MoveType value, {
     bool caseSensitive = true,
@@ -830,6 +934,233 @@ extension StockMoveQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingOdooIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'pickingOdooId',
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingOdooIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'pickingOdooId',
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingOdooIdEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'pickingOdooId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingOdooIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'pickingOdooId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingOdooIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'pickingOdooId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingOdooIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'pickingOdooId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingStateIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'pickingState',
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingStateIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'pickingState',
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition> pickingStateEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'pickingState',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingStateGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'pickingState',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingStateLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'pickingState',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition> pickingStateBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'pickingState',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingStateStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'pickingState',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingStateEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'pickingState',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingStateContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'pickingState',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition> pickingStateMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'pickingState',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingStateIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'pickingState',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      pickingStateIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'pickingState',
+        value: '',
       ));
     });
   }
@@ -1531,6 +1862,18 @@ extension StockMoveQuerySortBy on QueryBuilder<StockMove, StockMove, QSortBy> {
     });
   }
 
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> sortByMoveOdooId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'moveOdooId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> sortByMoveOdooIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'moveOdooId', Sort.desc);
+    });
+  }
+
   QueryBuilder<StockMove, StockMove, QAfterSortBy> sortByMoveType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'moveType', Sort.asc);
@@ -1552,6 +1895,30 @@ extension StockMoveQuerySortBy on QueryBuilder<StockMove, StockMove, QSortBy> {
   QueryBuilder<StockMove, StockMove, QAfterSortBy> sortByOrderOdooIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'orderOdooId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> sortByPickingOdooId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pickingOdooId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> sortByPickingOdooIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pickingOdooId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> sortByPickingState() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pickingState', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> sortByPickingStateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pickingState', Sort.desc);
     });
   }
 
@@ -1678,6 +2045,18 @@ extension StockMoveQuerySortThenBy
     });
   }
 
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> thenByMoveOdooId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'moveOdooId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> thenByMoveOdooIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'moveOdooId', Sort.desc);
+    });
+  }
+
   QueryBuilder<StockMove, StockMove, QAfterSortBy> thenByMoveType() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'moveType', Sort.asc);
@@ -1699,6 +2078,30 @@ extension StockMoveQuerySortThenBy
   QueryBuilder<StockMove, StockMove, QAfterSortBy> thenByOrderOdooIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'orderOdooId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> thenByPickingOdooId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pickingOdooId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> thenByPickingOdooIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pickingOdooId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> thenByPickingState() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pickingState', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> thenByPickingStateDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pickingState', Sort.desc);
     });
   }
 
@@ -1789,6 +2192,12 @@ extension StockMoveQueryWhereDistinct
     });
   }
 
+  QueryBuilder<StockMove, StockMove, QDistinct> distinctByMoveOdooId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'moveOdooId');
+    });
+  }
+
   QueryBuilder<StockMove, StockMove, QDistinct> distinctByMoveType(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1799,6 +2208,19 @@ extension StockMoveQueryWhereDistinct
   QueryBuilder<StockMove, StockMove, QDistinct> distinctByOrderOdooId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'orderOdooId');
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QDistinct> distinctByPickingOdooId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'pickingOdooId');
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QDistinct> distinctByPickingState(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'pickingState', caseSensitive: caseSensitive);
     });
   }
 
@@ -1870,6 +2292,12 @@ extension StockMoveQueryProperty
     });
   }
 
+  QueryBuilder<StockMove, int?, QQueryOperations> moveOdooIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'moveOdooId');
+    });
+  }
+
   QueryBuilder<StockMove, MoveType, QQueryOperations> moveTypeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'moveType');
@@ -1879,6 +2307,18 @@ extension StockMoveQueryProperty
   QueryBuilder<StockMove, int, QQueryOperations> orderOdooIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'orderOdooId');
+    });
+  }
+
+  QueryBuilder<StockMove, int?, QQueryOperations> pickingOdooIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'pickingOdooId');
+    });
+  }
+
+  QueryBuilder<StockMove, String?, QQueryOperations> pickingStateProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'pickingState');
     });
   }
 
