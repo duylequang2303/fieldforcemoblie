@@ -25,6 +25,11 @@ class StockMove {
   late double demandQty;   // Số lượng yêu cầu
   late double doneQty;     // Số lượng đã thực hiện
 
+  // Checkpoints cho State Machine khi sync Odoo
+  int? pickingOdooId;
+  int? moveOdooId;
+  String? pickingState; // 'created', 'confirmed', 'assigned', 'partially_available', 'done'
+
   @Enumerated(EnumType.name)
   late MoveType moveType;
 
