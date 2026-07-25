@@ -14,12 +14,10 @@ void main() {
       );
 
       // Act & Assert
-      final calculatedDuration = entry.endTime!.difference(entry.startTime!).inHours;
-      expect(calculatedDuration, 4, reason: 'Thời gian làm việc từ 8h đến 12h phải là 4 tiếng.');
+      expect(entry.hours, 4.0, reason: 'Thời gian làm việc từ 8h đến 12h phải là 4 tiếng.');
       
       bool isValid(TimesheetEntry t) {
-        if (t.startTime == null || t.endTime == null) return false;
-        return t.endTime!.isAfter(t.startTime!);
+        return t.hours > 0;
       }
       expect(isValid(entry), isTrue);
     });
@@ -33,11 +31,10 @@ void main() {
 
       // Act & Assert
       bool isValid(TimesheetEntry t) {
-        if (t.startTime == null || t.endTime == null) return false;
-        return t.endTime!.isAfter(t.startTime!);
+        return t.hours > 0;
       }
 
-      expect(isValid(entry), isFalse, reason: 'Giờ kết thúc không được nhỏ hơn giờ bắt đầu.');
+      expect(isValid(entry), isFalse, reason: 'Giờ kết thúc không được nhỏ hơn giờ bắt đầu (hours <= 0).');
     });
 
     test('TIME-03: Timesheet vượt quá 24h -> Validation warning', () {
@@ -47,9 +44,7 @@ void main() {
       );
 
       bool isValidDuration(TimesheetEntry t) {
-        if (t.startTime == null || t.endTime == null) return false;
-        final duration = t.endTime!.difference(t.startTime!).inHours;
-        return duration <= 24; // Rule: Timesheet 1 ngày không vượt quá 24h
+        return t.hours <= 24 && t.hours > 0; // Rule: Timesheet 1 ngày không vượt quá 24h
       }
 
       expect(isValidDuration(entry), isFalse, reason: 'Thời lượng timesheet không được vượt quá 24h.');

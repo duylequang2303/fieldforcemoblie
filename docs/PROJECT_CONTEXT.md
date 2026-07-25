@@ -50,3 +50,46 @@ Worker thực hiện công việc
 - **Odoo Server URL:** Được nhập tại màn hình Login (lưu `flutter_secure_storage`).
 - **Database:** Được nhập tại màn hình Login.
 - **Xác thực:** Username + Password Odoo, sau khi login lưu session token.
+
+---
+
+## 5. Test Cases
+
+### Danh sách file Test Case (CSV)
+
+| File | Mô tả |
+|---|---|
+| `Test_Case_All_Modules.csv` | Tổng hợp 99 TC tất cả module |
+| `Test_Case_Dang_nhap_Dong_bo_Offline.csv` | 9 TC Auth + Sync |
+| `Test_Case_Orders.csv` | 20 TC Orders |
+| `Test_Case_Route_Map.csv` | 11 TC Route Map |
+| `Test_Case_Stock.csv` | 15 TC Stock |
+| `Test_Case_Timesheet.csv` | 12 TC Timesheet |
+| `Test_Case_Expense.csv` | 16 TC Expense |
+| `Test_Case_Work_Order.csv` | 16 TC Work Order |
+
+### Phân loại Test
+
+| Loại | Số TC | Công cụ | Môi trường |
+|---|---|---|---|
+| Unit Test | ~10 | flutter test + mock | Local |
+| Integration Test | ~40 | flutter test + Isar in-memory | Local + Mock Odoo |
+| E2E Test | ~15 | Patrol CLI | Thiết bị thật |
+| Manual Test | ~44 | Thủ công | Odoo server thật |
+
+### Test Fixtures
+
+File: `test/fixtures/sample_data.dart`
+
+```dart
+final order = FsmOrderFactory.sample(stage: FsmOrderStage.inProgress);
+final move = StockMoveFactory.samplePending();
+final entry = TimesheetEntryFactory.samplePending();
+```
+
+### Chiến lược Chi tiết
+
+Đọc `docs/TEST_STRATEGY.md` để biết:
+- Maintenance cost (~6-7h/tuần)
+- CI/CD pass rate (Unit/Integration: 100%, E2E: ≥95%)
+- Test data management với factory pattern
