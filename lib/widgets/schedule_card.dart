@@ -29,6 +29,7 @@ class ScheduleCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Card(
+      key: Key('schedule_card_${order.odooId}'),
       clipBehavior: Clip.antiAlias, // Để bo góc cắt luôn cả border bên trong
       child: InkWell(
         onTap: onTap,
