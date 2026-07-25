@@ -5,6 +5,7 @@ import '../widgets/section_header.dart';
 import '../widgets/attachment_grid.dart';
 
 import '../features/orders/models/fsm_order.dart';
+import '../widgets/material_entry_form.dart';
 
 class WorkOrderDetailScreen extends StatefulWidget {
   final FsmOrder order;
@@ -20,6 +21,9 @@ class WorkOrderDetailScreen extends StatefulWidget {
 
 class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
   late SignatureController _signatureController;
+  final List<Map<String, dynamic>> _materialsUsed = [
+    {'name': 'AC Filter (Standard)', 'qty': 1}
+  ];
 
   @override
   void initState() {
@@ -278,17 +282,39 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('AC Filter (Standard)'),
-                          trailing: const Text('x1'),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        const Divider(height: 1),
+                        ..._materialsUsed.map((mat) => Column(
+                          children: [
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text(mat['name']),
+                              trailing: Text('x${mat['qty']}'),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            const Divider(height: 1),
+                          ],
+                        )),
                         const SizedBox(height: 8),
                         TextButton.icon(
                           key: const Key('btn_add_material'),
-                          onPressed: () {},
+                          onPressed: () {
+                            showModalBottomSheet(
+                              context: context,
+                              isScrollControlled: true,
+                              builder: (ctx) => MaterialEntryForm(
+                                onSaved: (product, qty) {
+                                  Navigator.pop(ctx);
+                                  if (product != null) {
+                                    setState(() {
+                                      _materialsUsed.add({
+                                        'name': product.name,
+                                        'qty': qty,
+                                      });
+                                    });
+                                  }
+                                },
+                              ),
+                            );
+                          },
                           icon: const Icon(Icons.add),
                           label: const Text('Add material'),
                           style: TextButton.styleFrom(padding: EdgeInsets.zero),

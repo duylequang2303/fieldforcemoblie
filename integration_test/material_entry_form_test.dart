@@ -20,7 +20,7 @@ void main() {
                 Product()..name = 'AC Filter (Standard)'..standardPrice = 10.0,
                 Product()..name = 'Oil Filter'..standardPrice = 5.0,
               ],
-              onSaved: () {
+              onSaved: (product, qty) {
                 isSaved = true;
               },
             ),
