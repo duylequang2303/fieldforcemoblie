@@ -25,4 +25,8 @@ abstract final class RouteNames {
 
   // Expense
   static const String expense = '/expense/:orderId';
+
+  // UI Redesign Routes
+  static const String scheduleScreen = '/schedule-screen';
+  static const String workOrderDetailScreen = '/work-order-detail-screen';
 }

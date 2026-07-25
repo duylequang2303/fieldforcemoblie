@@ -5,6 +5,8 @@ import '../widgets/date_navigation_bar.dart';
 import '../widgets/schedule_card.dart';
 import '../features/orders/models/fsm_order.dart';
 import '../theme/app_theme.dart';
+import 'package:go_router/go_router.dart';
+import '../core/routing/route_names.dart';
 
 /// Màn hình mẫu ScheduleScreen tuân thủ cấu trúc Scaffold mới
 /// và thiết kế Sortscape (Card-based List).
@@ -111,7 +113,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           return ScheduleCard(
             order: order,
             onTap: () {
-              // TODO: Mở chi tiết công việc
+              context.push(RouteNames.workOrderDetailScreen);
             },
             onChatTap: () {
               // TODO: Mở màn hình chat/ghi chú
