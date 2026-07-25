@@ -4,8 +4,13 @@ import '../features/stock/models/product.dart';
 
 class MaterialEntryForm extends StatefulWidget {
   final VoidCallback onSaved;
+  final List<Product>? availableProducts;
 
-  const MaterialEntryForm({super.key, required this.onSaved});
+  const MaterialEntryForm({
+    super.key,
+    required this.onSaved,
+    this.availableProducts,
+  });
 
   @override
   State<MaterialEntryForm> createState() => _MaterialEntryFormState();
@@ -15,6 +20,20 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
   Product? _selectedProduct;
   int _quantity = 1;
   final TextEditingController _noteController = TextEditingController();
+  late TextEditingController _quantityController;
+
+  @override
+  void initState() {
+    super.initState();
+    _quantityController = TextEditingController(text: _quantity.toString());
+  }
+
+  @override
+  void dispose() {
+    _quantityController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
 
   // Mock list of products from Odoo
   final List<Product> _mockProducts = [
@@ -125,7 +144,8 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                         if (textEditingValue.text.isEmpty) {
                           return const Iterable<Product>.empty();
                         }
-                        return _mockProducts.where((Product option) {
+                        final items = widget.availableProducts ?? _mockProducts;
+                        return items.where((Product option) {
                           return option.name
                               .toLowerCase()
                               .contains(textEditingValue.text.toLowerCase());
@@ -176,8 +196,7 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                                 keyboardType: TextInputType.number,
                                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                 decoration: _inputDecoration(theme),
-                                controller: TextEditingController(text: _quantity.toString())
-                                  ..selection = TextSelection.collapsed(offset: _quantity.toString().length),
+                                controller: _quantityController,
                                 onChanged: (val) {
                                   setState(() {
                                     _quantity = int.tryParse(val) ?? 0;
