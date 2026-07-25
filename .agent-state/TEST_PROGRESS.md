@@ -19,8 +19,9 @@
 - [x] **Timesheet Integration**: `test/timesheet_integration_test.dart` (Test CRUD offline và giả lập hàm Push)
 
 ### ⏸️ Week 4: E2E Test (Patrol CLI)
-- [ ] **Cấu hình Patrol**: Cần cài đặt app lên emulator/device. (Yêu cầu con người tham gia hoặc CI support).
-- [ ] **Viết 12 E2E TC**: `test_driver/` theo file strategy (Login, GPS Checkin, Complete Order...).
+- [x] **Cấu hình Patrol**: Đã thêm Patrol package và setup Android Test Runner.
+- [x] **Viết E2E TC mẫu (P0)**: Đã tạo `login_test.dart` (AUTH-01), `order_checkin_test.dart` (ORD-05), `stock_barcode_test.dart` (STOCK-01).
+- [ ] **Viết các E2E TC còn lại**: Theo chiến lược.
 
 ### ⏸️ Week 5 & 6: Manual Testing & CI/CD
 - [ ] **Run Manual Test**: Môi trường test thật (Odoo server, GPS/Camera permission).
