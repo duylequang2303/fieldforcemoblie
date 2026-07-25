@@ -21,7 +21,10 @@
 ### ⏸️ Week 4: E2E Test (Patrol CLI)
 - [x] **Cấu hình Patrol**: Đã thêm Patrol package và setup Android Test Runner.
 - [x] **Viết E2E TC mẫu (P0)**: Đã tạo `login_test.dart` (AUTH-01), `order_checkin_test.dart` (ORD-05), `stock_barcode_test.dart` (STOCK-01).
-- [ ] **Viết các E2E TC còn lại**: Theo chiến lược.
+- [x] **Viết các E2E TC còn lại**: 
+  - `timesheet_test.dart` (TIME-01) - Check-in/out.
+  - `expense_create_test.dart` (EXP-03) - Tạo chi phí, cấp quyền Native Camera.
+  - `work_order_test.dart` (WO-07, WO-09) - Vẽ chữ ký số khách hàng và Hoàn thành đơn.
 
 ### ⏸️ Week 5 & 6: Manual Testing & CI/CD
 - [ ] **Run Manual Test**: Môi trường test thật (Odoo server, GPS/Camera permission).
