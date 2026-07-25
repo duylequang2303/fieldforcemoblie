@@ -114,7 +114,15 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: RouteNames.workOrderDetailScreen,
       name: 'workOrderDetailScreenUI',
-      builder: (context, state) => const WorkOrderDetailScreen(),
+      builder: (context, state) {
+        final order = state.extra as FsmOrder?;
+        if (order == null) {
+          return const Scaffold(
+            body: Center(child: Text('Error: Order not provided')),
+          );
+        }
+        return WorkOrderDetailScreen(order: order);
+      },
     ),
     // Schedule routes
     GoRoute(
