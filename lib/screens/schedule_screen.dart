@@ -40,6 +40,31 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ..isPendingSync = true,
   ];
 
+  // Lọc orders theo ngày đã chọn
+  List<FsmOrder> get _filteredOrders {
+    return _orders.where((order) {
+      if (order.scheduledDateStart == null) return false;
+      return order.scheduledDateStart!.year == _selectedDate.year &&
+             order.scheduledDateStart!.month == _selectedDate.month &&
+             order.scheduledDateStart!.day == _selectedDate.day;
+    }).toList();
+  }
+
+  // Tính tổng giờ và giả lập tính tiền
+  String _getSummaryText() {
+    double totalHours = 0;
+    for (var order in _filteredOrders) {
+      if (order.scheduledDateStart != null && order.scheduledDateEnd != null) {
+        totalHours += order.scheduledDateEnd!
+            .difference(order.scheduledDateStart!)
+            .inMinutes / 60.0;
+      }
+    }
+    // Giả lập tính tiền: $50 / giờ (do FsmOrder hiện tại chưa có field giá trị)
+    double totalValue = totalHours * 50;
+    return '${totalHours.toStringAsFixed(2)} hrs (\$ ${totalValue.toStringAsFixed(0)})';
+  }
+
   void _onTabTapped(int index) {
     setState(() {
       _currentIndex = index;
@@ -65,7 +90,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       );
     }
 
-    if (_orders.isEmpty) {
+    final displayOrders = _filteredOrders;
+
+    if (displayOrders.isEmpty) {
       return const EmptyStateWidget(
         message: 'No jobs scheduled for this day',
         icon: Icons.event_available,
@@ -78,9 +105,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: _orders.length,
+        itemCount: displayOrders.length,
         itemBuilder: (context, index) {
-          final order = _orders[index];
+          final order = displayOrders[index];
           return ScheduleCard(
             order: order,
             onTap: () {
@@ -112,7 +139,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '15.00 hrs (\$ 350)',
+              _getSummaryText(),
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: theme.colorScheme.onSurface,
