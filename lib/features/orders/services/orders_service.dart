@@ -22,6 +22,7 @@ class OrdersService {
     'name',
     'description',
     'stage_id',
+    'stage_name',
     'location_id',
     'location_directions',
     'phone',
@@ -33,9 +34,6 @@ class OrdersService {
     'route_id',
     'require_signature',
     'warehouse_id',
-    'project_id',
-    'project_task_id',
-    // Additional fields cần thiết
     'team_id',
     'priority',
     'tag_ids',
@@ -48,9 +46,9 @@ class OrdersService {
     'date_end',
     'resolution',
     'inventory_location_id',
-    'partner_latitude',
-    'partner_longitude',
-    'partner_phone',
+    'color',
+    'state_name',
+    'todo',
   ];
   
   static const _locationFields = [
