@@ -4,6 +4,7 @@ import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/database/isar_service.dart';
 import '../../../core/utils/logger.dart';
 import '../models/timesheet_entry.dart';
+import '../../orders/models/fsm_order.dart';
 
 /// Service giao tiếp với Odoo account.analytic.line.
 class TimesheetService {
@@ -32,10 +33,6 @@ class TimesheetService {
     final order = await _isar.db.fsmOrders.getByOdooId(orderOdooId);
     if (order == null) {
       throw const OdooBusinessException('Không tìm thấy đơn hàng cục bộ.');
-    }
-
-    if (order.projectId == null || order.projectTaskId == null) {
-      throw const OdooBusinessException('Đơn chưa gắn dự án/task, không thể ghi giờ công.');
     }
 
     final entry = TimesheetEntry.create(
@@ -68,8 +65,6 @@ class TimesheetService {
             'name': description,
             'date': '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
             'unit_amount': hours,
-            'project_id': order.projectId,
-            'task_id': order.projectTaskId,
             'employee_id': _odoo.currentSession?.employeeId,
             'fsm_order_id': orderOdooId,
           },
@@ -96,8 +91,8 @@ class TimesheetService {
 
     for (final entry in pending) {
       final order = await _isar.db.fsmOrders.getByOdooId(entry.orderOdooId);
-      if (order == null || order.projectId == null || order.projectTaskId == null) {
-        logger.w('TimesheetService.syncPending: Thiếu order hoặc project_id, bỏ qua entry ${entry.id}');
+      if (order == null) {
+        logger.w('TimesheetService.syncPending: Thiếu order, bỏ qua entry ${entry.id}');
         continue;
       }
 
@@ -118,8 +113,6 @@ class TimesheetService {
               'name': entry.name,
               'date': entry.date.toIso8601String().substring(0, 10),
               'unit_amount': entry.hours,
-              'project_id': order.projectId,
-              'task_id': order.projectTaskId,
               'employee_id': _odoo.currentSession?.employeeId,
               'fsm_order_id': order.odooId,
             },
