@@ -36,12 +36,22 @@ class _TimesheetPageState extends State<TimesheetPage> {
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.accentDark,
             foregroundColor: Colors.white,
+            elevation: 0,
             title: const Text(
               'Ghi Nhận Giờ Công',
-              style: TextStyle(fontWeight: FontWeight.w700),
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
             ),
+            actions: [
+              if (provider.entries.isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.info_outline),
+                  onPressed: () {
+                    // TODO: Show help/info
+                  },
+                ),
+            ],
           ),
           body: provider.isLoading
               ? const LoadingOverlay(message: 'Đang tải...')
@@ -62,50 +72,56 @@ class _TimesheetPageState extends State<TimesheetPage> {
                         ),
 
                         // Form thêm mới (toggle)
-                        if (_showForm) ...[
-                          Container(
-                            margin: const EdgeInsets.all(16),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.06),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: TimeEntryForm(
-                              onSubmit: ({
-                                required DateTime date,
-                                required double hours,
-                                required String description,
-                              }) async {
-                                await provider.addEntry(
-                                  orderOdooId: widget.orderId,
-                                  date: date,
-                                  hours: hours,
-                                  description: description,
-                                );
-                                if (mounted) {
-                                  setState(() => _showForm = false);
-                                }
-                              },
-                            ),
-                          ),
-                        ],
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          height: _showForm ? null : 0,
+                          child: _showForm
+                              ? Container(
+                                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: AppColors.accent.withOpacity(0.3), width: 2),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.08),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: TimeEntryForm(
+                                    onSubmit: ({
+                                      required DateTime date,
+                                      required double hours,
+                                      required String description,
+                                    }) async {
+                                      await provider.addEntry(
+                                        orderOdooId: widget.orderId,
+                                        date: date,
+                                        hours: hours,
+                                        description: description,
+                                      );
+                                      if (mounted) {
+                                        setState(() => _showForm = false);
+                                      }
+                                    },
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
 
                         // Danh sách entries
                         Expanded(
                           child: provider.entries.isEmpty && !_showForm
                               ? _buildEmptyState()
                               : ListView.builder(
-                                  padding: const EdgeInsets.all(12),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   itemCount: provider.entries.length,
                                   itemBuilder: (context, i) =>
-                                      _EntryTile(entry: provider.entries[i]),
+                                      _EntryCard(entry: provider.entries[i]),
                                 ),
                         ),
                       ],
@@ -113,14 +129,20 @@ class _TimesheetPageState extends State<TimesheetPage> {
           floatingActionButton: FloatingActionButton.extended(
             heroTag: 'fab_timesheet',
             onPressed: () => setState(() => _showForm = !_showForm),
-            backgroundColor: _showForm ? AppColors.error : AppColors.primary,
+            backgroundColor: _showForm ? AppColors.error : AppColors.accent,
+            elevation: _showForm ? 2 : 4,
             icon: Icon(
-              _showForm ? Icons.close : Icons.add,
+              _showForm ? Icons.close : Icons.add_circle_outline,
               color: Colors.white,
+              size: 22,
             ),
             label: Text(
               _showForm ? 'Đóng' : 'Thêm giờ công',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
             ),
           ),
         );
@@ -162,14 +184,21 @@ class _SummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primaryDark, AppColors.primaryLight],
+        gradient: LinearGradient(
+          colors: [AppColors.accentDark, AppColors.accent],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.accent.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -177,15 +206,29 @@ class _SummaryCard extends StatelessWidget {
             child: _Stat(
               label: 'Lần ghi nhận',
               value: '$totalEntries',
-              icon: Icons.list_alt,
+              icon: Icons.receipt_long_outlined,
             ),
           ),
-          Container(width: 1, height: 40, color: Colors.white30),
+          Container(
+            width: 1,
+            height: 50,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.white.withOpacity(0.0),
+                  Colors.white.withOpacity(0.3),
+                  Colors.white.withOpacity(0.0),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
           Expanded(
             child: _Stat(
               label: 'Tổng giờ',
               value: '${totalHours.toStringAsFixed(1)}h',
-              icon: Icons.schedule,
+              icon: Icons.timer_outlined,
             ),
           ),
         ],
@@ -205,68 +248,182 @@ class _Stat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, color: Colors.white70, size: 20),
+        Icon(icon, color: Colors.white.withOpacity(0.8), size: 28),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+            fontSize: 28,
+            height: 1.1,
+          ),
+        ),
         const SizedBox(height: 4),
-        Text(value,
-            style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 22)),
-        Text(label,
-            style: const TextStyle(color: Colors.white70, fontSize: 11)),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.85),
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ],
     );
   }
 }
 
-class _EntryTile extends StatelessWidget {
-  const _EntryTile({required this.entry});
+class _EntryCard extends StatelessWidget {
+  const _EntryCard({required this.entry});
 
   final TimesheetEntry entry;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: entry.isPendingSync
-            ? const BorderSide(color: AppColors.warning, width: 1)
-            : BorderSide.none,
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Container(
-          width: 42,
-          height: 42,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            shape: BoxShape.circle,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: entry.isPendingSync
+              ? AppColors.warning.withOpacity(0.3)
+              : AppColors.divider,
+          width: entry.isPendingSync ? 2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          child: Center(
-            child: Text(
-              '${entry.hours.toStringAsFixed(entry.hours == entry.hours.truncate() ? 0 : 1)}h',
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-                color: AppColors.primary,
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            // Hours badge with icon
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: entry.isPendingSync
+                      ? [AppColors.warning, AppColors.warning.withOpacity(0.7)]
+                      : [AppColors.accent, AppColors.accentLight],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: (entry.isPendingSync ? AppColors.warning : AppColors.accent)
+                        .withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.timer,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${entry.hours.toStringAsFixed(entry.hours == entry.hours.truncate() ? 0 : 1)}h',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Description
+                  Text(
+                    entry.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      color: AppColors.onSurface,
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  // Date with icon
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today,
+                        size: 14,
+                        color: AppColors.onSurfaceMuted,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        DateFormat('dd/MM/yyyy', 'vi').format(entry.date),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.onSurfaceMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (entry.employeeName != null && entry.employeeName!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.person_outline,
+                          size: 14,
+                          color: AppColors.onSurfaceMuted,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          entry.employeeName!,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.onSurfaceMuted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Status indicator
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: entry.isPendingSync
+                    ? AppColors.warningContainer
+                    : AppColors.successContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                entry.isPendingSync ? Icons.sync_problem : Icons.cloud_done,
+                color: entry.isPendingSync ? AppColors.warning : AppColors.success,
+                size: 20,
+              ),
+            ),
+          ],
         ),
-        title: Text(
-          entry.name,
-          style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text(
-          DateFormat('dd/MM/yyyy', 'vi').format(entry.date),
-          style: const TextStyle(fontSize: 12, color: AppColors.onSurfaceMuted),
-        ),
-        trailing: entry.isPendingSync
-            ? const Icon(Icons.sync_problem, color: AppColors.warning, size: 18)
-            : const Icon(Icons.cloud_done_outlined,
-                color: AppColors.success, size: 18),
       ),
     );
   }
