@@ -24,7 +24,6 @@ class OrdersService {
     'stage_id',
     'location_id',
     'location_directions',
-    'partner_id',
     'phone',
     'scheduled_date_start',
     'scheduled_date_end',
