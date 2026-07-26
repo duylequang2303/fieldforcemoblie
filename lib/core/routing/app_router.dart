@@ -8,6 +8,7 @@ import '../../features/auth/pages/login_page.dart';
 // Orders pages (Phase 7)
 import '../../features/orders/pages/orders_list_page.dart';
 import '../../features/orders/pages/order_detail_page.dart';
+import '../../features/orders/models/fsm_order.dart';
 // Route Map page (Phase 8)
 import '../../features/route_map/pages/route_map_page.dart';
 // Stock pages (Phase 9)
