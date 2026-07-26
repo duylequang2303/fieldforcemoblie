@@ -10,6 +10,7 @@ import '../../../shared/widgets/offline_banner.dart';
 import '../models/fsm_order.dart';
 import '../providers/orders_provider.dart';
 import '../../route_map/providers/route_provider.dart';
+import '../../work_order/providers/work_order_provider.dart';
 import '../widgets/order_status_chip.dart';
 
 /// Strip HTML tags khỏi chuỗi text trả về từ Odoo (VD: <p>...</p>).
@@ -402,6 +403,28 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     OrdersProvider provider,
     FsmOrder order,
   ) async {
+    if (order.requireSignature) {
+      final workOrderProvider = context.read<WorkOrderProvider>();
+
+      if (workOrderProvider.report?.orderOdooId != order.odooId) {
+        await workOrderProvider.loadReport(order.odooId);
+      }
+
+      final bool isSigned = workOrderProvider.report?.customerSignaturePath != null &&
+          workOrderProvider.report!.customerSignaturePath!.isNotEmpty;
+
+      if (!isSigned && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            key: Key('snackbar_require_signature'),
+            content: Text('Vui lòng ký xác nhận trước khi hoàn thành'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
