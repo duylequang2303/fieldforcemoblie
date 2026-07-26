@@ -77,7 +77,6 @@ class FsmOrder {
       ..stage = _parseStage(json['stage_id'])
       ..locationName = _nameFromMany(json['location_id'])
       ..locationAddress = _strOrNull(json['location_address']) ?? _nameFromMany(json['location_id'])
-      ..partnerName = _nameFromMany(json['partner_id'])
       ..partnerPhone = _strOrNull(json['phone'])
       ..scheduledDateStart = _dateOrNull(json['scheduled_date_start'])
       ..scheduledDateEnd = _dateOrNull(json['scheduled_date_end'])
@@ -100,6 +99,7 @@ class FsmOrder {
         order.locationLat = locationData['partner_latitude'] as double?;
         order.locationLng = locationData['partner_longitude'] as double?;
         order.partnerId = _idOrNull(locationData['partner_id']);
+        order.partnerName = _nameFromMany(locationData['partner_id']);
         order.inventoryLocationId = _idOrNull(locationData['inventory_location_id']);
       }
     }
