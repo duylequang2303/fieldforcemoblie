@@ -13,10 +13,12 @@
    - Status: **ĐANG LÀM**
    - Bước hiện tại: Bước 1 - Chuẩn bị
 
-2. ⏳ **Job Detail** - `lib/features/orders/pages/order_detail_page.dart`
-   - Tests: `test/orders_validation_test.dart`
+2. ✅ **Job Detail** - `lib/features/orders/pages/order_detail_page.dart`
+   - Tests: `test/orders_validation_test.dart` (PASS ✅)
    - Branch: `feature/ui-job-detail`
-   - Status: Chưa bắt đầu
+   - Status: **HOÀN THÀNH - CHỜ DUYỆT PR**
+   - Bắt đầu: 26/7/2026 22:20
+   - Hoàn thành: 26/7/2026 22:45
 
 3. ⏳ **Timesheet** - `lib/features/timesheet/pages/timesheet_page.dart`
    - Tests: `integration_test/timesheet_test.dart`, `test/timesheet_validation_test.dart`
@@ -102,3 +104,34 @@
 - Giữ nguyên toàn bộ field thật từ model
 - Không thêm field mới, không sửa service/logic
 - Test pass: orders_provider_test.dart
+
+
+### 2. Job Detail (HOÀN THÀNH - CHỜ DUYỆT PR)
+**Bắt đầu:** 26/7/2026 22:20  
+**Hoàn thành:** 26/7/2026 22:45  
+**Branch:** feature/ui-job-detail  
+**File UI:** lib/features/orders/pages/order_detail_page.dart  
+**Tests:** test/orders_validation_test.dart (PASS ✅)
+
+#### Tiến trình:
+- [x] Bước 1: Tạo branch + đọc model/service
+- [x] Bước 2: Redesign UI
+- [x] Bước 3: Cập nhật tests (không cần - không có UI test trực tiếp)
+- [x] Bước 4: Chạy flutter test (PASS)
+- [x] Bước 5: Commit và tạo PR
+
+#### Thay đổi UI:
+- SliverAppBar với gradient xanh lá và close button (thay vì back)
+- Section cards với icon headers trong box màu xanh nhạt
+- Customer row với avatar tròn và quick contact buttons (phone, SMS)
+- Detail rows với icon containers màu sắc phân loại (red/blue/orange/green)
+- Action tiles với subtitle và colored icons
+- Dividers giữa các items để tách biệt rõ ràng
+- Bottom CTA button lớn hơn (56px) với rounded corners 14px
+- Uppercase labels cho sections
+- Better spacing và shadows
+
+#### Ghi chú:
+- Giữ nguyên toàn bộ field thật từ FsmOrder model
+- Không thêm field mới, không sửa service/logic
+- Test pass: orders_validation_test.dart (3/3)
