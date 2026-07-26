@@ -93,16 +93,25 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   SliverAppBar _buildAppBar(BuildContext context, FsmOrder order) {
     return SliverAppBar(
-      expandedHeight: 140,
+      expandedHeight: 160,
       floating: false,
       pinned: true,
-      backgroundColor: AppColors.primary,
+      backgroundColor: AppColors.accentDark,
+      elevation: 0,
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        icon: const Icon(Icons.close, color: Colors.white),
         onPressed: () => context.pop(),
       ),
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.edit_outlined, color: Colors.white),
+          onPressed: () {
+            // TODO: Edit action
+          },
+        ),
+      ],
       flexibleSpace: FlexibleSpaceBar(
-        titlePadding: const EdgeInsets.only(left: 56, bottom: 16),
+        titlePadding: const EdgeInsets.only(left: 56, right: 56, bottom: 16),
         title: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -112,18 +121,19 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
-                fontSize: 16,
+                fontSize: 18,
               ),
             ),
+            const SizedBox(height: 4),
             OrderStatusChip(stage: order.stage),
           ],
         ),
         background: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [AppColors.primaryDark, AppColors.primaryLight],
+              colors: [AppColors.accentDark, AppColors.accent],
             ),
           ),
         ),
@@ -133,39 +143,40 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   Widget _buildInfoCard(FsmOrder order) {
     return _SectionCard(
-      title: 'Thông tin đơn',
+      title: 'THÔNG TIN ĐƠN',
       icon: Icons.assignment_outlined,
       children: [
-        if (order.partnerName != null && order.partnerName!.isNotEmpty)
-          _DetailRow(
-            label: 'Khách hàng',
-            value: order.partnerName!,
-            icon: Icons.person_outline,
+        if (order.partnerName != null && order.partnerName!.isNotEmpty) ...[
+          _CustomerRow(
+            name: order.partnerName!,
+            phone: order.partnerPhone,
           ),
-        if (order.partnerPhone != null && order.partnerPhone!.isNotEmpty)
+          const Divider(height: 1, indent: 16, endIndent: 16),
+        ],
+        if (order.locationName != null && order.locationName!.isNotEmpty) ...[
           _DetailRow(
-            label: 'Điện thoại',
-            value: order.partnerPhone!,
-            icon: Icons.phone_outlined,
-            isAction: true,
-          ),
-        if (order.locationName != null && order.locationName!.isNotEmpty)
-          _DetailRow(
-            label: 'Địa điểm',
+            label: 'ĐỊA ĐIỂM',
             value: order.locationAddress ?? order.locationName!,
             icon: Icons.location_on_outlined,
+            iconColor: AppColors.error,
           ),
-        if (order.description != null && order.description!.isNotEmpty)
+          const Divider(height: 1, indent: 16, endIndent: 16),
+        ],
+        if (order.personName != null && order.personName!.isNotEmpty) ...[
           _DetailRow(
-            label: 'Mô tả',
-            value: _stripHtml(order.description!),
-            icon: Icons.notes_outlined,
-          ),
-        if (order.personName != null && order.personName!.isNotEmpty)
-          _DetailRow(
-            label: 'Kỹ thuật viên',
+            label: 'KỸ THUẬT VIÊN',
             value: order.personName!,
             icon: Icons.engineering_outlined,
+            iconColor: AppColors.info,
+          ),
+          const Divider(height: 1, indent: 16, endIndent: 16),
+        ],
+        if (order.description != null && order.description!.isNotEmpty)
+          _DetailRow(
+            label: 'MÔ TẢ CÔNG VIỆC',
+            value: _stripHtml(order.description!),
+            icon: Icons.notes_outlined,
+            iconColor: AppColors.warning,
           ),
       ],
     );
@@ -173,26 +184,33 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
 
   Widget _buildScheduleCard(FsmOrder order) {
     return _SectionCard(
-      title: 'Lịch hẹn',
+      title: 'LỊCH HẸN & THỜI GIAN',
       icon: Icons.schedule_outlined,
       children: [
-        if (order.scheduledDateStart != null)
+        if (order.scheduledDateStart != null) ...[
           _DetailRow(
-            label: 'Bắt đầu dự kiến',
+            label: 'BẮT ĐẦU DỰ KIẾN',
             value: _fmt(order.scheduledDateStart!),
             icon: Icons.calendar_today_outlined,
+            iconColor: AppColors.info,
           ),
-        if (order.scheduledDateEnd != null)
+          const Divider(height: 1, indent: 16, endIndent: 16),
+        ],
+        if (order.scheduledDateEnd != null) ...[
           _DetailRow(
-            label: 'Kết thúc dự kiến',
+            label: 'KẾT THÚC DỰ KIẾN',
             value: _fmt(order.scheduledDateEnd!),
             icon: Icons.event_outlined,
+            iconColor: AppColors.info,
           ),
+          if (order.dateStart != null) const Divider(height: 1, indent: 16, endIndent: 16),
+        ],
         if (order.dateStart != null)
           _DetailRow(
-            label: 'Check-in thực tế',
+            label: 'CHECK-IN THỰC TẾ',
             value: _fmt(order.dateStart!),
             icon: Icons.login_outlined,
+            iconColor: AppColors.success,
             highlight: true,
             trailing: order.isPendingSync
                 ? const Tooltip(
@@ -208,41 +226,55 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   Widget _buildActionsCard(
       BuildContext context, OrdersProvider provider, FsmOrder order) {
     return _SectionCard(
-      title: 'Công việc liên quan',
+      title: 'CÔNG VIỆC LIÊN QUAN',
       icon: Icons.work_outline,
       children: [
         _ActionTile(
           icon: Icons.map_outlined,
           label: 'Xem bản đồ tuyến đường',
+          subtitle: 'Xem vị trí và chỉ đường',
           onTap: () => context.push(RouteNames.routeMap),
+          color: AppColors.info,
         ),
+        const Divider(height: 1, indent: 68),
         _ActionTile(
           icon: Icons.qr_code_scanner_outlined,
           label: 'Quét vật tư / Stock',
+          subtitle: 'Quản lý vật tư và thiết bị',
           onTap: () => context.push(
             RouteNames.stockMoves.replaceFirst(':orderId', '${order.odooId}'),
           ),
+          color: AppColors.warning,
         ),
+        const Divider(height: 1, indent: 68),
         _ActionTile(
           icon: Icons.access_time_outlined,
           label: 'Ghi nhận giờ công',
+          subtitle: 'Thêm timesheet cho đơn',
           onTap: () => context.push(
             RouteNames.timesheet.replaceFirst(':orderId', '${order.odooId}'),
           ),
+          color: AppColors.info,
         ),
+        const Divider(height: 1, indent: 68),
         _ActionTile(
           icon: Icons.receipt_long_outlined,
           label: 'Thêm khoản chi',
+          subtitle: 'Ghi nhận chi phí phát sinh',
           onTap: () => context.push(
             RouteNames.expense.replaceFirst(':orderId', '${order.odooId}'),
           ),
+          color: AppColors.error,
         ),
+        const Divider(height: 1, indent: 68),
         _ActionTile(
           icon: Icons.fact_check_outlined,
           label: 'Nghiệm thu & Chữ ký',
+          subtitle: 'Hoàn tất và ký xác nhận',
           onTap: () => context.push(
             RouteNames.workOrder.replaceFirst(':orderId', '${order.odooId}'),
           ),
+          color: AppColors.success,
           highlight: true,
         ),
       ],
@@ -272,13 +304,13 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       BuildContext context, OrdersProvider provider, FsmOrder order) {
     return SafeArea(
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 12,
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 16,
               offset: const Offset(0, -4),
             ),
           ],
@@ -287,25 +319,41 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           children: [
             if (order.stage == FsmOrderStage.done || order.stage == FsmOrderStage.cancelled)
               Expanded(
-                child: FilledButton.icon(
-                  onPressed: null,
-                  icon: const Icon(Icons.lock_outline, size: 18),
-                  label: Text(order.stage == FsmOrderStage.done
-                      ? 'Đã hoàn thành'
-                      : 'Đã huỷ'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.surfaceVariant,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                child: Container(
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceAlt,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.check_circle,
+                        size: 22,
+                        color: order.stage == FsmOrderStage.done
+                            ? AppColors.success
+                            : AppColors.onSurfaceMuted,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        order.stage == FsmOrderStage.done ? 'Đã hoàn thành' : 'Đã huỷ',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: order.stage == FsmOrderStage.done
+                              ? AppColors.success
+                              : AppColors.onSurfaceMuted,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               )
             else if (order.dateStart == null)
               // Nút Check-in
               Expanded(
-                child: FilledButton.icon(
+                child: ElevatedButton(
                   key: const Key('btn_check_in'),
                   onPressed: provider.isLoading
                       ? null
@@ -336,44 +384,71 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                             }
                           }
                         },
-                  icon: const Icon(Icons.login, size: 18),
-                  label: const Text('Check-in'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.secondary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(56),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.login, size: 22),
+                      SizedBox(width: 10),
+                      Text(
+                        'Check-in',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               )
             else if (order.stage == FsmOrderStage.draft)
-              // Nút Bắt đầu thực hiện (chuyển sang stageId = 2)
+              // Nút Bắt đầu thực hiện
               Expanded(
-                child: FilledButton.icon(
+                child: ElevatedButton(
                   onPressed: provider.isLoading
                       ? null
                       : () async {
                           if (!await _ensureRouteSequence(context, provider, order)) return;
-                          // Gọi hàm tự động lấy ID trạng thái In Progress
                           await provider.updateOrderToInProgress(order.odooId);
                           await context.read<RouteProvider>().buildRoute(provider.orders);
                         },
-                  icon: const Icon(Icons.play_circle_outline, size: 18),
-                  label: const Text('Bắt đầu thực hiện'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.info,
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(56),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.play_circle, size: 22),
+                      SizedBox(width: 10),
+                      Text(
+                        'Bắt đầu thực hiện',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               )
             else
-              // Nút Hoàn thành (chuyển sang stageId = 3)
+              // Nút Hoàn thành
               Expanded(
-                child: FilledButton.icon(
+                child: ElevatedButton(
                   key: const Key('btn_mark_complete'),
                   onPressed: provider.isLoading
                       ? null
@@ -381,14 +456,28 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                           if (!await _ensureRouteSequence(context, provider, order)) return;
                           _confirmComplete(context, provider, order);
                         },
-                  icon: const Icon(Icons.check_circle_outline, size: 18),
-                  label: const Text('Hoàn thành'),
-                  style: FilledButton.styleFrom(
+                  style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.success,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(56),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(14),
                     ),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.check_circle, size: 22),
+                      SizedBox(width: 10),
+                      Text(
+                        'Hoàn thành',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -474,11 +563,12 @@ class _SectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.divider, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -486,24 +576,34 @@ class _SectionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
             child: Row(
               children: [
-                Icon(icon, size: 18, color: AppColors.primary),
-                const SizedBox(width: 8),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.accentMuted,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, size: 18, color: AppColors.accent),
+                ),
+                const SizedBox(width: 12),
                 Text(
                   title,
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    color: AppColors.primary,
+                    fontSize: 12,
+                    color: AppColors.onSurfaceMuted,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1, color: AppColors.surfaceVariant),
+          const Divider(height: 1, color: AppColors.divider),
           ...children,
+          const SizedBox(height: 8),
         ],
       ),
     );
@@ -515,6 +615,7 @@ class _DetailRow extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
+    this.iconColor,
     this.isAction = false,
     this.highlight = false,
     this.trailing,
@@ -523,6 +624,7 @@ class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
+  final Color? iconColor;
   final bool isAction;
   final bool highlight;
   final Widget? trailing;
@@ -530,16 +632,24 @@ class _DetailRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 16,
-            color: highlight ? AppColors.secondary : AppColors.onSurfaceMuted,
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: (iconColor ?? AppColors.onSurfaceMuted).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: iconColor ?? AppColors.onSurfaceMuted,
+            ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -548,16 +658,19 @@ class _DetailRow extends StatelessWidget {
                   label,
                   style: const TextStyle(
                     fontSize: 11,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.onSurfaceMuted,
+                    letterSpacing: 0.3,
                   ),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: 14,
-                    color: highlight ? AppColors.secondary : AppColors.onSurface,
+                    fontSize: 15,
+                    color: highlight ? AppColors.accent : AppColors.onSurface,
                     fontWeight: highlight ? FontWeight.w600 : FontWeight.w400,
+                    height: 1.4,
                   ),
                 ),
               ],
@@ -577,44 +690,200 @@ class _ActionTile extends StatelessWidget {
   const _ActionTile({
     required this.icon,
     required this.label,
+    this.subtitle,
     required this.onTap,
+    this.color,
     this.highlight = false,
   });
 
   final IconData icon;
   final String label;
+  final String? subtitle;
   final VoidCallback onTap;
+  final Color? color;
   final bool highlight;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      leading: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: (highlight ? AppColors.secondary : AppColors.primary)
-              .withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: highlight ? AppColors.secondary : AppColors.primary,
-        ),
-      ),
-      title: Text(
-        label,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: highlight ? FontWeight.w600 : FontWeight.w400,
-          color: highlight ? AppColors.secondary : AppColors.onSurface,
-        ),
-      ),
-      trailing: const Icon(Icons.chevron_right, color: AppColors.onSurfaceMuted),
+    final effectiveColor = color ?? (highlight ? AppColors.accent : AppColors.primary);
+    
+    return InkWell(
       onTap: onTap,
-      dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: effectiveColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                size: 22,
+                color: effectiveColor,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: highlight ? FontWeight.w700 : FontWeight.w600,
+                      color: AppColors.onSurface,
+                    ),
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle!,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.onSurfaceMuted,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.onSurfaceMuted,
+              size: 24,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Customer row with quick action buttons (SortScape style)
+class _CustomerRow extends StatelessWidget {
+  const _CustomerRow({
+    required this.name,
+    this.phone,
+  });
+
+  final String name;
+  final String? phone;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          // Avatar
+          Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              color: AppColors.accent,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                name[0].toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'KHÁCH HÀNG',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.onSurfaceMuted,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                if (phone != null && phone!.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    phone!,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppColors.onSurfaceMuted,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // Quick action buttons
+          if (phone != null && phone!.isNotEmpty) ...[
+            _QuickContactButton(
+              icon: Icons.phone,
+              color: AppColors.accent,
+              onTap: () {
+                // TODO: Launch phone call
+              },
+            ),
+            const SizedBox(width: 8),
+            _QuickContactButton(
+              icon: Icons.message_outlined,
+              color: AppColors.info,
+              onTap: () {
+                // TODO: Launch SMS
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _QuickContactButton extends StatelessWidget {
+  const _QuickContactButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.12),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Icon(icon, size: 20, color: color),
+      ),
     );
   }
 }
