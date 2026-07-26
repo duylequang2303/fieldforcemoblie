@@ -97,64 +97,54 @@ const FsmOrderSchema = CollectionSchema(
       name: r'personName',
       type: IsarType.string,
     ),
-    r'projectId': PropertySchema(
-      id: 16,
-      name: r'projectId',
-      type: IsarType.long,
-    ),
-    r'projectTaskId': PropertySchema(
-      id: 17,
-      name: r'projectTaskId',
-      type: IsarType.long,
-    ),
     r'requireSignature': PropertySchema(
-      id: 18,
+      id: 16,
       name: r'requireSignature',
       type: IsarType.bool,
     ),
     r'routeId': PropertySchema(
-      id: 19,
+      id: 17,
       name: r'routeId',
       type: IsarType.long,
     ),
     r'routeSequence': PropertySchema(
-      id: 20,
+      id: 18,
       name: r'routeSequence',
       type: IsarType.long,
     ),
     r'routeState': PropertySchema(
-      id: 21,
+      id: 19,
       name: r'routeState',
       type: IsarType.string,
     ),
     r'scheduledDateEnd': PropertySchema(
-      id: 22,
+      id: 20,
       name: r'scheduledDateEnd',
       type: IsarType.dateTime,
     ),
     r'scheduledDateStart': PropertySchema(
-      id: 23,
+      id: 21,
       name: r'scheduledDateStart',
       type: IsarType.dateTime,
     ),
     r'stage': PropertySchema(
-      id: 24,
+      id: 22,
       name: r'stage',
       type: IsarType.string,
       enumMap: _FsmOrderstageEnumValueMap,
     ),
     r'stageId': PropertySchema(
-      id: 25,
+      id: 23,
       name: r'stageId',
       type: IsarType.long,
     ),
     r'stageName': PropertySchema(
-      id: 26,
+      id: 24,
       name: r'stageName',
       type: IsarType.string,
     ),
     r'warehouseId': PropertySchema(
-      id: 27,
+      id: 25,
       name: r'warehouseId',
       type: IsarType.long,
     )
@@ -263,18 +253,16 @@ void _fsmOrderSerialize(
   writer.writeString(offsets[13], object.partnerPhone);
   writer.writeLong(offsets[14], object.personId);
   writer.writeString(offsets[15], object.personName);
-  writer.writeLong(offsets[16], object.projectId);
-  writer.writeLong(offsets[17], object.projectTaskId);
-  writer.writeBool(offsets[18], object.requireSignature);
-  writer.writeLong(offsets[19], object.routeId);
-  writer.writeLong(offsets[20], object.routeSequence);
-  writer.writeString(offsets[21], object.routeState);
-  writer.writeDateTime(offsets[22], object.scheduledDateEnd);
-  writer.writeDateTime(offsets[23], object.scheduledDateStart);
-  writer.writeString(offsets[24], object.stage.name);
-  writer.writeLong(offsets[25], object.stageId);
-  writer.writeString(offsets[26], object.stageName);
-  writer.writeLong(offsets[27], object.warehouseId);
+  writer.writeBool(offsets[16], object.requireSignature);
+  writer.writeLong(offsets[17], object.routeId);
+  writer.writeLong(offsets[18], object.routeSequence);
+  writer.writeString(offsets[19], object.routeState);
+  writer.writeDateTime(offsets[20], object.scheduledDateEnd);
+  writer.writeDateTime(offsets[21], object.scheduledDateStart);
+  writer.writeString(offsets[22], object.stage.name);
+  writer.writeLong(offsets[23], object.stageId);
+  writer.writeString(offsets[24], object.stageName);
+  writer.writeLong(offsets[25], object.warehouseId);
 }
 
 FsmOrder _fsmOrderDeserialize(
@@ -301,20 +289,18 @@ FsmOrder _fsmOrderDeserialize(
   object.partnerPhone = reader.readStringOrNull(offsets[13]);
   object.personId = reader.readLongOrNull(offsets[14]);
   object.personName = reader.readStringOrNull(offsets[15]);
-  object.projectId = reader.readLongOrNull(offsets[16]);
-  object.projectTaskId = reader.readLongOrNull(offsets[17]);
-  object.requireSignature = reader.readBool(offsets[18]);
-  object.routeId = reader.readLongOrNull(offsets[19]);
-  object.routeSequence = reader.readLongOrNull(offsets[20]);
-  object.routeState = reader.readStringOrNull(offsets[21]);
-  object.scheduledDateEnd = reader.readDateTimeOrNull(offsets[22]);
-  object.scheduledDateStart = reader.readDateTimeOrNull(offsets[23]);
+  object.requireSignature = reader.readBool(offsets[16]);
+  object.routeId = reader.readLongOrNull(offsets[17]);
+  object.routeSequence = reader.readLongOrNull(offsets[18]);
+  object.routeState = reader.readStringOrNull(offsets[19]);
+  object.scheduledDateEnd = reader.readDateTimeOrNull(offsets[20]);
+  object.scheduledDateStart = reader.readDateTimeOrNull(offsets[21]);
   object.stage =
-      _FsmOrderstageValueEnumMap[reader.readStringOrNull(offsets[24])] ??
+      _FsmOrderstageValueEnumMap[reader.readStringOrNull(offsets[22])] ??
           FsmOrderStage.draft;
-  object.stageId = reader.readLong(offsets[25]);
-  object.stageName = reader.readString(offsets[26]);
-  object.warehouseId = reader.readLongOrNull(offsets[27]);
+  object.stageId = reader.readLong(offsets[23]);
+  object.stageName = reader.readString(offsets[24]);
+  object.warehouseId = reader.readLongOrNull(offsets[25]);
   return object;
 }
 
@@ -358,29 +344,25 @@ P _fsmOrderDeserializeProp<P>(
     case 15:
       return (reader.readStringOrNull(offset)) as P;
     case 16:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 17:
       return (reader.readLongOrNull(offset)) as P;
     case 18:
-      return (reader.readBool(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 19:
-      return (reader.readLongOrNull(offset)) as P;
-    case 20:
-      return (reader.readLongOrNull(offset)) as P;
-    case 21:
       return (reader.readStringOrNull(offset)) as P;
+    case 20:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 21:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 22:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 23:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 24:
       return (_FsmOrderstageValueEnumMap[reader.readStringOrNull(offset)] ??
           FsmOrderStage.draft) as P;
-    case 25:
+    case 23:
       return (reader.readLong(offset)) as P;
-    case 26:
+    case 24:
       return (reader.readString(offset)) as P;
-    case 27:
+    case 25:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -2282,147 +2264,6 @@ extension FsmOrderQueryFilter
     });
   }
 
-  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> projectIdIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'projectId',
-      ));
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> projectIdIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'projectId',
-      ));
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> projectIdEqualTo(
-      int? value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'projectId',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> projectIdGreaterThan(
-    int? value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'projectId',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> projectIdLessThan(
-    int? value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'projectId',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> projectIdBetween(
-    int? lower,
-    int? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'projectId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
-      projectTaskIdIsNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNull(
-        property: r'projectTaskId',
-      ));
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
-      projectTaskIdIsNotNull() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(const FilterCondition.isNotNull(
-        property: r'projectTaskId',
-      ));
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> projectTaskIdEqualTo(
-      int? value) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'projectTaskId',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
-      projectTaskIdGreaterThan(
-    int? value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'projectTaskId',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> projectTaskIdLessThan(
-    int? value, {
-    bool include = false,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'projectTaskId',
-        value: value,
-      ));
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> projectTaskIdBetween(
-    int? lower,
-    int? upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'projectTaskId',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-      ));
-    });
-  }
-
   QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
       requireSignatureEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
@@ -3456,30 +3297,6 @@ extension FsmOrderQuerySortBy on QueryBuilder<FsmOrder, FsmOrder, QSortBy> {
     });
   }
 
-  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByProjectId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'projectId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByProjectIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'projectId', Sort.desc);
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByProjectTaskId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'projectTaskId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByProjectTaskIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'projectTaskId', Sort.desc);
-    });
-  }
-
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByRequireSignature() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'requireSignature', Sort.asc);
@@ -3809,30 +3626,6 @@ extension FsmOrderQuerySortThenBy
     });
   }
 
-  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByProjectId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'projectId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByProjectIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'projectId', Sort.desc);
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByProjectTaskId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'projectTaskId', Sort.asc);
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByProjectTaskIdDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'projectTaskId', Sort.desc);
-    });
-  }
-
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByRequireSignature() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'requireSignature', Sort.asc);
@@ -4061,18 +3854,6 @@ extension FsmOrderQueryWhereDistinct
     });
   }
 
-  QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByProjectId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'projectId');
-    });
-  }
-
-  QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByProjectTaskId() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'projectTaskId');
-    });
-  }
-
   QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByRequireSignature() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'requireSignature');
@@ -4238,18 +4019,6 @@ extension FsmOrderQueryProperty
   QueryBuilder<FsmOrder, String?, QQueryOperations> personNameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'personName');
-    });
-  }
-
-  QueryBuilder<FsmOrder, int?, QQueryOperations> projectIdProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'projectId');
-    });
-  }
-
-  QueryBuilder<FsmOrder, int?, QQueryOperations> projectTaskIdProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'projectTaskId');
     });
   }
 

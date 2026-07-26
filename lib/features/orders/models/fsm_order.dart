@@ -41,10 +41,6 @@ class FsmOrder {
   int? warehouseId;           // Từ order warehouse_id
   int? inventoryLocationId;   // Từ fsm.location inventory_location_id
 
-  // Dự án & Chấm công
-  int? projectId;             // Từ order project_id
-  int? projectTaskId;         // Từ order project_task_id
-
   // Lịch hẹn
   DateTime? scheduledDateStart;
   DateTime? scheduledDateEnd;
@@ -56,6 +52,7 @@ class FsmOrder {
   // Worker
   int? personId;              // fsm.person.id
   String? personName;
+
 
   // Sync
   late bool isPendingSync;    // true = có thay đổi chưa push lên Odoo
@@ -106,10 +103,6 @@ class FsmOrder {
     
     // Parse warehouse
     order.warehouseId = _idOrNull(json['warehouse_id']);
-    
-    // Parse project
-    order.projectId = _idOrNull(json['project_id']);
-    order.projectTaskId = _idOrNull(json['project_task_id']);
     
     return order;
   }
