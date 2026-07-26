@@ -52,7 +52,7 @@ class AppTheme {
       ),
 
       // Card Theme: Border radius 8px, nhẹ elevation 2
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: surface,
         elevation: 2,
         shadowColor: Colors.black.withOpacity(0.1),
