@@ -38,11 +38,12 @@ class _ExpensePageState extends State<ExpensePage> {
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: AppColors.secondary,
+            backgroundColor: const Color(0xFFE65100), // Orange for expense
             foregroundColor: Colors.white,
+            elevation: 0,
             title: const Text(
               'Khoản Chi',
-              style: TextStyle(fontWeight: FontWeight.w700),
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
             ),
           ),
           body: provider.isLoading
@@ -63,53 +64,63 @@ class _ExpensePageState extends State<ExpensePage> {
                           totalAmount: provider.totalAmount,
                         ),
 
-                        // Form toggle
-                        if (_showForm)
-                          Container(
-                            margin: const EdgeInsets.all(16),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.06),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: ExpenseForm(
-                              onSubmit: ({
-                                required String name,
-                                required double amount,
-                                required DateTime date,
-                                required ExpenseCategory category,
-                                String? receiptImagePath,
-                                String? note,
-                              }) async {
-                                await provider.addExpense(
-                                  orderOdooId: widget.orderId,
-                                  name: name,
-                                  amount: amount,
-                                  date: date,
-                                  category: category,
-                                  receiptImagePath: receiptImagePath,
-                                  note: note,
-                                );
-                                if (mounted) setState(() => _showForm = false);
-                              },
-                            ),
-                          ),
+                        // Form toggle (animated)
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          height: _showForm ? null : 0,
+                          child: _showForm
+                              ? Container(
+                                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                                  padding: const EdgeInsets.all(20),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: AppColors.secondary.withOpacity(0.3),
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.08),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ExpenseForm(
+                                    onSubmit: ({
+                                      required String name,
+                                      required double amount,
+                                      required DateTime date,
+                                      required ExpenseCategory category,
+                                      String? receiptImagePath,
+                                      String? note,
+                                    }) async {
+                                      await provider.addExpense(
+                                        orderOdooId: widget.orderId,
+                                        name: name,
+                                        amount: amount,
+                                        date: date,
+                                        category: category,
+                                        receiptImagePath: receiptImagePath,
+                                        note: note,
+                                      );
+                                      if (mounted) setState(() => _showForm = false);
+                                    },
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
+                        ),
 
                         Expanded(
                           child: provider.expenses.isEmpty && !_showForm
                               ? _buildEmptyState()
                               : ListView.builder(
-                                  padding: const EdgeInsets.all(12),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   itemCount: provider.expenses.length,
                                   itemBuilder: (context, i) =>
-                                      _ExpenseTile(expense: provider.expenses[i]),
+                                      _ExpenseCard(expense: provider.expenses[i]),
                                 ),
                         ),
                       ],
@@ -134,17 +145,34 @@ class _ExpensePageState extends State<ExpensePage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.receipt_long_outlined,
-              size: 72, color: AppColors.onSurfaceMuted.withValues(alpha: 0.4)),
-          const SizedBox(height: 16),
-          const Text('Chưa có khoản chi nào',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.onSurfaceMuted)),
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.secondaryLight.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              Icons.receipt_long_outlined,
+              size: 40,
+              color: AppColors.secondary.withOpacity(0.6),
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Chưa có khoản chi nào',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+            ),
+          ),
           const SizedBox(height: 8),
-          const Text('Nhấn "Thêm khoản chi" để khai báo',
-              style: TextStyle(fontSize: 13, color: AppColors.onSurfaceMuted)),
+          const Text(
+            'Nhấn nút "Thêm khoản chi" bên dưới để khai báo',
+            style: TextStyle(fontSize: 14, color: AppColors.onSurfaceMuted),
+            textAlign: TextAlign.center,
+          ),
         ],
       ),
     );
@@ -220,72 +248,189 @@ class _Stat extends StatelessWidget {
   }
 }
 
-class _ExpenseTile extends StatelessWidget {
-  const _ExpenseTile({required this.expense});
+class _ExpenseCard extends StatelessWidget {
+  const _ExpenseCard({required this.expense});
 
   final Expense expense;
+
+  Color get categoryColor {
+    switch (expense.category) {
+      case ExpenseCategory.fuel:
+        return const Color(0xFFFF6F00); // Orange
+      case ExpenseCategory.meal:
+        return const Color(0xFF4CAF50); // Green
+      case ExpenseCategory.transport:
+        return const Color(0xFF2196F3); // Blue
+      case ExpenseCategory.material:
+        return const Color(0xFF9C27B0); // Purple
+      case ExpenseCategory.other:
+        return const Color(0xFF757575); // Gray
+    }
+  }
+
+  IconData get categoryIcon {
+    switch (expense.category) {
+      case ExpenseCategory.fuel:
+        return Icons.local_gas_station;
+      case ExpenseCategory.meal:
+        return Icons.restaurant;
+      case ExpenseCategory.transport:
+        return Icons.directions_car;
+      case ExpenseCategory.material:
+        return Icons.inventory_2;
+      case ExpenseCategory.other:
+        return Icons.category;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final locale = LocaleService.instance.currentLocale;
     final fmt = NumberFormat.currency(locale: locale, symbol: '₫', decimalDigits: 0);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: expense.isPendingSync
-            ? const BorderSide(color: AppColors.warning, width: 1)
-            : BorderSide.none,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: expense.isPendingSync
+              ? AppColors.warning.withOpacity(0.3)
+              : AppColors.divider,
+          width: expense.isPendingSync ? 2 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: expense.receiptImagePath != null
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            // Receipt image or category icon
+            if (expense.receiptImagePath != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
                 child: Image.file(
                   File(expense.receiptImagePath!),
-                  width: 44,
-                  height: 44,
+                  width: 64,
+                  height: 64,
                   fit: BoxFit.cover,
                 ),
               )
-            : Container(
-                width: 44,
-                height: 44,
+            else
+              Container(
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
-                  color: AppColors.secondary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  color: categoryColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.receipt_outlined, color: AppColors.secondary, size: 22),
+                child: Icon(
+                  categoryIcon,
+                  color: categoryColor,
+                  size: 28,
+                ),
               ),
-        title: Text(
-          expense.name,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text(
-          '${expense.categoryLabel} • ${DateFormat('dd/MM/yyyy', 'vi').format(expense.date)}',
-          style: const TextStyle(fontSize: 12, color: AppColors.onSurfaceMuted),
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              fmt.format(expense.amount),
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-                color: AppColors.secondary,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Expense name
+                  Text(
+                    expense.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      color: AppColors.onSurface,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  // Category and date
+                  Row(
+                    children: [
+                      // Category badge
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: categoryColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          expense.categoryLabel,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: categoryColor,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Date
+                      Icon(Icons.calendar_today, size: 13, color: AppColors.onSurfaceMuted),
+                      const SizedBox(width: 4),
+                      Text(
+                        DateFormat('dd/MM/yyyy', 'vi').format(expense.date),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.onSurfaceMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (expense.note != null && expense.note!.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      expense.note!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.onSurfaceMuted,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
               ),
             ),
-            if (expense.isPendingSync)
-              const Icon(Icons.sync_problem, color: AppColors.warning, size: 14)
-            else
-              const Icon(Icons.cloud_done_outlined, color: AppColors.success, size: 14),
+            const SizedBox(width: 12),
+            // Amount and sync status column
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  fmt.format(expense.amount),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                    color: categoryColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: expense.isPendingSync
+                        ? AppColors.warningContainer
+                        : AppColors.successContainer,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    expense.isPendingSync ? Icons.sync_problem : Icons.cloud_done,
+                    size: 14,
+                    color: expense.isPendingSync ? AppColors.warning : AppColors.success,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
