@@ -8,8 +8,8 @@ class TestCredentials {
   static const database = 'demo002.crmhub.vn';
 
   /// Worker account username (demo test account)
-  static const workerUsername = 'worker1@gmail.com';
+  static const username = 'worker1@gmail.com';
 
   /// Worker account password (demo test account)
-  static const workerPassword = '123';
+  static const password = '123';
 }
