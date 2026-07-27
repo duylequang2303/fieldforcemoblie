@@ -18,8 +18,8 @@ void main() {
       // Lưu ý: TextFormField thường có thể tìm thông qua labelText hoặc Type
       await $(RegExp('Server URL.*')).enterText(TestCredentials.serverUrl);
       await $('Tên Database').enterText(TestCredentials.database);
-      await $('Tên đăng nhập').enterText(TestCredentials.workerUsername);
-      await $('Mật khẩu').enterText(TestCredentials.workerPassword);
+      await $('Tên đăng nhập').enterText(TestCredentials.username);
+      await $('Mật khẩu').enterText(TestCredentials.password);
 
       // Ẩn bàn phím để nút Đăng nhập không bị che
       // await $.native.pressHome(); -> không, chỉ cần ấn nút Đăng nhập
