@@ -8,10 +8,10 @@ abstract final class SfTokens {
 
   // === COLORS ===
   /// Primary brand color (vivid green for active states / CTAs)
-  static const Color primary = Color(0xFF4CAF50);
-  static const Color primaryLight = Color(0xFF81C784);
-  static const Color primaryDark = Color(0xFF2E7D32);
-  static const Color primaryMuted = Color(0xFFE8F5E9);
+  static const Color primary = Color(0xFF5B9E1C);
+  static const Color primaryLight = Color(0xFF8BC34A);
+  static const Color primaryDark = Color(0xFF3E6B13);
+  static const Color primaryMuted = Color(0xFFEAF3DF);
 
   // Neutral paper scale
   static const Color background = Color(0xFFF7F7F5);
