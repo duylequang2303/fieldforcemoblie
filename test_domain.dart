@@ -1,13 +1,14 @@
 import 'package:odoo_rpc/odoo_rpc.dart';
+import 'integration_test/test_credentials.dart';
 
 void main() async {
-  final client = OdooClient('https://demo002.crmhub.vn');
+  final client = OdooClient(TestCredentials.serverUrl);
   
   try {
-    final dbName = 'demo002.crmhub.vn';
+    final dbName = TestCredentials.database;
     print('Authenticating with database: $dbName');
     
-    final session = await client.authenticate(dbName, 'admin', '<),9853\$6Ect');
+    final session = await client.authenticate(dbName, TestCredentials.username, TestCredentials.password);
     final userId = session.userId;
     print('Authenticated! User ID: $userId');
     

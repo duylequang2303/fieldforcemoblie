@@ -27,7 +27,9 @@ void main() {
     final workerPassword = env['ODOO_TEST_PASSWORD'] ?? '123';
     
     const adminUser = 'admin';
-    const adminPassword = r'REDACTED_PASSWORD';
+    // Lưu ý: Giá trị này được truyền qua --dart-define khi chạy test, KHÔNG phải OS env var.
+    // Cách chạy: flutter test test/odoo_api_test.dart --dart-define=ODOO_ADMIN_PASSWORD=<mật khẩu>
+    const adminPassword = String.fromEnvironment('ODOO_ADMIN_PASSWORD', defaultValue: '');
 
     final sessionManager = OdooSessionManager.instance;
 
@@ -77,6 +79,10 @@ void main() {
     }
 
     test('Analyze permissions differences between ADMIN and WORKER', () async {
+      if (adminPassword.isEmpty) {
+        print('\n[BỎ QUA] Thiếu ODOO_ADMIN_PASSWORD. Bỏ qua test phân quyền ADMIN.');
+        return;
+      }
       print('\n=============================================================');
       print('BẮT ĐẦU PHÂN TÍCH QUYỀN TRUY CẬP HỆ THỐNG ODOO');
       print('=============================================================');

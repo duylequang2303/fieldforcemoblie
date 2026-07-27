@@ -15,8 +15,8 @@ void main() {
       if (await $('Đăng nhập').exists) {
         await $(RegExp('Server URL.*')).enterText(TestCredentials.serverUrl);
         await $('Tên Database').enterText(TestCredentials.database);
-        await $('Tên đăng nhập').enterText(TestCredentials.workerUsername);
-        await $('Mật khẩu').enterText(TestCredentials.workerPassword);
+        await $('Tên đăng nhập').enterText(TestCredentials.username);
+        await $('Mật khẩu').enterText(TestCredentials.password);
         await $('Đăng nhập').tap();
         await $.pumpAndSettle();
       }

@@ -57,3 +57,13 @@ Chiến lược test tổng thể: đọc `docs/TEST_STRATEGY.md`
 - **Manual Test** (~44 TC): Thiết bị thật + Odoo server thật
 
 Test fixtures: `test/fixtures/sample_data.dart`
+
+## 🔐 Chạy phân tích quyền ADMIN (optional)
+
+Một số integration tests so sánh quyền truy cập giữa tài khoản ADMIN và WORKER. Mật khẩu admin không được hard-code mà truyền qua `--dart-define` tại compile time:
+
+```bash
+flutter test test/odoo_api_test.dart --dart-define=ODOO_ADMIN_PASSWORD=<mật_khẩu_admin>
+```
+
+> **Lưu ý kỹ thuật:** `String.fromEnvironment` chỉ đọc giá trị được truyền qua `--dart-define`, không phải biến môi trường hệ điều hành (OS env var). Syntax ở trên là bắt buộc.
