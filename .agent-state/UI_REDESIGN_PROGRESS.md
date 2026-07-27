@@ -296,3 +296,67 @@
 - Không thêm field mới, không sửa service/logic
 - Không có unit test để chạy
 - Integration test sẽ chạy ở cuối cùng
+
+
+### 7. Route Map (HOÀN THÀNH - CHỜ DUYỆT PR)
+**Bắt đầu:** 27/7/2026 01:00  
+**Hoàn thành:** 27/7/2026 01:30  
+**Branch:** feature/ui-route-map  
+**File UI:** lib/features/route_map/pages/route_map_page.dart  
+**Tests:** integration_test/route_map_test.dart (updated)
+
+#### Tiến trình:
+- [x] Bước 1: Tạo branch + đọc model/service
+- [x] Bước 2: Redesign UI
+- [x] Bước 3: Cập nhật tests
+- [x] Bước 4: Unit test (PASS ✅)
+- [x] Bước 5: Commit, security cleanup, và push
+
+#### Thay đổi UI:
+- AppBar màu accent dark (accentDark) với improved TabBar
+- TabBar cải thiện với indicatorWeight=3 và labelStyle
+- Thay thế RouteInfoPanel widget bằng custom `_RouteStopCard`
+- Thêm `_buildRouteListTab()` với ListView builder
+- `_RouteStopCard` widget với:
+  - Sequence number badge (circle with accent color)
+  - Order name + partner name
+  - Status badge (pending/current/completed/skipped - color-coded)
+  - Location icon + name
+  - Distance from previous point
+  - Estimated minutes (ETA)
+  - Quick action buttons: "Chỉ đường" (navigate) và "Chi tiết" (show modal)
+- Modal sheet với handle bar + location details + action buttons
+- Empty state cho route list (no stops)
+- Cải thiện location tab:
+  - Empty state với icon container và action button
+  - Map marker styling với shadow và color
+- Helper methods: `_getStatusColor()`, `_getStatusLabel()`
+- All cards with 14px border radius, proper shadows, clean spacing
+
+#### Security Cleanup:
+- Tạo `integration_test/test_credentials.dart` với safe test account
+- Update TẤT CẢ 8 integration test files dùng TestCredentials:
+  1. expense_create_test.dart
+  2. timesheet_test.dart
+  3. login_test.dart
+  4. stock_barcode_test.dart
+  5. work_order_detail_test.dart
+  6. work_order_page_e2e_test.dart
+  7. work_order_test.dart
+  8. order_checkin_test.dart
+- Xóa hardcoded password `<),9853\$6Ect` từ code
+- Xóa file rác `lib/features/orders/models/UI_update.md`
+
+**Commit mật khẩu trong git history (cần filter-repo rewrite):**
+- d07082d: feat(ui): redesign Route Map screen with SortScape-inspired layout
+- 1a72fe0: test(e2e): add work order detail flow test and inject keys
+- eac8578: test: Implement additional E2E tests for Timesheet, Expense creation
+- 1cf72b0: test: Implement initial E2E tests (Patrol) for Login, Check-in, Barcode
+- 4006dcb: chore: update project files
+
+#### Ghi chú:
+- Giữ nguyên toàn bộ field thật từ RouteStop model
+- Không thêm field mới, không sửa service/logic
+- Unit test: route_provider_test.dart (PASS ✅ - 10 tests)
+- Integration test framework updated từ Patrol to Flutter test
+- Credentials still in git history - user will handle git filter-repo rewrite
