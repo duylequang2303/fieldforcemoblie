@@ -11,7 +11,6 @@ import '../../orders/providers/orders_provider.dart';
 import '../models/route_stop.dart';
 import '../providers/route_provider.dart';
 import '../services/location_service.dart';
-import '../widgets/route_info_panel.dart';
 
 /// Trang bản đồ lộ trình — hiển thị danh sách điểm đến trong ngày.
 /// Dùng RouteInfoPanel (list view) thay vì bản đồ thực tế
@@ -59,39 +58,52 @@ class _RouteMapPageState extends State<RouteMapPage>
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: AppColors.primary,
+            backgroundColor: AppColors.accentDark,
             foregroundColor: Colors.white,
+            elevation: 0,
             title: const Text(
               'Lộ Trình Hôm Nay',
-              style: TextStyle(fontWeight: FontWeight.w700),
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
             ),
             actions: [
               // Refresh location
               IconButton(
-                icon: const Icon(Icons.my_location),
+                icon: const Icon(Icons.my_location_outlined),
                 onPressed: provider.refreshLocation,
                 tooltip: 'Cập nhật vị trí',
               ),
             ],
-            bottom: TabBar(
-              controller: _tabController,
-              indicatorColor: Colors.white,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white60,
-              tabs: [
-                Tab(
-                  text: 'Lộ trình (${provider.stops.length})',
-                  icon: const Icon(Icons.list_alt, size: 18),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(56),
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
+                  ),
                 ),
-                const Tab(
-                  text: 'Vị trí tôi',
-                  icon: Icon(Icons.location_on, size: 18),
+                child: TabBar(
+                  controller: _tabController,
+                  indicatorColor: Colors.white,
+                  indicatorWeight: 3,
+                  labelColor: Colors.white,
+                  unselectedLabelColor: Colors.white.withOpacity(0.6),
+                  labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  tabs: [
+                    Tab(
+                      text: 'Lộ trình (${provider.stops.length})',
+                      icon: const Icon(Icons.list_alt_outlined, size: 20),
+                    ),
+                    const Tab(
+                      text: 'Vị trí',
+                      icon: Icon(Icons.location_on_outlined, size: 20),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
           body: provider.isLoading
-              ? const LoadingOverlay(message: 'Đang xây lộ trình...')
+              ? const LoadingOverlay(message: 'Đang xây dựng lộ trình...')
               : provider.errorMessage != null
                   ? ErrorView(
                       message: provider.errorMessage!,
@@ -104,15 +116,7 @@ class _RouteMapPageState extends State<RouteMapPage>
                       controller: _tabController,
                       children: [
                         // Tab 1: Danh sách điểm dừng
-                        RouteInfoPanel(
-                          stops: provider.stops,
-                          onStopTapped: (stop) {
-                            _showStopBottomSheet(context, provider, stop);
-                          },
-                          onNavigateTapped: (stop) {
-                            _openNavigation(stop);
-                          },
-                        ),
+                        _buildRouteListTab(context, provider),
 
                         // Tab 2: Thông tin GPS hiện tại
                         _buildLocationTab(provider),
@@ -123,40 +127,107 @@ class _RouteMapPageState extends State<RouteMapPage>
     );
   }
 
+  Widget _buildRouteListTab(BuildContext context, RouteProvider provider) {
+    if (provider.stops.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.accentMuted,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
+                Icons.route_outlined,
+                size: 40,
+                color: AppColors.accent.withOpacity(0.6),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Chưa có lộ trình',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Lộ trình sẽ được tạo dựa trên các đơn của bạn',
+              style: TextStyle(fontSize: 14, color: AppColors.onSurfaceMuted),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      itemCount: provider.stops.length,
+      itemBuilder: (context, i) => _RouteStopCard(
+        stop: provider.stops[i],
+        index: i + 1,
+        onTap: () => _showStopBottomSheet(context, provider, provider.stops[i]),
+        onNavigate: () => _openNavigation(provider.stops[i]),
+      ),
+    );
+  }
+
   Widget _buildLocationTab(RouteProvider provider) {
     final pos = provider.currentPosition;
     
     if (pos == null) {
       return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.accentMuted,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(
                 Icons.location_off_outlined,
-                size: 64,
-                color: AppColors.onSurfaceMuted,
+                size: 40,
+                color: AppColors.accent.withOpacity(0.6),
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Đang lấy vị trí...',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppColors.onSurfaceMuted,
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Đang lấy vị trí...',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.onSurface,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Vui lòng bật GPS để hiển thị bản đồ',
+              style: TextStyle(fontSize: 14, color: AppColors.onSurfaceMuted),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: provider.refreshLocation,
+              icon: const Icon(Icons.refresh_outlined),
+              label: const Text('Làm mới vị trí'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: provider.refreshLocation,
-                icon: const Icon(Icons.my_location),
-                label: const Text('Lấy vị trí'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
@@ -178,10 +249,23 @@ class _RouteMapPageState extends State<RouteMapPage>
               point: LatLng(pos.latitude, pos.longitude),
               width: 80,
               height: 80,
-              child: const Icon(
-                Icons.location_on,
-                color: AppColors.primary,
-                size: 40,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.accent.withOpacity(0.4),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.location_on,
+                  color: Colors.white,
+                  size: 40,
+                ),
               ),
             ),
           ],
@@ -197,65 +281,196 @@ class _RouteMapPageState extends State<RouteMapPage>
   ) {
     showModalBottomSheet<void>(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(20),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              stop.orderName,
-              style: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 18,
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 20),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.divider,
+                borderRadius: BorderRadius.circular(2),
               ),
             ),
-            if (stop.partnerName != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  stop.partnerName!,
-                  style: const TextStyle(color: AppColors.onSurfaceMuted),
-                ),
-              ),
-            const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      _openNavigation(stop);
-                    },
-                    icon: const Icon(Icons.navigation_outlined),
-                    label: const Text('Dẫn đường'),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Order name with badge
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              stop.orderName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 18,
+                                color: AppColors.onSurface,
+                              ),
+                            ),
+                            if (stop.partnerName != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                stop.partnerName!,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  color: AppColors.onSurfaceMuted,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: _getStatusColor(stop.status).withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: _getStatusColor(stop.status).withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          _getStatusLabel(stop.status),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: _getStatusColor(stop.status),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: stop.status != StopStatus.completed
-                        ? () {
-                            provider.markStopCompleted(stop.orderOdooId);
-                            Navigator.pop(context);
-                          }
-                        : null,
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text('Hoàn thành'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.success,
+                  if (stop.locationName != null) ...[
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_outlined, size: 16, color: AppColors.accent),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            stop.locationName!,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.onSurfaceMuted,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
+                  ],
+                  if (stop.estimatedMinutes != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.schedule_outlined, size: 16, color: AppColors.info),
+                        const SizedBox(width: 8),
+                        Text(
+                          'ETA: ${stop.estimatedMinutes} phút',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: AppColors.onSurfaceMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  // Action buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _openNavigation(stop);
+                          },
+                          icon: const Icon(Icons.directions_outlined),
+                          label: const Text('Chỉ đường'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.info,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: stop.status != StopStatus.completed
+                              ? () {
+                                  provider.markStopCompleted(stop.orderOdooId);
+                                  Navigator.pop(context);
+                                }
+                              : null,
+                          icon: const Icon(Icons.check_circle_outlined),
+                          label: const Text('Hoàn thành'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.success,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            disabledBackgroundColor: AppColors.onSurfaceWeak.withOpacity(0.3),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Color _getStatusColor(StopStatus status) {
+    switch (status) {
+      case StopStatus.pending:
+        return AppColors.onSurfaceMuted;
+      case StopStatus.current:
+        return AppColors.info;
+      case StopStatus.completed:
+        return AppColors.success;
+      case StopStatus.skipped:
+        return AppColors.warning;
+    }
+  }
+
+  String _getStatusLabel(StopStatus status) {
+    switch (status) {
+      case StopStatus.pending:
+        return 'Sắp tới';
+      case StopStatus.current:
+        return 'Đang làm';
+      case StopStatus.completed:
+        return 'Đã hoàn thành';
+      case StopStatus.skipped:
+        return 'Bỏ qua';
+    }
   }
 
   Future<void> _openNavigation(RouteStop stop) async {
@@ -286,5 +501,262 @@ class _RouteMapPageState extends State<RouteMapPage>
         );
       }
     }
+  }
+}
+
+/// Card widget hiển thị một điểm dừng trong lộ trình.
+class _RouteStopCard extends StatelessWidget {
+  final RouteStop stop;
+  final int index;
+  final VoidCallback onTap;
+  final VoidCallback onNavigate;
+
+  const _RouteStopCard({
+    required this.stop,
+    required this.index,
+    required this.onTap,
+    required this.onNavigate,
+  });
+
+  Color _getStatusColor(StopStatus status) {
+    switch (status) {
+      case StopStatus.pending:
+        return AppColors.onSurfaceMuted;
+      case StopStatus.current:
+        return AppColors.info;
+      case StopStatus.completed:
+        return AppColors.success;
+      case StopStatus.skipped:
+        return AppColors.warning;
+    }
+  }
+
+  String _getStatusLabel(StopStatus status) {
+    switch (status) {
+      case StopStatus.pending:
+        return 'Sắp tới';
+      case StopStatus.current:
+        return 'Đang làm';
+      case StopStatus.completed:
+        return 'Đã hoàn thành';
+      case StopStatus.skipped:
+        return 'Bỏ qua';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.divider, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.onSurface.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header: sequence badge + order name + status
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Sequence badge
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.accent.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.accent.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$index',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                          color: AppColors.accent,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Order info
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          stop.orderName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            color: AppColors.onSurface,
+                          ),
+                        ),
+                        if (stop.partnerName != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            stop.partnerName!,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.onSurfaceMuted,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  // Status badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(stop.status).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _getStatusColor(stop.status).withOpacity(0.3),
+                      ),
+                    ),
+                    child: Text(
+                      _getStatusLabel(stop.status),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: _getStatusColor(stop.status),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              // Location & distance info
+              if (stop.locationName != null || stop.distanceFromPrev != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (stop.locationName != null) ...[
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.location_on_outlined,
+                            size: 14,
+                            color: AppColors.accent,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              stop.locationName!,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: AppColors.onSurfaceMuted,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (stop.distanceFromPrev != null) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.route_outlined,
+                            size: 14,
+                            color: AppColors.info,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            '${stop.distanceFromPrev!.toStringAsFixed(1)} km từ điểm trước',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.onSurfaceMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (stop.estimatedMinutes != null) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.schedule_outlined,
+                            size: 14,
+                            color: AppColors.warning,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'ETA: ${stop.estimatedMinutes} phút',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.onSurfaceMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                  ],
+                ),
+              // Quick action button
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onNavigate,
+                      icon: const Icon(Icons.directions_outlined, size: 16),
+                      label: const Text('Chỉ đường'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.info,
+                        side: const BorderSide(color: AppColors.info, width: 1),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: onTap,
+                      icon: const Icon(Icons.info_outlined, size: 16),
+                      label: const Text('Chi tiết'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.accent,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

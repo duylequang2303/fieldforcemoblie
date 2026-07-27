@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:patrol/patrol.dart';
 import 'package:fieldforce_mobile/main.dart' as app;
+import 'test_credentials.dart';
 
 void main() {
   patrolTest(
@@ -12,10 +13,10 @@ void main() {
 
       // 1. Luồng đăng nhập nhanh (Nếu ứng dụng yêu cầu đăng nhập)
       if (await $('Đăng nhập').exists) {
-        await $(RegExp('Server URL.*')).enterText('https://demo002.crmhub.vn');
-        await $('Tên Database').enterText('demo002.crmhub.vn');
-        await $('Tên đăng nhập').enterText('admin');
-        await $('Mật khẩu').enterText('<),9853\$6Ect');
+        await $(RegExp('Server URL.*')).enterText(TestCredentials.serverUrl);
+        await $('Tên Database').enterText(TestCredentials.database);
+        await $('Tên đăng nhập').enterText(TestCredentials.workerUsername);
+        await $('Mật khẩu').enterText(TestCredentials.workerPassword);
         await $('Đăng nhập').tap();
         await $.pumpAndSettle();
       }
