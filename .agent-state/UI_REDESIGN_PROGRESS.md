@@ -41,10 +41,12 @@
    - Bắt đầu: 26/7/2026 23:40
    - Hoàn thành: 26/7/2026 23:55
 
-6. ⏳ **Work Order** - `lib/features/work_order/pages/work_order_page.dart`
-   - Tests: `integration_test/work_order_test.dart`
+6. ✅ **Work Order** - `lib/features/work_order/pages/work_order_page.dart`
+   - Tests: `integration_test/work_order_test.dart` (E2E)
    - Branch: `feature/ui-work-order`
-   - Status: Chưa bắt đầu
+   - Status: **HOÀN THÀNH - CHỜ DUYỆT PR**
+   - Bắt đầu: 27/7/2026 00:00
+   - Hoàn thành: 27/7/2026 00:20
 
 7. ⏳ **Route Map** - `lib/features/route_map/pages/route_map_page.dart`
    - Tests: `integration_test/route_map_test.dart`
@@ -247,6 +249,50 @@
 
 #### Ghi chú:
 - Giữ nguyên toàn bộ field thật từ Expense model
+- Không thêm field mới, không sửa service/logic
+- Không có unit test để chạy
+- Integration test sẽ chạy ở cuối cùng
+
+
+### 6. Work Order (HOÀN THÀNH - CHỜ DUYỆT PR)
+**Bắt đầu:** 27/7/2026 00:00  
+**Hoàn thành:** 27/7/2026 00:20  
+**Branch:** feature/ui-work-order  
+**File UI:** lib/features/work_order/pages/work_order_page.dart  
+**Tests:** integration_test/work_order_test.dart (E2E - deferred)
+
+#### Tiến trình:
+- [x] Bước 1: Tạo branch + đọc model/service
+- [x] Bước 2: Redesign UI
+- [x] Bước 3: Cập nhật tests (không cần - integration test)
+- [x] Bước 4: Unit test (không có, vượt qua)
+- [x] Bước 5: Commit và tạo PR
+
+#### Thay đổi UI:
+- AppBar màu xanh đậm (accentDark)
+- Thay thế Flutter Stepper với custom card-based multi-step form
+- Visual progress bar với step indicators (1-2-3)
+- Thiết kế lại các bước:
+  - Step 1: Công việc đã thực hiện + Vấn đề phát sinh + Ảnh
+  - Step 2: Chữ ký khách hàng
+  - Step 3: Tóm tắt và xác nhận
+- Form sections với:
+  - Section headers có icon
+  - Text input styling tốt hơn (border, focus states)
+  - Info/warning containers màu sắc
+- Summary review cards với:
+  - Checklist items (công việc, ảnh, chữ ký)
+  - Status indicators (check/close icons)
+  - Dividers giữa items
+- Button styling tốt hơn:
+  - Back/Next/Submit buttons với spacing
+  - Loading indicator on submit
+  - Disabled state styling
+- Better shadows, borders (12px), spacing
+- Giữ nguyên toàn bộ functionality
+
+#### Ghi chú:
+- Giữ nguyên toàn bộ field thật từ WorkReport model
 - Không thêm field mới, không sửa service/logic
 - Không có unit test để chạy
 - Integration test sẽ chạy ở cuối cùng
