@@ -29,4 +29,9 @@ abstract final class RouteNames {
   // UI Redesign Routes
   static const String scheduleScreen = '/schedule-screen';
   static const String workOrderDetailScreen = '/work-order-detail-screen';
+
+  // Shell navigation routes
+  static const String shellSchedule = '/shell/schedule';
+  static const String shellProperties = '/shell/properties';
+  static const String shellSettings = '/shell/settings';
 }
