@@ -34,10 +34,12 @@
    - Bắt đầu: 26/7/2026 23:15
    - Hoàn thành: 26/7/2026 23:35
 
-5. ⏳ **Expense** - `lib/features/expense/pages/expense_page.dart`
-   - Tests: `integration_test/expense_create_test.dart`
+5. ✅ **Expense** - `lib/features/expense/pages/expense_page.dart`
+   - Tests: `integration_test/expense_create_test.dart` (E2E)
    - Branch: `feature/ui-expense`
-   - Status: Chưa bắt đầu
+   - Status: **HOÀN THÀNH - CHỜ DUYỆT PR**
+   - Bắt đầu: 26/7/2026 23:40
+   - Hoàn thành: 26/7/2026 23:55
 
 6. ⏳ **Work Order** - `lib/features/work_order/pages/work_order_page.dart`
    - Tests: `integration_test/work_order_test.dart`
@@ -207,3 +209,44 @@
 - Không thêm field mới, không sửa service/logic
 - Test pass: stock_validation_test.dart (2/2)
 - Color-coding: Red (xuất) và Green (nhập) cho move type
+
+
+### 5. Expense (HOÀN THÀNH - CHỜ DUYỆT PR)
+**Bắt đầu:** 26/7/2026 23:40  
+**Hoàn thành:** 26/7/2026 23:55  
+**Branch:** feature/ui-expense  
+**File UI:** lib/features/expense/pages/expense_page.dart  
+**Tests:** integration_test/expense_create_test.dart (E2E - deferred)
+
+#### Tiến trình:
+- [x] Bước 1: Tạo branch + đọc model/service
+- [x] Bước 2: Redesign UI
+- [x] Bước 3: Cập nhật tests (không có unit test)
+- [x] Bước 4: Unit test (không có, vượt qua)
+- [x] Bước 5: Commit và tạo PR
+
+#### Thay đổi UI:
+- AppBar màu cam (#E65100) thay vì secondary
+- Summary card với gradient cam-orange và layout tốt hơn
+- Empty state với icon container và text centered
+- Expense cards với:
+  - Ảnh receipt hoặc category-colored icon box
+  - Category badge với color-coding riêng cho từng loại
+  - Amount display với format currency VND
+  - Date, note hiển thị rõ
+  - Sync status indicator circular
+- Animated form container với smooth transition
+- Color-coding categories:
+  - Fuel: Orange (#FF6F00)
+  - Meal: Green (#4CAF50)
+  - Transport: Blue (#2196F3)
+  - Material: Purple (#9C27B0)
+  - Other: Gray (#757575)
+- Better shadows, borders (14px), spacing
+- FAB với icon outline
+
+#### Ghi chú:
+- Giữ nguyên toàn bộ field thật từ Expense model
+- Không thêm field mới, không sửa service/logic
+- Không có unit test để chạy
+- Integration test sẽ chạy ở cuối cùng
