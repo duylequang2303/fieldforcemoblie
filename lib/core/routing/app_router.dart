@@ -41,7 +41,7 @@ final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
-  initialLocation: RouteNames.shellSchedule,
+  initialLocation: RouteNames.splash,
   debugLogDiagnostics: true,
   routes: [
     // Shell navigation với 3 tab (Schedule, Properties, Settings)
