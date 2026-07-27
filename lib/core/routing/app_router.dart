@@ -32,13 +32,73 @@ import '../../features/schedule/pages/schedule_timesheet_page.dart';
 import '../../features/schedule/pages/schedule_materials_page.dart';
 import '../../features/schedule/models/schedule_property.dart';
 import '../../features/schedule/models/schedule_visit.dart';
+// Shell navigation
+import '../../ui/shell/app_shell.dart';
 
 /// Router chính của ứng dụng.
 /// Khai báo toàn bộ routes tại đây — không navigate trực tiếp bằng Navigator.push().
+final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
+
 final GoRouter appRouter = GoRouter(
+  navigatorKey: _rootNavigatorKey,
   initialLocation: RouteNames.splash,
   debugLogDiagnostics: true,
   routes: [
+    // Shell navigation với 3 tab (Schedule, Properties, Settings)
+    StatefulShellRoute.indexedStack(
+      parentNavigatorKey: _rootNavigatorKey,
+      pageBuilder: (context, state, navigationShell) {
+        return NoTransitionPage(
+          child: AppShell(navigationShell: navigationShell),
+        );
+      },
+      branches: [
+        // Branch 0: Schedule - màn list "Đơn Dịch Vụ" nguyên vẹn
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: RouteNames.shellSchedule,
+              name: 'shellSchedule',
+              pageBuilder: (context, state) {
+                return const NoTransitionPage(child: ScheduleScreen());
+              },
+            ),
+          ],
+        ),
+        // Branch 1: Properties - placeholder
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: RouteNames.shellProperties,
+              name: 'shellProperties',
+              pageBuilder: (context, state) {
+                return const NoTransitionPage(
+                  child: Scaffold(
+                    body: Center(child: Text('Properties')),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        // Branch 2: Settings - placeholder
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: RouteNames.shellSettings,
+              name: 'shellSettings',
+              pageBuilder: (context, state) {
+                return const NoTransitionPage(
+                  child: Scaffold(
+                    body: Center(child: Text('Settings')),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ],
+    ),
     GoRoute(
       path: RouteNames.splash,
       name: 'splash',

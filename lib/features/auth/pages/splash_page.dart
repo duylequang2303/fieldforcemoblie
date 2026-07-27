@@ -27,7 +27,7 @@ class _SplashPageState extends State<SplashPage> {
     if (!mounted) return;
 
     if (auth.isAuthenticated) {
-      context.go(RouteNames.orders);
+      context.go(RouteNames.shellSchedule);
     } else {
       context.go(RouteNames.login);
     }
