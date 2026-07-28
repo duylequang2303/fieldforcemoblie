@@ -40,7 +40,7 @@ class AuthService {
   }
 
   /// Thử restore session từ secure storage khi app khởi động.
-  /// Trả về [true] nếu session còn hiệu lực.
+  /// Trả về [true] nếu có session đã lưu (optimistic — không verify RPC).
   Future<bool> tryRestoreSession() async {
     final hasSaved = await _storage.hasSavedSession;
     if (!hasSaved) return false;
@@ -50,6 +50,7 @@ class AuthService {
     final sessionId = saved['sessionId'];
     final database = saved['database'];
     final locale = saved['locale'];
+    final username = saved['username'] ?? '';
     final userIdStr = saved['userId'];
     final userId = userIdStr != null ? int.tryParse(userIdStr) : null;
 
@@ -62,6 +63,8 @@ class AuthService {
       database: database,
       sessionId: sessionId,
       savedUserId: userId,
+      username: username,
+      locale: locale ?? 'vi_VN',
     );
 
     if (restored && locale != null && locale.isNotEmpty) {

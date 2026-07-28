@@ -18,6 +18,12 @@ class OdooApiClient {
     _client = OdooClient(serverUrl);
   }
 
+  /// Khởi tạo client với session đã lưu để restore phiên (không authenticate lại).
+  /// [session] phải có id (sessionId) khác rỗng để callKw gửi cookie hợp lệ.
+  void initializeWithSession(String serverUrl, OdooSession session) {
+    _client = OdooClient(serverUrl, session);
+  }
+
   /// Trả về OdooClient đang hoạt động.
   /// Throw [OdooConnectionException] nếu chưa initialize.
   OdooClient get client {

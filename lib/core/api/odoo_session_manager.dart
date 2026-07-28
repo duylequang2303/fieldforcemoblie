@@ -110,23 +110,51 @@ class OdooSessionManager {
     }
   }
 
-  /// Restore session từ sessionId đã lưu (sau khi app restart).
+  /// Restore session từ dữ liệu đã lưu (sau khi app restart).
+  ///
+  /// OPTIMISTIC RESTORE (offline-first): dựng lại session + _currentSession
+  /// từ SecureStorage, KHÔNG gọi RPC. Mở app không mạng vẫn vào được (xem
+  /// cache Isar). Session hết hạn sẽ bị phát hiện ở callKw online đầu tiên
+  /// (OdooSessionExpiredException) chứ không chặn lúc mở app.
   Future<bool> restoreSession({
     required String serverUrl,
     required String database,
     required String sessionId,
     required int savedUserId,
+    required String username,
+    String locale = 'vi_VN',
   }) async {
     try {
-      OdooApiClient.instance.initialize(serverUrl);
-      // Thử gọi API để kiểm tra session bằng cách đọc chính user hiện tại
-      await OdooApiClient.instance.callKw(
-        model: 'res.users',
-        method: 'read',
-        args: [
-          [savedUserId]
-        ],
-        kwargs: {'fields': <String>['id']},
+      // Dựng OdooSession từ dữ liệu đã lưu. Chỉ id + userId là quan trọng
+      // cho RPC; các field còn lại là metadata, đặt default an toàn.
+      // serverVersion đặt '19' (khác '') để tránh RangeError nếu serverVersionInt bị gọi.
+      final session = OdooSession(
+        id: sessionId,
+        userId: savedUserId,
+        partnerId: 0,
+        companyId: 0,
+        allowedCompanies: <Company>[],
+        userLogin: username,
+        userName: username,
+        userLang: locale,
+        userTz: 'UTC',
+        isSystem: false,
+        dbName: database,
+        serverVersion: '19',
+      );
+
+      // FIX TẦNG 1: nạp session vào client → mọi callKw online gửi cookie session_id.
+      OdooApiClient.instance.initializeWithSession(serverUrl, session);
+
+      // FIX TẦNG 2: dựng lại _currentSession. Thiếu bước này thì
+      // currentUserId = null → OrdersService.fetchMyOrders() trả về [] sau mỗi lần mở app.
+      _currentSession = OdooSessionData(
+        serverUrl: serverUrl,
+        database: database,
+        username: username,
+        userId: savedUserId,
+        sessionId: sessionId,
+        locale: locale,
       );
       return true;
     } catch (_) {
