@@ -101,7 +101,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return '${totalHours.toStringAsFixed(2)} hrs (\$ ${totalValue.toStringAsFixed(0)})';
   }
 
-
   List<String> get _availablePersons {
     return _orders
         .map((o) => o.personName)
