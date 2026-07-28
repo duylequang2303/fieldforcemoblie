@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../widgets/empty_state_widget.dart';
 import '../widgets/schedule_top_bar.dart';
+import '../widgets/filter_chips_row.dart';
 import '../widgets/schedule_card.dart';
 import '../features/orders/models/fsm_order.dart';
 import '../ui/theme/sf_tokens.dart';
@@ -22,6 +23,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   bool _isLoading = false;
   DateTime _selectedDate = DateTime.now();
   String _viewMode = 'Today';
+  FsmOrderStage? _selectedStage; // null = All
 
   // Mock dữ liệu dựa theo FsmOrder cho UI mẫu
   final List<FsmOrder> _orders = [
@@ -32,6 +34,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ..partnerName = "John Doe"
       ..scheduledDateStart = DateTime.now().copyWith(hour: 9, minute: 0)
       ..scheduledDateEnd = DateTime.now().copyWith(hour: 11, minute: 0)
+      ..stageId = 1
+      ..stageName = 'Draft'
+      ..stage = FsmOrderStage.draft
       ..isPendingSync = false,
     FsmOrder()
       ..odooId = 2
@@ -40,6 +45,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ..partnerName = "Acme Corp"
       ..scheduledDateStart = DateTime.now().copyWith(hour: 13, minute: 0)
       ..scheduledDateEnd = DateTime.now().copyWith(hour: 14, minute: 30)
+      ..stageId = 2
+      ..stageName = 'In Progress'
+      ..stage = FsmOrderStage.inProgress
       ..isPendingSync = true,
   ];
 
@@ -47,9 +55,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   List<FsmOrder> get _filteredOrders {
     return _orders.where((order) {
       if (order.scheduledDateStart == null) return false;
-      return order.scheduledDateStart!.year == _selectedDate.year &&
-             order.scheduledDateStart!.month == _selectedDate.month &&
-             order.scheduledDateStart!.day == _selectedDate.day;
+      final matchDate = order.scheduledDateStart!.year == _selectedDate.year &&
+          order.scheduledDateStart!.month == _selectedDate.month &&
+          order.scheduledDateStart!.day == _selectedDate.day;
+      if (!matchDate) return false;
+      if (_selectedStage != null && order.stage != _selectedStage) {
+        return false;
+      }
+      return true;
     }).toList();
   }
 
@@ -209,6 +222,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             },
             onViewModeChanged: (mode) {
               setState(() => _viewMode = mode);
+            },
+          ),
+          FilterChipsRow(
+            selectedStage: _selectedStage,
+            onStageSelected: (stage) {
+              setState(() => _selectedStage = stage);
             },
           ),
           Expanded(
