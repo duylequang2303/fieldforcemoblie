@@ -10,7 +10,7 @@ import '../../../../core/settings/sync_status_provider.dart';
 import '../../../../ui/theme/sf_tokens.dart';
 import '../../auth/providers/auth_provider.dart';
 
-/// Trạng thái kiểm tra kết nối (chưa ping server — chỉ validate định dạng).
+/// Connection check state (no server ping yet — format validation only).
 enum _ConnStatus { unknown, valid, invalid }
 
 const String _appVersion = '0.4.0';
@@ -53,7 +53,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final repo = SettingsRepository.instance;
     await repo.loadAll();
 
-    // Tên tài khoản: đọc read-only từ session login hiện tại.
+    // Account name: read-only from the current login session.
     String name = '';
     try {
       final creds = await SecureStorageService.instance.loadSavedCredentials();
@@ -67,7 +67,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _urlCtrl.text = repo.serverUrl;
       _dbCtrl.text = repo.database;
       _userCtrl.text = repo.username;
-      _keyCtrl.text = repo.apiKey;
+      _keyCtrl.text = repo.password;
       _wifiOnly = repo.wifiOnly;
       _autoSync = repo.autoSyncMinutes;
       _accountName = name;
@@ -109,10 +109,10 @@ class _SettingsPageState extends State<SettingsPage> {
         serverUrl: url,
         database: _dbCtrl.text.trim(),
         username: _userCtrl.text.trim(),
-        apiKey: _keyCtrl.text.trim(),
+        password: _keyCtrl.text.trim(),
       );
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã lưu cấu hình. Kết nối thật sẽ có ở Lát 5.')),
+        const SnackBar(content: Text('Config saved. Real connection arrives in Slice 5.')),
       );
     }
   }
@@ -120,14 +120,14 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _onSyncNow() async {
     if (!SettingsRepository.instance.hasConnection) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nhập và Kiểm tra kết nối Odoo trước.')),
+        const SnackBar(content: Text('Enter and test the Odoo connection first.')),
       );
       return;
     }
     await _sync.syncNow();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Mô phỏng đồng bộ. Đồng bộ thật sẽ có ở Lát 7.')),
+      const SnackBar(content: Text('Simulated sync. Real sync arrives in Slice 7.')),
     );
   }
 
@@ -143,12 +143,12 @@ class _SettingsPageState extends State<SettingsPage> {
 
   String get _lastSyncedLabel {
     final t = _sync.lastSyncedAt;
-    if (t == null) return 'Chưa đồng bộ';
+    if (t == null) return 'Never';
     final diff = DateTime.now().difference(t);
-    if (diff.inMinutes < 1) return 'Vừa xong';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} phút trước';
-    if (diff.inHours < 24) return '${diff.inHours} giờ trước';
-    return '${diff.inDays} ngày trước';
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 
   Color _statusColor(_ConnStatus s) {
@@ -165,11 +165,11 @@ class _SettingsPageState extends State<SettingsPage> {
   String _statusText(_ConnStatus s) {
     switch (s) {
       case _ConnStatus.valid:
-        return 'Hợp lệ (đã lưu)';
+        return 'Valid (saved)';
       case _ConnStatus.invalid:
-        return 'Thiếu thông tin';
+        return 'Missing info';
       case _ConnStatus.unknown:
-        return 'Đã lưu — nhấn Kiểm tra để xác nhận';
+        return 'Saved — tap Test to confirm';
     }
   }
 
@@ -182,7 +182,7 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(
         backgroundColor: SfTokens.primary,
         foregroundColor: SfTokens.surface,
-        title: const Text('Cài đặt'),
+        title: const Text('Settings'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(SfTokens.spacingMd),
@@ -202,7 +202,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildConnection() {
     return _Card(
-      title: 'Kết nối Odoo',
+      title: 'Odoo Connection',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -212,7 +212,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: SfTokens.spacingXs),
           _field(_userCtrl, 'Username', Icons.person_outline, false),
           const SizedBox(height: SfTokens.spacingXs),
-          _field(_keyCtrl, 'API Key', Icons.key_outlined, true),
+          _field(_keyCtrl, 'Password', Icons.lock_outline, true),
           const SizedBox(height: SfTokens.spacingSm),
           Row(
             children: [
@@ -226,7 +226,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       borderRadius: BorderRadius.circular(SfTokens.radiusSm),
                     ),
                   ),
-                  child: const Text('Kiểm tra kết nối'),
+                  child: const Text('Test Connection'),
                 ),
               ),
               const SizedBox(width: SfTokens.spacingSm),
@@ -277,12 +277,12 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildSyncOffline() {
     return _Card(
-      title: 'Đồng bộ & Ngoại tuyến',
+      title: 'Sync & Offline',
       child: Column(
         children: [
           _row(
             icon: Icons.sync,
-            label: 'Đồng bộ ngay',
+            label: 'Sync now',
             trailing: _sync.isSyncing
                 ? const SizedBox(
                     width: 18,
@@ -297,7 +297,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const Divider(height: 1, color: SfTokens.divider),
           _row(
             icon: Icons.schedule,
-            label: 'Lần đồng bộ cuối',
+            label: 'Last synced',
             value: _lastSyncedLabel,
           ),
           const Divider(height: 1, color: SfTokens.divider),
@@ -305,14 +305,14 @@ class _SettingsPageState extends State<SettingsPage> {
             icon: _sync.hasPending ? Icons.cloud_upload : Icons.check_circle,
             iconColor: _sync.hasPending ? SfTokens.warning : SfTokens.success,
             label: _sync.hasPending
-                ? '${_sync.pendingCount} thay đổi chờ tải lên'
-                : 'Đã đồng bộ tất cả',
+                ? '${_sync.pendingCount} changes pending upload'
+                : 'All synced',
             labelColor: _sync.hasPending ? SfTokens.warning : SfTokens.success,
           ),
           const Divider(height: 1, color: SfTokens.divider),
           _row(
             icon: Icons.timer_outlined,
-            label: 'Tự động đồng bộ',
+            label: 'Auto-sync',
             trailing: DropdownButton<int>(
               value: _autoSync,
               underline: const SizedBox.shrink(),
@@ -322,18 +322,18 @@ class _SettingsPageState extends State<SettingsPage> {
                 SettingsRepository.instance.saveAutoSyncMinutes(v);
               },
               items: const [
-                DropdownMenuItem(value: 0, child: Text('Tắt')),
-                DropdownMenuItem(value: 5, child: Text('5 phút')),
-                DropdownMenuItem(value: 15, child: Text('15 phút')),
-                DropdownMenuItem(value: 30, child: Text('30 phút')),
-                DropdownMenuItem(value: 60, child: Text('60 phút')),
+                DropdownMenuItem(value: 0, child: Text('Off')),
+                DropdownMenuItem(value: 5, child: Text('5 min')),
+                DropdownMenuItem(value: 15, child: Text('15 min')),
+                DropdownMenuItem(value: 30, child: Text('30 min')),
+                DropdownMenuItem(value: 60, child: Text('60 min')),
               ],
             ),
           ),
           const Divider(height: 1, color: SfTokens.divider),
           _row(
             icon: Icons.wifi,
-            label: 'Chỉ đồng bộ qua WiFi',
+            label: 'Sync on WiFi only',
             trailing: Switch(
               value: _wifiOnly,
               activeColor: SfTokens.primary,
@@ -346,7 +346,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const Divider(height: 1, color: SfTokens.divider),
           _row(
             icon: Icons.sd_storage_outlined,
-            label: 'Dữ liệu ngoại tuyến',
+            label: 'Offline data',
             value: _storageLabel,
           ),
         ],
@@ -356,7 +356,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildAccount() {
     return _Card(
-      title: 'Tài khoản',
+      title: 'Account',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -366,7 +366,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(width: SfTokens.spacingSm),
               Expanded(
                 child: Text(
-                  _accountName.isEmpty ? 'Chưa xác định' : _accountName,
+                  _accountName.isEmpty ? 'Unknown' : _accountName,
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -382,7 +382,7 @@ class _SettingsPageState extends State<SettingsPage> {
             child: TextButton(
               onPressed: _onLogout,
               style: TextButton.styleFrom(foregroundColor: SfTokens.error),
-              child: const Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.w600)),
+              child: const Text('Log out', style: TextStyle(fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -392,7 +392,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildAbout() {
     return _Card(
-      title: 'Giới thiệu',
+      title: 'About',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -402,12 +402,12 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: SfTokens.spacingXxs),
           Text(
-            'Phiên bản $_appVersion (build $_buildNumber)',
+            'Version $_appVersion (build $_buildNumber)',
             style: const TextStyle(fontSize: 13, color: SfTokens.onSurfaceWeak),
           ),
           const SizedBox(height: SfTokens.spacingXxs),
           Text(
-            'Hỗ trợ: $_supportEmail',
+            'Support: $_supportEmail',
             style: const TextStyle(fontSize: 13, color: SfTokens.onSurfaceWeak),
           ),
         ],
