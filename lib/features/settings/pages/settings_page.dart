@@ -8,6 +8,7 @@ import '../../../../core/routing/route_names.dart';
 import '../../../../core/settings/offline_storage_service.dart';
 import '../../../../core/settings/settings_repository.dart';
 import '../../../../core/settings/sync_status_provider.dart';
+import '../../../../core/utils/logger.dart';
 import '../../../../ui/theme/sf_tokens.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../orders/services/orders_service.dart';
@@ -131,6 +132,7 @@ class _SettingsPageState extends State<SettingsPage> {
         );
       }
     } catch (e) {
+      logger.e('_onSyncNow failed', error: e);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sync failed — check connection.')),
