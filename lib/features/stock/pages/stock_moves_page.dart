@@ -269,7 +269,6 @@ class _MoveCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.divider,
                 borderRadius: BorderRadius.circular(4),
-                overflow: Clip.antiAlias,
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(4),
