@@ -3,6 +3,7 @@ import '../widgets/custom_bottom_nav.dart';
 import '../widgets/empty_state_widget.dart';
 import '../widgets/schedule_top_bar.dart';
 import '../widgets/filter_chips_row.dart';
+import '../widgets/filter_bottom_sheet.dart';
 import '../widgets/schedule_card.dart';
 import '../features/orders/models/fsm_order.dart';
 import '../ui/theme/sf_tokens.dart';
@@ -24,6 +25,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   DateTime _selectedDate = DateTime.now();
   String _viewMode = 'Today';
   FsmOrderStage? _selectedStage; // null = All
+  Set<FsmOrderStage> _filterStages = {};
+  Set<String> _filterPersons = {};
+  Set<String> _filterPriorities = {};
 
   // Mock dữ liệu dựa theo FsmOrder cho UI mẫu
   final List<FsmOrder> _orders = [
@@ -32,6 +36,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ..name = "WO/2026/001"
       ..locationAddress = "42 Garden Street, Sydney NSW"
       ..partnerName = "John Doe"
+      ..personName = "John Doe"
+      ..priority = "0"
       ..scheduledDateStart = DateTime.now().copyWith(hour: 9, minute: 0)
       ..scheduledDateEnd = DateTime.now().copyWith(hour: 11, minute: 0)
       ..stageId = 1
@@ -43,6 +49,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ..name = "WO/2026/002"
       ..locationAddress = "150 George Street, Brisbane"
       ..partnerName = "Acme Corp"
+      ..personName = "Jane Smith"
+      ..priority = "1"
       ..scheduledDateStart = DateTime.now().copyWith(hour: 13, minute: 0)
       ..scheduledDateEnd = DateTime.now().copyWith(hour: 14, minute: 30)
       ..stageId = 2
@@ -60,6 +68,20 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           order.scheduledDateStart!.day == _selectedDate.day;
       if (!matchDate) return false;
       if (_selectedStage != null && order.stage != _selectedStage) {
+        return false;
+      }
+      if (_selectedStage == null &&
+          _filterStages.isNotEmpty &&
+          !_filterStages.contains(order.stage)) {
+        return false;
+      }
+      if (_filterPersons.isNotEmpty &&
+          (order.personName == null ||
+              !_filterPersons.contains(order.personName))) {
+        return false;
+      }
+      if (_filterPriorities.isNotEmpty &&
+          !_filterPriorities.contains(order.priority)) {
         return false;
       }
       return true;
@@ -84,6 +106,42 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   void _onTabTapped(int index) {
     setState(() {
       _currentIndex = index;
+    });
+  }
+
+  List<String> get _availablePersons {
+    return _orders
+        .map((o) => o.personName)
+        .whereType<String>()
+        .toSet()
+        .toList()
+      ..sort();
+  }
+
+  Future<void> _openFilterSheet() async {
+    final result = await showFilterBottomSheet(
+      context: context,
+      initialStages: _selectedStage != null
+          ? {_selectedStage!}
+          : _filterStages,
+      initialPersons: _filterPersons,
+      initialPriorities: _filterPriorities,
+      availablePersons: _availablePersons,
+      allOrders: _orders,
+    );
+
+    if (result == null) return;
+
+    setState(() {
+      if (result.stages.length == 1) {
+        _selectedStage = result.stages.first;
+        _filterStages = {};
+      } else {
+        _selectedStage = null;
+        _filterStages = result.stages;
+      }
+      _filterPersons = result.persons;
+      _filterPriorities = result.priorities;
     });
   }
 
@@ -218,7 +276,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               }
             },
             onFilterTap: () {
-              // TODO: Mở filter bottom sheet (Lát 3)
+              _openFilterSheet();
             },
             onViewModeChanged: (mode) {
               setState(() => _viewMode = mode);
@@ -227,7 +285,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           FilterChipsRow(
             selectedStage: _selectedStage,
             onStageSelected: (stage) {
-              setState(() => _selectedStage = stage);
+              setState(() {
+                _selectedStage = stage;
+                _filterStages = {};
+                _filterPersons = {};
+                _filterPriorities = {};
+              });
             },
           ),
           Expanded(
