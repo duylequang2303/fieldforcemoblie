@@ -23,12 +23,16 @@ class SettingsRepository {
   DateTime? lastSyncedAt;
 
   /// Load tuỳ chọn từ storage. Gọi 1 lần khi mở Settings.
+  /// Chỉ đọc 3 key ff_settings_* riêng biệt thay vì readAll() để tránh kéo
+  /// auth/session entries của SecureStorageService.
   Future<void> loadAll() async {
     try {
-      final values = await _storage.readAll();
-      wifiOnly = (values[_kWifiOnly] ?? 'false') == 'true';
-      autoSyncMinutes = int.tryParse(values[_kAutoSyncMin] ?? '15') ?? 15;
-      final ts = int.tryParse(values[_kLastSyncedAt] ?? '');
+      final wifiVal = await _storage.read(key: _kWifiOnly);
+      wifiOnly = (wifiVal ?? 'false') == 'true';
+      final autoVal = await _storage.read(key: _kAutoSyncMin);
+      autoSyncMinutes = int.tryParse(autoVal ?? '15') ?? 15;
+      final tsVal = await _storage.read(key: _kLastSyncedAt);
+      final ts = int.tryParse(tsVal ?? '');
       lastSyncedAt = ts == null ? null : DateTime.fromMillisecondsSinceEpoch(ts);
 
       // Purge credentials cũ (ff_settings_*) còn sót từ bản 4/4.5.
