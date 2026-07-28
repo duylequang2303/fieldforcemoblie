@@ -52,6 +52,7 @@ class FsmOrder {
   // Worker
   int? personId;              // fsm.person.id
   String? personName;
+  String? priority;           // '0' = Normal, '1' = High
 
 
   // Sync
@@ -80,6 +81,7 @@ class FsmOrder {
       ..dateStart = _dateOrNull(json['date_start'])
       ..personId = _idOrNull(json['person_id'])
       ..personName = _nameFromMany(json['person_id'])
+      ..priority = json['priority'] as String?
       ..routeSequence = json['route_sequence'] as int?
       ..routeId = _idOrNull(json['route_id'])
       ..routeState = json['route_state'] as String? // Sẽ được merge từ query riêng hoặc related field
