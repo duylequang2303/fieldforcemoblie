@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -34,6 +36,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isTesting = false;
   bool _isSyncing = false;
   bool _wifiOnly = false;
+  Timer? _clockTimer;
   int _autoSync = 15;
   String _storageLabel = '...';
 
@@ -42,6 +45,12 @@ class _SettingsPageState extends State<SettingsPage> {
     super.initState();
     _sync.addListener(_onSyncChanged);
     _load();
+    // Đồng hồ 1 phút: tự vẽ lại để nhãn "Xm ago" nhảy + đọc lại last/pending.
+    _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) async {
+      if (!mounted) return;
+      await _sync.refresh();
+      if (mounted) setState(() {});
+    });
   }
 
   void _onSyncChanged() {
@@ -63,6 +72,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   void dispose() {
+    _clockTimer?.cancel();
     _sync.removeListener(_onSyncChanged);
     _sync.dispose();
     super.dispose();
