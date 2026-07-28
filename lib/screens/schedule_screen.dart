@@ -5,12 +5,13 @@ import '../widgets/filter_chips_row.dart';
 import '../widgets/filter_bottom_sheet.dart';
 import '../widgets/schedule_card.dart';
 import '../features/orders/models/fsm_order.dart';
+import '../features/orders/services/orders_service.dart';
 import '../ui/theme/sf_tokens.dart';
 import 'package:go_router/go_router.dart';
 import '../core/routing/route_names.dart';
 
-/// Màn hình mẫu ScheduleScreen tuân thủ cấu trúc Scaffold mới
-/// và thiết kế Sortscape (Card-based List).
+/// Màn hình ScheduleScreen — đọc dữ liệu fsm.order thật từ OrdersService
+/// (Odoo + cache Isar, offline-first). Thiết kế Sortscape (Card-based List).
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
 
@@ -27,35 +28,44 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Set<String> _filterPersons = {};
   Set<String> _filterPriorities = {};
 
-  // Mock dữ liệu dựa theo FsmOrder cho UI mẫu
-  final List<FsmOrder> _orders = [
-    FsmOrder()
-      ..odooId = 1
-      ..name = "WO/2026/001"
-      ..locationAddress = "42 Garden Street, Sydney NSW"
-      ..partnerName = "John Doe"
-      ..personName = "John Doe"
-      ..priority = "0"
-      ..scheduledDateStart = DateTime.now().copyWith(hour: 9, minute: 0)
-      ..scheduledDateEnd = DateTime.now().copyWith(hour: 11, minute: 0)
-      ..stageId = 1
-      ..stageName = 'Draft'
-      ..stage = FsmOrderStage.draft
-      ..isPendingSync = false,
-    FsmOrder()
-      ..odooId = 2
-      ..name = "WO/2026/002"
-      ..locationAddress = "150 George Street, Brisbane"
-      ..partnerName = "Acme Corp"
-      ..personName = "Jane Smith"
-      ..priority = "1"
-      ..scheduledDateStart = DateTime.now().copyWith(hour: 13, minute: 0)
-      ..scheduledDateEnd = DateTime.now().copyWith(hour: 14, minute: 30)
-      ..stageId = 2
-      ..stageName = 'In Progress'
-      ..stage = FsmOrderStage.inProgress
-      ..isPendingSync = true,
-  ];
+  // Dữ liệu thật — nạp từ OrdersService (Isar cache + Odoo), KHÔNG còn mock.
+  List<FsmOrder> _orders = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitial();
+  }
+
+  /// Offline-first: hiện cache Isar ngay, rồi pull Odoo nền.
+  Future<void> _loadInitial() async {
+    List<FsmOrder> cached = [];
+    try {
+      cached = await OrdersService.instance.loadCachedOrders();
+    } catch (e) {
+      debugPrint('ScheduleScreen loadCachedOrders failed: $e');
+    }
+    if (!mounted) return;
+    setState(() => _orders = cached);
+
+    // Lần đầu chưa có cache → hiện spinner; đã có cache → fetch nền lặng lẽ.
+    await _fetchFromOdoo(showSpinner: cached.isEmpty);
+  }
+
+  /// Pull dữ liệu thật từ Odoo (fetchMyOrders tự lưu Isar).
+  /// Offline/lỗi → giữ nguyên cache đã có, không crash.
+  Future<void> _fetchFromOdoo({required bool showSpinner}) async {
+    if (showSpinner && mounted) setState(() => _isLoading = true);
+    try {
+      final fresh = await OrdersService.instance.fetchMyOrders();
+      if (!mounted) return;
+      setState(() => _orders = fresh);
+    } catch (e) {
+      debugPrint('ScheduleScreen fetchMyOrders failed (offline?): $e');
+    } finally {
+      if (showSpinner && mounted) setState(() => _isLoading = false);
+    }
+  }
 
   // Lọc orders theo ngày đã chọn
   List<FsmOrder> get _filteredOrders {
@@ -97,7 +107,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       }
     }
     // Giả lập tính tiền: $50 / giờ (do FsmOrder hiện tại chưa có field giá trị)
-    double totalValue = totalHours * 50;
+    final double totalValue = totalHours * 50;
     return '${totalHours.toStringAsFixed(2)} hrs (\$ ${totalValue.toStringAsFixed(0)})';
   }
 
@@ -138,14 +148,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Future<void> _onRefresh() async {
-    setState(() {
-      _isLoading = true;
-    });
-    // Giả lập gọi API sync
-    await Future.delayed(const Duration(seconds: 1));
-    setState(() {
-      _isLoading = false;
-    });
+    await _fetchFromOdoo(showSpinner: true);
   }
 
   Widget _buildJobList() {
