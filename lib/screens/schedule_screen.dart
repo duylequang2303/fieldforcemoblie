@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../widgets/custom_bottom_nav.dart';
 import '../widgets/empty_state_widget.dart';
 import '../widgets/schedule_top_bar.dart';
 import '../widgets/filter_chips_row.dart';
@@ -20,7 +19,6 @@ class ScheduleScreen extends StatefulWidget {
 }
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
-  int _currentIndex = 0;
   bool _isLoading = false;
   DateTime _selectedDate = DateTime.now();
   String _viewMode = 'Today';
@@ -103,11 +101,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return '${totalHours.toStringAsFixed(2)} hrs (\$ ${totalValue.toStringAsFixed(0)})';
   }
 
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-  }
 
   List<String> get _availablePersons {
     return _orders
@@ -298,10 +291,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
           _buildBottomSummaryBar(),
         ],
-      ),
-      bottomNavigationBar: CustomBottomNav(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
       ),
     );
   }
