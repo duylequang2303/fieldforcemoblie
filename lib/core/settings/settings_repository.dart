@@ -1,10 +1,10 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Lưu/đọc cấu hình Settings (kết nối Odoo + tuỳ chọn đồng bộ).
+/// Stores/reads Settings config (Odoo connection + sync preferences).
 ///
-/// LƯU Ý (nợ kỹ thuật Lát 4): repo này dùng bộ key RIÊNG, độc lập với
-/// [SecureStorageService] mà màn Login đang ghi. Lát 5 sẽ hợp nhất 2 nguồn
-/// để màn Kết nối tự điền từ lần đăng nhập trước.
+/// NOTE (Slice 4 tech debt): this repo uses its OWN key set, separate from
+/// [SecureStorageService] which the Login screen writes to. Slice 5 will
+/// unify both sources so the Connection form auto-fills from the last login.
 class SettingsRepository {
   SettingsRepository._();
   static final SettingsRepository instance = SettingsRepository._();
@@ -17,7 +17,7 @@ class SettingsRepository {
   static const _kServerUrl = 'ff_settings_server_url';
   static const _kDatabase = 'ff_settings_database';
   static const _kUsername = 'ff_settings_username';
-  static const _kApiKey = 'ff_settings_api_key';
+  static const _kPassword = 'ff_settings_password';
   static const _kWifiOnly = 'ff_settings_wifi_only';
   static const _kAutoSyncMin = 'ff_settings_auto_sync_min';
   static const _kLastSyncedAt = 'ff_settings_last_synced_at';
@@ -26,31 +26,31 @@ class SettingsRepository {
   String serverUrl = '';
   String database = '';
   String username = '';
-  String apiKey = '';
+  String password = '';
   bool wifiOnly = false;
-  int autoSyncMinutes = 15; // 0 = tắt
+  int autoSyncMinutes = 15; // 0 = off
   DateTime? lastSyncedAt;
 
   bool get hasConnection =>
       serverUrl.isNotEmpty &&
       database.isNotEmpty &&
       username.isNotEmpty &&
-      apiKey.isNotEmpty;
+      password.isNotEmpty;
 
-  /// Nạp toàn bộ từ storage vào cache. Gọi 1 lần khi mở màn Settings.
+  /// Load everything from storage into cache. Call once when opening Settings.
   Future<void> loadAll() async {
     try {
       final values = await _storage.readAll();
       serverUrl = values[_kServerUrl] ?? '';
       database = values[_kDatabase] ?? '';
       username = values[_kUsername] ?? '';
-      apiKey = values[_kApiKey] ?? '';
+      password = values[_kPassword] ?? '';
       wifiOnly = (values[_kWifiOnly] ?? 'false') == 'true';
       autoSyncMinutes = int.tryParse(values[_kAutoSyncMin] ?? '15') ?? 15;
       final ts = int.tryParse(values[_kLastSyncedAt] ?? '');
       lastSyncedAt = ts == null ? null : DateTime.fromMillisecondsSinceEpoch(ts);
     } catch (_) {
-      // Storage chưa sẵn sàng → giữ giá trị mặc định.
+      // Storage not ready yet — keep defaults.
     }
   }
 
@@ -58,16 +58,16 @@ class SettingsRepository {
     required String serverUrl,
     required String database,
     required String username,
-    required String apiKey,
+    required String password,
   }) async {
     this.serverUrl = serverUrl;
     this.database = database;
     this.username = username;
-    this.apiKey = apiKey;
+    this.password = password;
     await _storage.write(key: _kServerUrl, value: serverUrl);
     await _storage.write(key: _kDatabase, value: database);
     await _storage.write(key: _kUsername, value: username);
-    await _storage.write(key: _kApiKey, value: apiKey);
+    await _storage.write(key: _kPassword, value: password);
   }
 
   Future<void> saveWifiOnly(bool value) async {
@@ -92,10 +92,10 @@ class SettingsRepository {
     serverUrl = '';
     database = '';
     username = '';
-    apiKey = '';
+    password = '';
     await _storage.delete(key: _kServerUrl);
     await _storage.delete(key: _kDatabase);
     await _storage.delete(key: _kUsername);
-    await _storage.delete(key: _kApiKey);
+    await _storage.delete(key: _kPassword);
   }
 }
