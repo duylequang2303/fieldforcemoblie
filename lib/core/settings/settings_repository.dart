@@ -30,6 +30,15 @@ class SettingsRepository {
       autoSyncMinutes = int.tryParse(values[_kAutoSyncMin] ?? '15') ?? 15;
       final ts = int.tryParse(values[_kLastSyncedAt] ?? '');
       lastSyncedAt = ts == null ? null : DateTime.fromMillisecondsSinceEpoch(ts);
+
+      // Purge credentials cũ (ff_settings_*) còn sót từ bản 4/4.5.
+      // Bản 5b không dùng chúng nữa; để trong két là rác bảo mật.
+      // delete key không tồn tại thì vô hại → chạy mỗi lần loadAll vẫn an toàn (idempotent, không cần cờ one-time).
+      await _storage.delete(key: 'ff_settings_server_url');
+      await _storage.delete(key: 'ff_settings_database');
+      await _storage.delete(key: 'ff_settings_username');
+      await _storage.delete(key: 'ff_settings_password');
+      await _storage.delete(key: 'ff_settings_api_key');
     } catch (_) {
       // Storage chưa sẵn sàng — giữ mặc định.
     }

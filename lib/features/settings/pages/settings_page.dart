@@ -115,9 +115,21 @@ class _SettingsPageState extends State<SettingsPage> {
       await SettingsRepository.instance.saveLastSyncedAt(DateTime.now());
       await _sync.refresh();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Synced successfully.')),
-      );
+
+      // Báo chính xác: còn bao nhiêu bản ghi chưa đẩy được (partial failure / offline).
+      final stillPending = _sync.pendingCount;
+      if (stillPending > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Synced, but $stillPending change(s) still pending.'),
+            backgroundColor: SfTokens.warning,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Synced successfully.')),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
