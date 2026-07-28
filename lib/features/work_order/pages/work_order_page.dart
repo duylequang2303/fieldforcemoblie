@@ -317,7 +317,7 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Tóm Tắt Nghiệm Thu', Icons.summary),
+        _buildSectionHeader('Tóm Tắt Nghiệm Thu', Icons.summarize),
         const SizedBox(height: 12),
         _buildSummaryReview(provider),
         if (!provider.isComplete) ...[
