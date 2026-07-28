@@ -1,73 +1,51 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Stores/reads Settings config (Odoo connection + sync preferences).
+/// Lưu tuỳ chọn đồng bộ của Settings (wifi-only, auto-sync, last synced).
 ///
-/// NOTE (Slice 4 tech debt): this repo uses its OWN key set, separate from
-/// [SecureStorageService] which the Login screen writes to. Slice 5 will
-/// unify both sources so the Connection form auto-fills from the last login.
+/// LƯU Ý: creds (server/db/user/pass) KHÔNG lưu ở đây — chúng thuộc
+/// SecureStorageService (màn Login ghi). Lát 5b đã dọn bộ key ff_settings_* cũ.
 class SettingsRepository {
   SettingsRepository._();
   static final SettingsRepository instance = SettingsRepository._();
 
-  final FlutterSecureStorage _storage = const FlutterSecureStorage(
+  static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
   // ── Keys ──
-  static const _kServerUrl = 'ff_settings_server_url';
-  static const _kDatabase = 'ff_settings_database';
-  static const _kUsername = 'ff_settings_username';
-  static const _kPassword = 'ff_settings_password';
   static const _kWifiOnly = 'ff_settings_wifi_only';
   static const _kAutoSyncMin = 'ff_settings_auto_sync_min';
   static const _kLastSyncedAt = 'ff_settings_last_synced_at';
 
   // ── In-memory cache ──
-  String serverUrl = '';
-  String database = '';
-  String username = '';
-  String password = '';
   bool wifiOnly = false;
   int autoSyncMinutes = 15; // 0 = off
   DateTime? lastSyncedAt;
 
-  bool get hasConnection =>
-      serverUrl.isNotEmpty &&
-      database.isNotEmpty &&
-      username.isNotEmpty &&
-      password.isNotEmpty;
-
-  /// Load everything from storage into cache. Call once when opening Settings.
+  /// Load tuỳ chọn từ storage. Gọi 1 lần khi mở Settings.
+  /// Chỉ đọc 3 key ff_settings_* riêng biệt thay vì readAll() để tránh kéo
+  /// auth/session entries của SecureStorageService.
   Future<void> loadAll() async {
     try {
-      final values = await _storage.readAll();
-      serverUrl = values[_kServerUrl] ?? '';
-      database = values[_kDatabase] ?? '';
-      username = values[_kUsername] ?? '';
-      password = values[_kPassword] ?? '';
-      wifiOnly = (values[_kWifiOnly] ?? 'false') == 'true';
-      autoSyncMinutes = int.tryParse(values[_kAutoSyncMin] ?? '15') ?? 15;
-      final ts = int.tryParse(values[_kLastSyncedAt] ?? '');
+      final wifiVal = await _storage.read(key: _kWifiOnly);
+      wifiOnly = (wifiVal ?? 'false') == 'true';
+      final autoVal = await _storage.read(key: _kAutoSyncMin);
+      autoSyncMinutes = int.tryParse(autoVal ?? '15') ?? 15;
+      final tsVal = await _storage.read(key: _kLastSyncedAt);
+      final ts = int.tryParse(tsVal ?? '');
       lastSyncedAt = ts == null ? null : DateTime.fromMillisecondsSinceEpoch(ts);
-    } catch (_) {
-      // Storage not ready yet — keep defaults.
-    }
-  }
 
-  Future<void> saveConnection({
-    required String serverUrl,
-    required String database,
-    required String username,
-    required String password,
-  }) async {
-    this.serverUrl = serverUrl;
-    this.database = database;
-    this.username = username;
-    this.password = password;
-    await _storage.write(key: _kServerUrl, value: serverUrl);
-    await _storage.write(key: _kDatabase, value: database);
-    await _storage.write(key: _kUsername, value: username);
-    await _storage.write(key: _kPassword, value: password);
+      // Purge credentials cũ (ff_settings_*) còn sót từ bản 4/4.5.
+      // Bản 5b không dùng chúng nữa; để trong két là rác bảo mật.
+      // delete key không tồn tại thì vô hại → chạy mỗi lần loadAll vẫn an toàn (idempotent, không cần cờ one-time).
+      await _storage.delete(key: 'ff_settings_server_url');
+      await _storage.delete(key: 'ff_settings_database');
+      await _storage.delete(key: 'ff_settings_username');
+      await _storage.delete(key: 'ff_settings_password');
+      await _storage.delete(key: 'ff_settings_api_key');
+    } catch (_) {
+      // Storage chưa sẵn sàng — giữ mặc định.
+    }
   }
 
   Future<void> saveWifiOnly(bool value) async {
@@ -86,16 +64,5 @@ class SettingsRepository {
       key: _kLastSyncedAt,
       value: when?.millisecondsSinceEpoch.toString(),
     );
-  }
-
-  Future<void> clearConnection() async {
-    serverUrl = '';
-    database = '';
-    username = '';
-    password = '';
-    await _storage.delete(key: _kServerUrl);
-    await _storage.delete(key: _kDatabase);
-    await _storage.delete(key: _kUsername);
-    await _storage.delete(key: _kPassword);
   }
 }
