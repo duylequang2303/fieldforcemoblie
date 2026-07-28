@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/auth/secure_storage.dart';
+import '../../../../core/api/api_exception.dart';
+import '../../../../core/api/odoo_session_manager.dart';
 import '../../../../core/routing/route_names.dart';
 import '../../../../core/settings/offline_storage_service.dart';
 import '../../../../core/settings/settings_repository.dart';
 import '../../../../core/settings/sync_status_provider.dart';
 import '../../../../ui/theme/sf_tokens.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../orders/services/orders_service.dart';
 
-/// Trạng thái kiểm tra kết nối (chưa ping server — chỉ validate định dạng).
-enum _ConnStatus { unknown, valid, invalid }
+/// Connection state from a real session ping (no authenticate, no session overwrite).
+enum _ConnStatus { unknown, valid, invalid, offline, expired }
 
 const String _appVersion = '0.4.0';
 const int _buildNumber = 12;
@@ -25,18 +27,14 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  final _urlCtrl = TextEditingController();
-  final _dbCtrl = TextEditingController();
-  final _userCtrl = TextEditingController();
-  final _keyCtrl = TextEditingController();
-
   final SyncStatusProvider _sync = SyncStatusProvider();
 
   _ConnStatus _connStatus = _ConnStatus.unknown;
+  bool _isTesting = false;
+  bool _isSyncing = false;
   bool _wifiOnly = false;
   int _autoSync = 15;
   String _storageLabel = '...';
-  String _accountName = '';
 
   @override
   void initState() {
@@ -52,29 +50,12 @@ class _SettingsPageState extends State<SettingsPage> {
   Future<void> _load() async {
     final repo = SettingsRepository.instance;
     await repo.loadAll();
-
-    // Tên tài khoản: đọc read-only từ session login hiện tại.
-    String name = '';
-    try {
-      final creds = await SecureStorageService.instance.loadSavedCredentials();
-      name = creds['username'] ?? '';
-    } catch (_) {}
-
     final storage = await OfflineStorageService.instance.formatted();
-
     if (!mounted) return;
     setState(() {
-      _urlCtrl.text = repo.serverUrl;
-      _dbCtrl.text = repo.database;
-      _userCtrl.text = repo.username;
-      _keyCtrl.text = repo.apiKey;
       _wifiOnly = repo.wifiOnly;
       _autoSync = repo.autoSyncMinutes;
-      _accountName = name;
       _storageLabel = storage;
-      _connStatus = repo.hasConnection
-          ? _ConnStatus.unknown
-          : _ConnStatus.invalid;
     });
     await _sync.refresh();
   }
@@ -83,57 +64,73 @@ class _SettingsPageState extends State<SettingsPage> {
   void dispose() {
     _sync.removeListener(_onSyncChanged);
     _sync.dispose();
-    _urlCtrl.dispose();
-    _dbCtrl.dispose();
-    _userCtrl.dispose();
-    _keyCtrl.dispose();
     super.dispose();
   }
 
   // ── Actions ──
 
-  void _testConnection() {
-    final url = _urlCtrl.text.trim();
-    final okUrl =
-        (url.startsWith('https://') || url.startsWith('http://')) &&
-        url.length > 8;
-    final ok = okUrl &&
-        _dbCtrl.text.trim().isNotEmpty &&
-        _userCtrl.text.trim().isNotEmpty &&
-        _keyCtrl.text.trim().isNotEmpty;
-
-    setState(() => _connStatus = ok ? _ConnStatus.valid : _ConnStatus.invalid);
-
-    if (ok) {
-      SettingsRepository.instance.saveConnection(
-        serverUrl: url,
-        database: _dbCtrl.text.trim(),
-        username: _userCtrl.text.trim(),
-        apiKey: _keyCtrl.text.trim(),
+  /// Ping session thật (đọc res.users của chính mình). KHÔNG authenticate,
+  /// KHÔNG đè session — chỉ kiểm tra server + session còn sống.
+  Future<void> _testConnection() async {
+    final userId = OdooSessionManager.instance.currentUserId;
+    if (userId == null) {
+      setState(() => _connStatus = _ConnStatus.invalid);
+      return;
+    }
+    setState(() => _isTesting = true);
+    try {
+      await OdooSessionManager.instance.callKw(
+        model: 'res.users',
+        method: 'read',
+        args: [
+          [userId]
+        ],
+        kwargs: {'fields': ['id']},
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã lưu cấu hình. Kết nối thật sẽ có ở Lát 5.')),
-      );
+      if (mounted) setState(() => _connStatus = _ConnStatus.valid);
+    } on OdooConnectionException {
+      if (mounted) setState(() => _connStatus = _ConnStatus.offline);
+    } on OdooApiException {
+      // Session hết hạn / access denied → coi như expired.
+      if (mounted) setState(() => _connStatus = _ConnStatus.expired);
+    } catch (_) {
+      if (mounted) setState(() => _connStatus = _ConnStatus.offline);
+    } finally {
+      if (mounted) setState(() => _isTesting = false);
     }
   }
 
+  /// Sync thật: đẩy thay đổi local lên Odoo, rồi kéo đơn mới về, ghi last synced.
   Future<void> _onSyncNow() async {
-    if (!SettingsRepository.instance.hasConnection) {
+    if (OdooSessionManager.instance.currentUserId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nhập và Kiểm tra kết nối Odoo trước.')),
+        const SnackBar(content: Text('Not signed in.')),
       );
       return;
     }
-    await _sync.syncNow();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Mô phỏng đồng bộ. Đồng bộ thật sẽ có ở Lát 7.')),
-    );
+    setState(() => _isSyncing = true);
+    try {
+      await OrdersService.instance.syncPending();
+      await OrdersService.instance.fetchMyOrders();
+      await SettingsRepository.instance.saveLastSyncedAt(DateTime.now());
+      await _sync.refresh();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Synced successfully.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sync failed — check connection.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSyncing = false);
+    }
   }
 
+  /// Đăng xuất thật (AuthService.logout dọn SecureStorage + Odoo session) → về Login.
   Future<void> _onLogout() async {
     final auth = context.read<AuthProvider>();
-    await SettingsRepository.instance.clearConnection();
     await auth.logout();
     if (!mounted) return;
     context.go(RouteNames.login);
@@ -143,18 +140,21 @@ class _SettingsPageState extends State<SettingsPage> {
 
   String get _lastSyncedLabel {
     final t = _sync.lastSyncedAt;
-    if (t == null) return 'Chưa đồng bộ';
+    if (t == null) return 'Never';
     final diff = DateTime.now().difference(t);
-    if (diff.inMinutes < 1) return 'Vừa xong';
-    if (diff.inMinutes < 60) return '${diff.inMinutes} phút trước';
-    if (diff.inHours < 24) return '${diff.inHours} giờ trước';
-    return '${diff.inDays} ngày trước';
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${diff.inDays}d ago';
   }
 
   Color _statusColor(_ConnStatus s) {
     switch (s) {
       case _ConnStatus.valid:
         return SfTokens.success;
+      case _ConnStatus.expired:
+        return SfTokens.warning;
+      case _ConnStatus.offline:
       case _ConnStatus.invalid:
         return SfTokens.error;
       case _ConnStatus.unknown:
@@ -165,11 +165,15 @@ class _SettingsPageState extends State<SettingsPage> {
   String _statusText(_ConnStatus s) {
     switch (s) {
       case _ConnStatus.valid:
-        return 'Hợp lệ (đã lưu)';
+        return 'Connected';
+      case _ConnStatus.expired:
+        return 'Session expired';
+      case _ConnStatus.offline:
+        return 'Offline';
       case _ConnStatus.invalid:
-        return 'Thiếu thông tin';
+        return 'Not signed in';
       case _ConnStatus.unknown:
-        return 'Đã lưu — nhấn Kiểm tra để xác nhận';
+        return 'Tap Test to check';
     }
   }
 
@@ -182,7 +186,7 @@ class _SettingsPageState extends State<SettingsPage> {
       appBar: AppBar(
         backgroundColor: SfTokens.primary,
         foregroundColor: SfTokens.surface,
-        title: const Text('Cài đặt'),
+        title: const Text('Settings'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(SfTokens.spacingMd),
@@ -201,24 +205,21 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildConnection() {
+    final session = OdooSessionManager.instance.currentSession;
     return _Card(
-      title: 'Kết nối Odoo',
+      title: 'Odoo Connection',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _field(_urlCtrl, 'Server URL', Icons.link, false),
-          const SizedBox(height: SfTokens.spacingXs),
-          _field(_dbCtrl, 'Database', Icons.storage_outlined, false),
-          const SizedBox(height: SfTokens.spacingXs),
-          _field(_userCtrl, 'Username', Icons.person_outline, false),
-          const SizedBox(height: SfTokens.spacingXs),
-          _field(_keyCtrl, 'API Key', Icons.key_outlined, true),
+          _infoRow('Server', session?.serverUrl ?? '—'),
+          _infoRow('Database', session?.database ?? '—'),
+          _infoRow('User', session?.username ?? '—'),
           const SizedBox(height: SfTokens.spacingSm),
           Row(
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _testConnection,
+                  onPressed: _isTesting ? null : _testConnection,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: SfTokens.primary,
                     foregroundColor: SfTokens.surface,
@@ -226,7 +227,16 @@ class _SettingsPageState extends State<SettingsPage> {
                       borderRadius: BorderRadius.circular(SfTokens.radiusSm),
                     ),
                   ),
-                  child: const Text('Kiểm tra kết nối'),
+                  child: _isTesting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: SfTokens.surface,
+                          ),
+                        )
+                      : const Text('Test Connection'),
                 ),
               ),
               const SizedBox(width: SfTokens.spacingSm),
@@ -249,41 +259,43 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _field(TextEditingController c, String label, IconData icon, bool obscure) {
-    return TextFormField(
-      controller: c,
-      obscureText: obscure,
-      style: const TextStyle(color: SfTokens.onSurface),
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: SfTokens.onSurfaceWeak),
-        filled: true,
-        fillColor: SfTokens.background,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: SfTokens.spacingSm,
-          vertical: SfTokens.spacingSm,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(SfTokens.radiusSm),
-          borderSide: const BorderSide(color: SfTokens.divider),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(SfTokens.radiusSm),
-          borderSide: const BorderSide(color: SfTokens.divider),
-        ),
+  Widget _infoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: SfTokens.spacingXxs),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 84,
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 13, color: SfTokens.onSurfaceWeak),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                color: SfTokens.onSurface,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildSyncOffline() {
     return _Card(
-      title: 'Đồng bộ & Ngoại tuyến',
+      title: 'Sync & Offline',
       child: Column(
         children: [
           _row(
             icon: Icons.sync,
-            label: 'Đồng bộ ngay',
-            trailing: _sync.isSyncing
+            label: 'Sync now',
+            trailing: _isSyncing
                 ? const SizedBox(
                     width: 18,
                     height: 18,
@@ -297,7 +309,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const Divider(height: 1, color: SfTokens.divider),
           _row(
             icon: Icons.schedule,
-            label: 'Lần đồng bộ cuối',
+            label: 'Last synced',
             value: _lastSyncedLabel,
           ),
           const Divider(height: 1, color: SfTokens.divider),
@@ -305,14 +317,14 @@ class _SettingsPageState extends State<SettingsPage> {
             icon: _sync.hasPending ? Icons.cloud_upload : Icons.check_circle,
             iconColor: _sync.hasPending ? SfTokens.warning : SfTokens.success,
             label: _sync.hasPending
-                ? '${_sync.pendingCount} thay đổi chờ tải lên'
-                : 'Đã đồng bộ tất cả',
+                ? '${_sync.pendingCount} changes pending upload'
+                : 'All synced',
             labelColor: _sync.hasPending ? SfTokens.warning : SfTokens.success,
           ),
           const Divider(height: 1, color: SfTokens.divider),
           _row(
             icon: Icons.timer_outlined,
-            label: 'Tự động đồng bộ',
+            label: 'Auto-sync',
             trailing: DropdownButton<int>(
               value: _autoSync,
               underline: const SizedBox.shrink(),
@@ -322,31 +334,31 @@ class _SettingsPageState extends State<SettingsPage> {
                 SettingsRepository.instance.saveAutoSyncMinutes(v);
               },
               items: const [
-                DropdownMenuItem(value: 0, child: Text('Tắt')),
-                DropdownMenuItem(value: 5, child: Text('5 phút')),
-                DropdownMenuItem(value: 15, child: Text('15 phút')),
-                DropdownMenuItem(value: 30, child: Text('30 phút')),
-                DropdownMenuItem(value: 60, child: Text('60 phút')),
+                DropdownMenuItem(value: 0, child: Text('Off')),
+                DropdownMenuItem(value: 5, child: Text('5 min')),
+                DropdownMenuItem(value: 15, child: Text('15 min')),
+                DropdownMenuItem(value: 30, child: Text('30 min')),
+                DropdownMenuItem(value: 60, child: Text('60 min')),
               ],
             ),
           ),
           const Divider(height: 1, color: SfTokens.divider),
           _row(
             icon: Icons.wifi,
-            label: 'Chỉ đồng bộ qua WiFi',
-            trailing: Switch(
-              value: _wifiOnly,
-              activeColor: SfTokens.primary,
-              onChanged: (v) {
-                setState(() => _wifiOnly = v);
-                SettingsRepository.instance.saveWifiOnly(v);
-              },
-            ),
+            label: 'Sync on WiFi only',
+              trailing: Switch(
+                value: _wifiOnly,
+                activeThumbColor: SfTokens.primary,
+                onChanged: (v) {
+                  setState(() => _wifiOnly = v);
+                  SettingsRepository.instance.saveWifiOnly(v);
+                },
+              ),
           ),
           const Divider(height: 1, color: SfTokens.divider),
           _row(
             icon: Icons.sd_storage_outlined,
-            label: 'Dữ liệu ngoại tuyến',
+            label: 'Offline data',
             value: _storageLabel,
           ),
         ],
@@ -355,8 +367,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildAccount() {
+    final session = OdooSessionManager.instance.currentSession;
     return _Card(
-      title: 'Tài khoản',
+      title: 'Account',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -366,7 +379,7 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(width: SfTokens.spacingSm),
               Expanded(
                 child: Text(
-                  _accountName.isEmpty ? 'Chưa xác định' : _accountName,
+                  session?.username ?? 'Unknown',
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
@@ -382,7 +395,7 @@ class _SettingsPageState extends State<SettingsPage> {
             child: TextButton(
               onPressed: _onLogout,
               style: TextButton.styleFrom(foregroundColor: SfTokens.error),
-              child: const Text('Đăng xuất', style: TextStyle(fontWeight: FontWeight.w600)),
+              child: const Text('Log out', style: TextStyle(fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -392,7 +405,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildAbout() {
     return _Card(
-      title: 'Giới thiệu',
+      title: 'About',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -402,12 +415,12 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: SfTokens.spacingXxs),
           Text(
-            'Phiên bản $_appVersion (build $_buildNumber)',
+            'Version $_appVersion (build $_buildNumber)',
             style: const TextStyle(fontSize: 13, color: SfTokens.onSurfaceWeak),
           ),
           const SizedBox(height: SfTokens.spacingXxs),
           Text(
-            'Hỗ trợ: $_supportEmail',
+            'Support: $_supportEmail',
             style: const TextStyle(fontSize: 13, color: SfTokens.onSurfaceWeak),
           ),
         ],
