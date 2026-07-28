@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_bottom_nav.dart';
 import '../widgets/empty_state_widget.dart';
-import '../widgets/date_navigation_bar.dart';
+import '../widgets/schedule_top_bar.dart';
 import '../widgets/schedule_card.dart';
 import '../features/orders/models/fsm_order.dart';
-import '../theme/app_theme.dart';
+import '../ui/theme/sf_tokens.dart';
 import 'package:go_router/go_router.dart';
 import '../core/routing/route_names.dart';
 
@@ -21,6 +21,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   int _currentIndex = 0;
   bool _isLoading = false;
   DateTime _selectedDate = DateTime.now();
+  String _viewMode = 'Today';
 
   // Mock dữ liệu dựa theo FsmOrder cho UI mẫu
   final List<FsmOrder> _orders = [
@@ -103,7 +104,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      color: AppTheme.primary,
+      color: SfTokens.primary,
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -172,41 +173,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Schedule'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.filter_list),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: () async {
-              final date = await showDatePicker(
-                context: context,
-                initialDate: _selectedDate,
-                firstDate: DateTime(2000),
-                lastDate: DateTime(2100),
-              );
-              if (date != null) {
-                setState(() => _selectedDate = date);
-              }
-            },
-          ),
-        ],
-      ),
+      backgroundColor: SfTokens.background,
       body: Column(
         children: [
-          DateNavigationBar(
+          ScheduleTopBar(
+            viewMode: _viewMode,
             selectedDate: _selectedDate,
             onPrevious: () {
               setState(() {
-                _selectedDate = _selectedDate.subtract(const Duration(days: 1));
+                _selectedDate = _viewMode == 'Week'
+                    ? _selectedDate.subtract(const Duration(days: 7))
+                    : _selectedDate.subtract(const Duration(days: 1));
               });
             },
             onNext: () {
               setState(() {
-                _selectedDate = _selectedDate.add(const Duration(days: 1));
+                _selectedDate = _viewMode == 'Week'
+                    ? _selectedDate.add(const Duration(days: 7))
+                    : _selectedDate.add(const Duration(days: 1));
               });
             },
             onCalendarTap: () async {
@@ -220,11 +204,13 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 setState(() => _selectedDate = date);
               }
             },
-            onDropdownChanged: (value) {
-              // TODO: Xử lý đổi view Ngày/Tuần/Tháng
+            onFilterTap: () {
+              // TODO: Mở filter bottom sheet (Lát 3)
+            },
+            onViewModeChanged: (mode) {
+              setState(() => _viewMode = mode);
             },
           ),
-          const Divider(height: 1, thickness: 1),
           Expanded(
             child: _buildJobList(),
           ),
