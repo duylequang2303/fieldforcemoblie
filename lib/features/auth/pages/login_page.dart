@@ -31,6 +31,15 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     _loadSavedCredentials();
+    // Tự redirect khi auth chuyển sang authenticated (cover cả biometric)
+    context.read<AuthProvider>().addListener(_redirectIfAuthed);
+  }
+
+  void _redirectIfAuthed() {
+    final auth = context.read<AuthProvider>();
+    if (mounted && auth.isAuthenticated) {
+      context.go(RouteNames.shellSchedule);
+    }
   }
 
   Future<void> _loadSavedCredentials() async {
@@ -45,6 +54,7 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void dispose() {
+    context.read<AuthProvider>().removeListener(_redirectIfAuthed);
     _serverUrlCtrl.dispose();
     _databaseCtrl.dispose();
     _usernameCtrl.dispose();
@@ -62,10 +72,12 @@ class _LoginPageState extends State<LoginPage> {
           password: _passwordCtrl.text,
         );
 
+    // Redirect được handle bởi _redirectIfAuthed listener
+    // nhưng vẫn giữ để đảm bảo chuyển trang ngay lập tức sau login thành công
     if (!mounted) return;
     final auth = context.read<AuthProvider>();
     if (auth.isAuthenticated) {
-      context.go(RouteNames.orders);
+      context.go(RouteNames.shellSchedule);
     }
   }
 

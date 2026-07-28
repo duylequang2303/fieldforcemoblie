@@ -34,7 +34,8 @@ import '../../features/schedule/models/schedule_property.dart';
 import '../../features/schedule/models/schedule_visit.dart';
 // Shell navigation
 import '../../ui/shell/app_shell.dart';
-
+// Settings page
+import '../../features/settings/pages/settings_page.dart';
 /// Router chính của ứng dụng.
 /// Khai báo toàn bộ routes tại đây — không navigate trực tiếp bằng Navigator.push().
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -89,9 +90,7 @@ final GoRouter appRouter = GoRouter(
               name: 'shellSettings',
               pageBuilder: (context, state) {
                 return const NoTransitionPage(
-                  child: Scaffold(
-                    body: Center(child: Text('Settings')),
-                  ),
+                 child: SettingsPage(),
                 );
               },
             ),
