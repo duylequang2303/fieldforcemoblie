@@ -53,6 +53,29 @@ class StockService {
     }
   }
 
+  /// Tìm sản phẩm theo tên/mã cho autocomplete Add Material (search_read Odoo thật).
+  Future<List<Product>> searchProducts(String query, {int limit = 20}) async {
+    final q = query.trim();
+    if (q.length < 2) return const <Product>[];
+    try {
+      final result = await _odoo.callKw(
+        model: 'product.product',
+        method: 'search_read',
+        args: [
+          ['|', ['name', 'ilike', q], ['default_code', 'ilike', q]],
+        ],
+        kwargs: {
+          'fields': ['id', 'name', 'default_code', 'barcode', 'categ_id', 'uom_id', 'standard_price'],
+          'limit': limit,
+        },
+      ) as List<dynamic>;
+      return result.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      logger.e('StockService.searchProducts', error: e);
+      return const <Product>[];
+    }
+  }
+
   /// Lấy danh sách vật tư theo đơn dịch vụ.
   Future<List<StockMove>> getMovesForOrder(int orderOdooId) async {
     return _isar.db.stockMoves
@@ -165,7 +188,7 @@ class StockService {
         ],
         kwargs: {'limit': 1, 'fields': ['id']},
       ) as List<dynamic>;
-      
+
       if (pTypes.isEmpty) {
         throw const OdooBusinessException('Không tìm thấy Operation Type xuất kho (outgoing) cho kho này.');
       }
@@ -178,7 +201,7 @@ class StockService {
         args: [[order.warehouseId]],
         kwargs: {'fields': ['lot_stock_id']},
       ) as List<dynamic>;
-      
+
       if (warehouses.isEmpty || warehouses.first['lot_stock_id'] == null) {
         throw const OdooBusinessException('Cấu hình Kho trên Odoo bị lỗi: thiếu lot_stock_id.');
       }
@@ -196,7 +219,7 @@ class StockService {
           'location_dest_id': order.inventoryLocationId,
         }],
       ) as int;
-      
+
       await _isar.db.writeTxn(() async {
         move.pickingOdooId = pickingId;
         await _isar.db.stockMoves.put(move);
@@ -261,7 +284,7 @@ class StockService {
       if (serverState != 'assigned') {
         throw StockPartialAssignException('Thiếu tồn kho. Trạng thái phiếu hiện tại: $serverState. Vui lòng kiểm tra lại Odoo.');
       }
-      
+
       state = 'assigned';
       await _isar.db.writeTxn(() async {
         move.pickingState = state;

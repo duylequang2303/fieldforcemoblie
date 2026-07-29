@@ -1,19 +1,27 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:signature/signature.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
+import '../core/api/api_exception.dart';
 import '../widgets/quick_action_button.dart';
 import '../widgets/section_header.dart';
-import '../widgets/attachment_grid.dart';
-
-import '../features/orders/models/fsm_order.dart';
 import '../widgets/material_entry_form.dart';
+import '../features/orders/models/fsm_order.dart';
+import '../features/orders/services/orders_service.dart';
+import '../features/stock/services/stock_service.dart';
+import '../features/stock/models/product.dart';
+
+class _MaterialResult {
+  final Product? product;
+  final int qty;
+  const _MaterialResult(this.product, this.qty);
+}
 
 class WorkOrderDetailScreen extends StatefulWidget {
   final FsmOrder order;
-
-  const WorkOrderDetailScreen({
-    super.key,
-    required this.order,
-  });
+  const WorkOrderDetailScreen({super.key, required this.order});
 
   @override
   State<WorkOrderDetailScreen> createState() => _WorkOrderDetailScreenState();
@@ -21,9 +29,8 @@ class WorkOrderDetailScreen extends StatefulWidget {
 
 class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
   late SignatureController _signatureController;
-  final List<Map<String, dynamic>> _materialsUsed = [
-    {'name': 'AC Filter (Standard)', 'qty': 1}
-  ];
+  final List<Map<String, dynamic>> _materialsUsed = [];
+  final List<String> _photoPaths = [];
 
   @override
   void initState() {
@@ -41,26 +48,271 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
     super.dispose();
   }
 
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  String _stripHtml(String? html) {
+    if (html == null || html.isEmpty) return 'No general instructions provided.';
+    var t = html.replaceAll(RegExp(r'<[^>]*>'), ' ');
+    t = t
+        .replaceAll('&nbsp;', ' ')
+        .replaceAll('&amp;', '&')
+        .replaceAll('&lt;', '<')
+        .replaceAll('&gt;', '>')
+        .replaceAll('&quot;', '"');
+    t = t.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return t.isEmpty ? 'No general instructions provided.' : t;
+  }
+
+  Future<void> _launchUrlRobust(Uri url, String errorMessage) async {
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(url, mode: LaunchMode.inAppWebView);
+      }
+    } catch (e) {
+      _showSnackBar('$errorMessage: $e');
+    }
+  }
+
+  Future<void> _onCall() async {
+    final phone = widget.order.partnerPhone;
+    if (phone == null || phone.trim().isEmpty) {
+      _showSnackBar('Phone number not available.');
+      return;
+    }
+    await _launchUrlRobust(Uri.parse('tel:$phone'), 'Cannot open Phone app');
+  }
+
+  Future<void> _onSms() async {
+    final phone = widget.order.partnerPhone;
+    if (phone == null || phone.trim().isEmpty) {
+      _showSnackBar('Phone number not available.');
+      return;
+    }
+    await _launchUrlRobust(Uri.parse('sms:$phone'), 'Cannot open SMS app');
+  }
+
+  void _onEmail() => _showSnackBar('Email not available for this customer yet.');
+
+  Future<void> _onDirections() async {
+    final lat = widget.order.locationLat;
+    final lng = widget.order.locationLng;
+    if (lat == null || lng == null) {
+      _showSnackBar('Location coordinates not available in Odoo.');
+      return;
+    }
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      if (!mounted) return;
+      final open = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Location Services Disabled'),
+          content: const Text('GPS is off. Enable it so Maps can route you to the customer.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Later')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Open Settings')),
+          ],
+        ),
+      );
+      if (open == true) await Geolocator.openLocationSettings();
+      return;
+    }
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      _showSnackBar('Location permission required for routing.');
+    }
+    await _launchUrlRobust(
+      Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng'),
+      'Cannot open Maps',
+    );
+  }
+
+  Future<void> _pickPhoto() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(Icons.camera_alt_outlined, color: Theme.of(ctx).colorScheme.primary),
+              title: const Text('Take photo'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: Icon(Icons.photo_library_outlined, color: Theme.of(ctx).colorScheme.primary),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    final picker = ImagePicker();
+    final List<XFile> picked = <XFile>[];
+    if (source == ImageSource.gallery) {
+      picked.addAll(await picker.pickMultiImage(imageQuality: 70, maxWidth: 1280));
+    } else {
+      final one = await picker.pickImage(source: source, imageQuality: 70, maxWidth: 1280);
+      if (one != null) picked.add(one);
+    }
+    if (picked.isEmpty) return;
+    setState(() {
+      for (final x in picked) {
+        _photoPaths.add(x.path);
+      }
+    });
+    for (final x in picked) {
+      await _uploadPhoto(x.path);
+    }
+  }
+
+  // TODO upload: cắm WorkOrderService.uploadPhotos khi có WorkReport (nợ).
+  Future<void> _uploadPhoto(String path) async {
+    try {
+      // await WorkOrderService.instance.uploadPhotos(...);
+    } catch (_) {}
+  }
+
+  void _removePhoto(int index) => setState(() => _photoPaths.removeAt(index));
+
+  Future<void> _onMaterialSaved(Product? product, int qty) async {
+    if (product == null) return;
+    try {
+      await StockService.instance.recordStockOut(
+        orderOdooId: widget.order.odooId,
+        productId: product.odooId,
+        productName: product.name,
+        qty: qty.toDouble(),
+        productBarcode: product.barcode,
+        uomName: product.uomName,
+      );
+      if (!mounted) return;
+      setState(() => _materialsUsed.add({'name': product.name, 'qty': qty}));
+      _showSnackBar('Material added.');
+    } on StockPartialAssignException {
+      if (!mounted) return;
+      _showSnackBar('Insufficient stock for this material. Check Odoo.');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Failed to add material: $e');
+    }
+  }
+
+  // Mở sheet, đợi kết quả, ĐÓNG sheet rồi mới xử lý -> SnackBar thấy rõ.
+  Future<void> _openMaterialSheet() async {
+    final result = await showModalBottomSheet<_MaterialResult?>(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetCtx) => MaterialEntryForm(
+        onSaved: (product, qty) {
+          Navigator.of(sheetCtx).pop(_MaterialResult(product, qty));
+        },
+      ),
+    );
+    if (result != null) {
+      await _onMaterialSaved(result.product, result.qty);
+    }
+  }
+
+  Future<void> _onCheckIn() async {
+    try {
+      await OrdersService.instance.checkIn(widget.order.odooId);
+      if (!mounted) return;
+      _showSnackBar('Checked in successfully.');
+    } on OdooApiException {
+      if (!mounted) return;
+      _showSnackBar('Checked in locally — will sync when online.');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Check-in failed: $e');
+    }
+  }
+
+  Future<void> _onComplete() async {
+    if (widget.order.requireSignature && _signatureController.isEmpty) {
+      _showSnackBar('Signature is required before completion.');
+      return;
+    }
+    try {
+      await OrdersService.instance.completeOrder(widget.order.odooId);
+      if (!mounted) return;
+      _showSnackBar('Order completed successfully.');
+      Navigator.of(context).pop(true);
+    } on OdooApiException {
+      if (!mounted) return;
+      _showSnackBar('Cannot complete while offline — connect and retry.');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Failed to complete order: $e');
+    }
+  }
+
+  Future<void> _onSkipConfirm() async {
+    final stageId = await OrdersService.instance.getStageIdByKeywords(['cancel', 'huỷ', 'cancelled']);
+    if (stageId == null) {
+      if (!mounted) return;
+      _showSnackBar('Cancelled stage not configured in Odoo.');
+      return;
+    }
+    try {
+      await OrdersService.instance.updateStage(widget.order.odooId, stageId);
+      if (!mounted) return;
+      _showSnackBar('Order skipped.');
+      Navigator.of(context).pop(true);
+    } on OdooApiException {
+      if (!mounted) return;
+      _showSnackBar('Skipped locally — will sync when online.');
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Failed to skip order: $e');
+    }
+  }
+
+  void _askSkip() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Skip Order'),
+        content: const Text('Mark this order as cancelled?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('No')),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _onSkipConfirm();
+            },
+            child: const Text('Yes, Skip'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Date not specified';
+    return '${date.day}/${date.month}/${date.year}';
+  }
+
+  String _duration(DateTime? start, DateTime? end) {
+    if (start == null || end == null) return 'N/A hrs';
+    return '${end.difference(start).inHours} hrs';
+  }
+
   Widget _buildStickyHeader() {
     final theme = Theme.of(context);
-    
-    // Helpers format data
-    String formatDate(DateTime? date) {
-      if (date == null) return 'Chưa xác định ngày';
-      return '${date.day} Thg ${date.month}, ${date.year}';
-    }
-
-    String calculateDuration(DateTime? start, DateTime? end) {
-      if (start == null || end == null) return 'N/A hrs';
-      return '${end.difference(start).inHours} hrs';
-    }
-
-    double calculatePrice(DateTime? start, DateTime? end) {
-      if (start == null || end == null) return 0.0;
-      final hours = end.difference(start).inMinutes / 60.0;
-      return hours * 50; // Mock $50/hour
-    }
-
+    final onSurfaceMuted = theme.colorScheme.onSurface.withOpacity(0.6);
+    final onSurfaceFaint = theme.colorScheme.onSurface.withOpacity(0.5);
     return Card(
       margin: EdgeInsets.zero,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
@@ -76,53 +328,38 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Date
                       Row(
                         children: [
-                          Icon(Icons.calendar_today, size: 14, color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                          Icon(Icons.calendar_today, size: 14, color: onSurfaceMuted),
                           const SizedBox(width: 6),
                           Text(
-                            formatDate(widget.order.scheduledDateStart),
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: theme.colorScheme.onSurface.withOpacity(0.6),
-                              fontWeight: FontWeight.w500,
-                            ),
+                            _formatDate(widget.order.scheduledDateStart),
+                            style: TextStyle(fontSize: 14, color: onSurfaceMuted, fontWeight: FontWeight.w500),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      // Address
                       Text(
                         widget.order.locationAddress ?? widget.order.name,
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          height: 1.3,
-                        ),
+                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, height: 1.3),
                       ),
                       const SizedBox(height: 8),
-                      // Customer name
                       Text(
-                        widget.order.partnerName ?? 'Khách hàng ẩn',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.primary,
-                        ),
+                        widget.order.partnerName ?? 'Anonymous customer',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.colorScheme.primary),
                       ),
                     ],
                   ),
                 ),
-                // Quick Actions
                 Column(
                   children: [
-                    QuickActionButton(icon: Icons.phone_outlined, onTap: () {}),
+                    QuickActionButton(icon: Icons.phone_outlined, onTap: _onCall),
                     const SizedBox(height: 8),
-                    QuickActionButton(icon: Icons.chat_bubble_outline, onTap: () {}),
+                    QuickActionButton(icon: Icons.chat_bubble_outline, onTap: _onSms),
                     const SizedBox(height: 8),
-                    QuickActionButton(icon: Icons.email_outlined, onTap: () {}),
+                    QuickActionButton(icon: Icons.email_outlined, onTap: _onEmail),
                     const SizedBox(height: 8),
-                    QuickActionButton(icon: Icons.directions_outlined, onTap: () {}),
+                    QuickActionButton(icon: Icons.directions_outlined, onTap: _onDirections),
                   ],
                 ),
               ],
@@ -130,29 +367,17 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
             const SizedBox(height: 16),
             const Divider(height: 1),
             const SizedBox(height: 16),
-            // Info Grid
             Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'DUE',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                        ),
-                      ),
+                      Text('DUE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: onSurfaceFaint)),
                       const SizedBox(height: 4),
                       Text(
-                        '${formatDate(widget.order.scheduledDateStart)}\n(Does not repeat)',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: theme.colorScheme.onSurface,
-                          height: 1.4,
-                        ),
+                        '${_formatDate(widget.order.scheduledDateStart)}\n(Does not repeat)',
+                        style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface, height: 1.4),
                       ),
                     ],
                   ),
@@ -161,22 +386,11 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'DURATION / PRICE',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                        ),
-                      ),
+                      Text('DURATION / PRICE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: onSurfaceFaint)),
                       const SizedBox(height: 4),
                       Text(
-                        '${calculateDuration(widget.order.scheduledDateStart, widget.order.scheduledDateEnd)}\n\$ ${calculatePrice(widget.order.scheduledDateStart, widget.order.scheduledDateEnd).toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: theme.colorScheme.onSurface,
-                          height: 1.4,
-                        ),
+                        '${_duration(widget.order.scheduledDateStart, widget.order.scheduledDateEnd)}\nPrice TBD',
+                        style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface, height: 1.4),
                       ),
                     ],
                   ),
@@ -184,20 +398,17 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            // Action Buttons
             Row(
               children: [
                 Expanded(
                   child: FilledButton(
                     key: const Key('btn_mark_complete'),
-                    onPressed: () {},
+                    onPressed: _onComplete,
                     style: FilledButton.styleFrom(
                       backgroundColor: theme.colorScheme.primary,
                       foregroundColor: theme.colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
                     child: const Text('Mark complete', style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
@@ -206,21 +417,13 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                 Expanded(
                   child: OutlinedButton(
                     key: const Key('btn_skip'),
-                    onPressed: () {},
+                    onPressed: _askSkip,
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       side: BorderSide(color: theme.dividerColor),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    child: Text(
-                      'Skip',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
-                      ),
-                    ),
+                    child: Text('Skip', style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface.withOpacity(0.7))),
                   ),
                 ),
               ],
@@ -231,21 +434,79 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: Text(widget.order.locationAddress ?? widget.order.name),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () {},
+  Widget _photoThumb(int index, String path) {
+    final theme = Theme.of(context);
+    return SizedBox(
+      width: 88,
+      height: 88,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.file(File(path), width: 88, height: 88, fit: BoxFit.cover),
+          ),
+          Positioned(
+            top: -6,
+            right: -6,
+            child: GestureDetector(
+              onTap: () => _removePhoto(index),
+              child: Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(color: theme.colorScheme.error, shape: BoxShape.circle),
+                child: Icon(Icons.close, color: theme.colorScheme.onError, size: 14),
+              ),
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAttachments() {
+    final theme = Theme.of(context);
+    return ExpandableSection(
+      title: 'ATTACHMENTS',
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          ..._photoPaths.asMap().entries.map((e) => _photoThumb(e.key, e.value)),
+          InkWell(
+            onTap: _pickPhoto,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.dividerColor),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_a_photo_outlined, size: 28, color: theme.colorScheme.primary),
+                  const SizedBox(height: 4),
+                  Text('Add Photo', style: TextStyle(fontSize: 10, color: theme.colorScheme.primary)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop()),
+        title: Text(widget.order.locationAddress ?? widget.order.name),
+        actions: [IconButton(icon: const Icon(Icons.edit_outlined), onPressed: () {})],
       ),
       body: Column(
         children: [
@@ -258,63 +519,35 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                   ExpandableSection(
                     title: 'GENERAL INSTRUCTIONS',
                     initiallyExpanded: true,
-                    child: Text(
-                      'Please call 30 mins before arrival. Beware of the dog in the backyard.',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
+                    child: Text(_stripHtml(widget.order.description), style: theme.textTheme.bodyMedium),
                   ),
                   ExpandableSection(
                     title: 'WORK REQUIRED',
-                    child: Text(
-                      '1. Inspect AC unit\n2. Replace filter\n3. Check gas levels',
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
+                    child: Text(_stripHtml(widget.order.description), style: theme.textTheme.bodyMedium),
                   ),
-                  ExpandableSection(
-                    title: 'ATTACHMENTS',
-                    child: AttachmentGrid(
-                      imageUrls: const ['dummy1', 'dummy2'],
-                      onAdd: () {},
-                    ),
-                  ),
+                  _buildAttachments(),
                   ExpandableSection(
                     title: 'MATERIALS USED',
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ..._materialsUsed.map((mat) => Column(
-                          children: [
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(mat['name']),
-                              trailing: Text('x${mat['qty']}'),
-                              visualDensity: VisualDensity.compact,
-                            ),
-                            const Divider(height: 1),
-                          ],
-                        )),
+                        ..._materialsUsed.map(
+                          (mat) => Column(
+                            children: [
+                              ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(mat['name'] as String),
+                                trailing: Text('x${mat['qty']}'),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                              const Divider(height: 1),
+                            ],
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         TextButton.icon(
                           key: const Key('btn_add_material'),
-                          onPressed: () {
-                            showModalBottomSheet(
-                              context: context,
-                              isScrollControlled: true,
-                              builder: (ctx) => MaterialEntryForm(
-                                onSaved: (product, qty) {
-                                  Navigator.pop(ctx);
-                                  if (product != null) {
-                                    setState(() {
-                                      _materialsUsed.add({
-                                        'name': product.name,
-                                        'qty': qty,
-                                      });
-                                    });
-                                  }
-                                },
-                              ),
-                            );
-                          },
+                          onPressed: _openMaterialSheet,
                           icon: const Icon(Icons.add),
                           label: const Text('Add material'),
                           style: TextButton.styleFrom(padding: EdgeInsets.zero),
@@ -331,7 +564,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                             Expanded(
                               child: OutlinedButton.icon(
                                 key: const Key('btn_check_in'),
-                                onPressed: () {},
+                                onPressed: _onCheckIn,
                                 icon: const Icon(Icons.play_arrow),
                                 label: const Text('Check-in'),
                               ),
@@ -340,7 +573,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                             Expanded(
                               child: OutlinedButton.icon(
                                 key: const Key('btn_check_out'),
-                                onPressed: () {},
+                                onPressed: () => _showSnackBar('Check-out mapping pending (TODO).'),
                                 icon: const Icon(Icons.stop),
                                 label: const Text('Check-out'),
                               ),
@@ -351,7 +584,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                         const ListTile(
                           contentPadding: EdgeInsets.zero,
                           title: Text('Today'),
-                          trailing: Text('09:00 - 11:00 (2 hrs)'),
+                          trailing: Text('No active timesheet entries'),
                           visualDensity: VisualDensity.compact,
                         ),
                       ],
@@ -364,7 +597,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            border: Border.all(color: Theme.of(context).dividerColor),
+                            border: Border.all(color: theme.dividerColor),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: ClipRRect(
@@ -373,22 +606,19 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
                               key: const Key('signature_pad'),
                               controller: _signatureController,
                               height: 150,
-                              backgroundColor: Colors.grey[100]!,
+                              backgroundColor: theme.colorScheme.surfaceContainerHighest,
                             ),
                           ),
                         ),
                         const SizedBox(height: 8),
                         Align(
                           alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () => _signatureController.clear(),
-                            child: const Text('Clear'),
-                          ),
+                          child: TextButton(onPressed: () => _signatureController.clear(), child: const Text('Clear')),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24), // spacing bottom
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
