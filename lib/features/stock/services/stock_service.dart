@@ -188,7 +188,7 @@ class StockService {
         ],
         kwargs: {'limit': 1, 'fields': ['id']},
       ) as List<dynamic>;
-      
+
       if (pTypes.isEmpty) {
         throw const OdooBusinessException('Không tìm thấy Operation Type xuất kho (outgoing) cho kho này.');
       }
@@ -201,7 +201,7 @@ class StockService {
         args: [[order.warehouseId]],
         kwargs: {'fields': ['lot_stock_id']},
       ) as List<dynamic>;
-      
+
       if (warehouses.isEmpty || warehouses.first['lot_stock_id'] == null) {
         throw const OdooBusinessException('Cấu hình Kho trên Odoo bị lỗi: thiếu lot_stock_id.');
       }
@@ -219,7 +219,7 @@ class StockService {
           'location_dest_id': order.inventoryLocationId,
         }],
       ) as int;
-      
+
       await _isar.db.writeTxn(() async {
         move.pickingOdooId = pickingId;
         await _isar.db.stockMoves.put(move);
@@ -284,7 +284,7 @@ class StockService {
       if (serverState != 'assigned') {
         throw StockPartialAssignException('Thiếu tồn kho. Trạng thái phiếu hiện tại: $serverState. Vui lòng kiểm tra lại Odoo.');
       }
-      
+
       state = 'assigned';
       await _isar.db.writeTxn(() async {
         move.pickingState = state;

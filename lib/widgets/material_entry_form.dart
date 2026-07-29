@@ -53,7 +53,6 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
     widget.onSaved(_selectedProduct, _quantity);
   }
 
-  // Lỗi 4: search Odoo thật (async), fallback availableProducts nếu Odoo rỗng.
   Future<Iterable<Product>> _search(String text) async {
     final q = text.trim();
     if (q.length < 2) return const <Product>[];
@@ -66,9 +65,9 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final mutedBox = theme.colorScheme.surfaceContainerHighest;
-    return Container(
-      color: theme.colorScheme.surface,
-      child: SafeArea(
+    return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
+      body: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
