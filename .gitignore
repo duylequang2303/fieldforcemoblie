@@ -1,37 +1,45 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-.agent-state/
-
-# User-specific stuff
-.idea/
-.vscode/
-.cursor/
-*.iml
-*.ipr
-*.iws
-
-# Flutter/Dart specific
-.dart_tool/
+```
+# Dependencies
+.pub/
+.buildlog
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages
-.pub-cache/
-.pub/
+
+# Generated plugin build files
+android/.gradle/
+android/build/
+android/app/build/
+ios/Pods/
+ios/build/
+
+# Coverage
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+*.lock
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.*
+!.env.example
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Build artifacts
 build/
-
-# Android specific
-android/app/debug
-android/app/profile
-android/app/release
-
-# Reference repositories (cloned for local context)
-# references/
+dist/
+target/
+```
