@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../features/stock/models/product.dart';
+import '../features/stock/services/stock_service.dart';
 
 class MaterialEntryForm extends StatefulWidget {
   final void Function(Product? product, int quantity) onSaved;
@@ -35,47 +36,42 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
     super.dispose();
   }
 
-  // Mock list of products from Odoo
-  final List<Product> _mockProducts = [
-    Product()..name = 'AC Filter (Standard)'..standardPrice = 25.00,
-    Product()..name = 'AC Gas Refill'..standardPrice = 80.00,
-    Product()..name = 'Copper Pipe (1m)'..standardPrice = 15.50,
-  ];
-
   double get _subtotal {
-    if (_selectedProduct == null || _selectedProduct!.standardPrice == null) {
-      return 0.0;
-    }
+    if (_selectedProduct == null || _selectedProduct!.standardPrice == null) return 0.0;
     return _quantity * _selectedProduct!.standardPrice!;
   }
 
   void _save() {
     if (_selectedProduct == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a material')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a material')));
       return;
     }
     if (_quantity <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Quantity must be greater than 0')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quantity must be greater than 0')));
       return;
     }
     widget.onSaved(_selectedProduct, _quantity);
   }
 
+  // Lỗi 4: search Odoo thật (async), fallback availableProducts nếu Odoo rỗng.
+  Future<Iterable<Product>> _search(String text) async {
+    final q = text.trim();
+    if (q.length < 2) return const <Product>[];
+    final remote = await StockService.instance.searchProducts(q);
+    if (remote.isNotEmpty) return remote;
+    return widget.availableProducts ?? const <Product>[];
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+    final mutedBox = theme.colorScheme.surfaceContainerHighest;
     return Container(
-      color: theme.colorScheme.background,
+      color: theme.colorScheme.surface,
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Header
             Container(
               color: theme.colorScheme.primary,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -99,40 +95,29 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                     onPressed: _save,
                     child: Text(
                       'Save',
-                      style: TextStyle(
-                        color: theme.colorScheme.onPrimary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: theme.colorScheme.onPrimary, fontWeight: FontWeight.w600, fontSize: 16),
                     ),
                   ),
                 ],
               ),
             ),
-            
-            // Form Body
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // MATERIAL
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('MATERIAL', style: _labelStyle(theme)),
                         InkWell(
-                          onTap: () {
-                            // TODO: Add new product flow
-                          },
+                          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Create new products in Odoo web, not on mobile.')),
+                          ),
                           child: Text(
                             'ADD NEW',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: theme.colorScheme.primary,
-                            ),
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: theme.colorScheme.primary),
                           ),
                         ),
                       ],
@@ -140,29 +125,15 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                     const SizedBox(height: 8),
                     Autocomplete<Product>(
                       displayStringForOption: (Product option) => option.name,
-                      optionsBuilder: (TextEditingValue textEditingValue) {
-                        if (textEditingValue.text.isEmpty) {
-                          return const Iterable<Product>.empty();
-                        }
-                        final items = widget.availableProducts ?? _mockProducts;
-                        return items.where((Product option) {
-                          return option.name
-                              .toLowerCase()
-                              .contains(textEditingValue.text.toLowerCase());
-                        });
-                      },
-                      onSelected: (Product selection) {
-                        setState(() {
-                          _selectedProduct = selection;
-                        });
-                      },
+                      optionsBuilder: (TextEditingValue value) => _search(value.text),
+                      onSelected: (Product selection) => setState(() => _selectedProduct = selection),
                       fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
                         return TextField(
                           key: const Key('input_material_search'),
                           controller: controller,
                           focusNode: focusNode,
                           decoration: InputDecoration(
-                            hintText: 'Search product...',
+                            hintText: 'Search product from stock...',
                             filled: true,
                             fillColor: theme.colorScheme.surface,
                             prefixIcon: const Icon(Icons.search),
@@ -179,11 +150,8 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    
-                    // QUANTITY / PRICE / SUBTOTAL
                     Row(
                       children: [
-                        // Quantity
                         Expanded(
                           flex: 2,
                           child: Column(
@@ -197,17 +165,12 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                                 decoration: _inputDecoration(theme),
                                 controller: _quantityController,
-                                onChanged: (val) {
-                                  setState(() {
-                                    _quantity = int.tryParse(val) ?? 0;
-                                  });
-                                },
+                                onChanged: (val) => setState(() => _quantity = int.tryParse(val) ?? 0),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(width: 12),
-                        // Price
                         Expanded(
                           flex: 3,
                           child: Column(
@@ -218,24 +181,18 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                               Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.surfaceVariant?.withOpacity(0.5) ?? Colors.grey[200],
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
+                                decoration: BoxDecoration(color: mutedBox, borderRadius: BorderRadius.circular(4)),
                                 child: Text(
-                                  _selectedProduct != null 
-                                      ? '\$${_selectedProduct!.standardPrice?.toStringAsFixed(2) ?? '0.00'}' 
+                                  _selectedProduct != null
+                                      ? '\$${_selectedProduct!.standardPrice?.toStringAsFixed(2) ?? '0.00'}'
                                       : '-',
-                                  style: TextStyle(
-                                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                                  ),
+                                  style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
                                 ),
                               ),
                             ],
                           ),
                         ),
                         const SizedBox(width: 12),
-                        // Subtotal
                         Expanded(
                           flex: 3,
                           child: Column(
@@ -246,16 +203,10 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                               Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                                decoration: BoxDecoration(
-                                  color: theme.colorScheme.surfaceVariant?.withOpacity(0.5) ?? Colors.grey[200],
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
+                                decoration: BoxDecoration(color: mutedBox, borderRadius: BorderRadius.circular(4)),
                                 child: Text(
                                   '\$${_subtotal.toStringAsFixed(2)}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: theme.colorScheme.onSurface,
-                                  ),
+                                  style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
                                 ),
                               ),
                             ],
@@ -264,17 +215,13 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
-                    // NOTE
                     Text('NOTE', style: _labelStyle(theme)),
                     const SizedBox(height: 8),
                     TextField(
                       key: const Key('input_material_note'),
                       controller: _noteController,
                       maxLines: 2,
-                      decoration: _inputDecoration(theme).copyWith(
-                        hintText: 'Optional note...',
-                      ),
+                      decoration: _inputDecoration(theme).copyWith(hintText: 'Optional note...'),
                     ),
                   ],
                 ),
