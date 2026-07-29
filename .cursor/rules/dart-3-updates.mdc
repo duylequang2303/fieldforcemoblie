@@ -1,0 +1,26 @@
+---
+globs: ["lib/**/*.dart"]
+alwaysApply: false
+---
+# Dart 3 Updates Rules (from evanca/flutter-ai-rules)
+
+### Branches & Control Flow
+1. Use `if-case` statements to match and destructure a value against a single pattern. Example: `if (pair case [int x, int y]) { ... }`.
+2. Use `switch` statements to match a value against multiple patterns. Each case body executes without needing `break`.
+3. Use `switch` expressions to produce a value based on matching cases. Example:
+   ```dart
+   final result = switch (state) {
+     State.loading => const LoadingWidget(),
+     State.success => const SuccessWidget(),
+     _ => const ErrorWidget(),
+   };
+   ```
+4. Switch statement/expression must handle all possible values exhaustively. Use `sealed` modifier on classes to enforce compile-time exhaustiveness checking.
+5. Add guard clauses to `case` statements using `when`. Example: `case pattern when condition:`.
+
+### Patterns & Destructuring
+1. Use wildcard patterns (`_`) to ignore unmatched parts of a value.
+2. Destructure records and collections directly:
+   ```dart
+   var (name, age) = userInfo(json);
+   ```

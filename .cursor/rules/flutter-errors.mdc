@@ -1,0 +1,12 @@
+---
+globs: ["lib/**/pages/*.dart", "lib/**/widgets/*.dart"]
+alwaysApply: false
+---
+# Common Flutter Errors & Rules (from evanca/flutter-ai-rules)
+
+1. **RenderFlex overflowed**: check if a `Row` or `Column` contains unconstrained widgets. Fix by wrapping children in `Flexible`, `Expanded`, or by setting constraints.
+2. **Vertical viewport was given unbounded height**: ensure `ListView` or similar scrollable widgets inside a `Column` have a bounded height (e.g., wrap with `Expanded` or `SizedBox`).
+3. **An InputDecorator...cannot have an unbounded width**: constrain the width of widgets like `TextField` using `Expanded`, `SizedBox`, or by placing them in a parent with width constraints.
+4. **setState called during build**: do not call `setState` or `showDialog` directly inside the build method. Trigger dialogs or state changes in response to user actions or after the build completes (e.g., using `addPostFrameCallback`).
+5. **The ScrollController is attached to multiple scroll views**: make sure each `ScrollController` is only attached to a single scrollable widget at a time.
+6. **RenderBox was not laid out**: check for missing or unbounded constraints in your widget tree. This is often caused by using widgets like `ListView` or `Column` without proper size constraints.

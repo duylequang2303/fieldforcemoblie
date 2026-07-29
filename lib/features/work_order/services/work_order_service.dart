@@ -137,4 +137,29 @@ class WorkOrderService {
       logger.w('WorkOrderService.uploadPhotos: Lỗi đẩy ảnh lên Odoo', error: e);
     }
   }
+
+  /// Upload 1 ảnh duy nhất lên Odoo Chatter (real-time, gọi từ UI).
+  Future<void> uploadSinglePhoto(int orderOdooId, String path) async {
+    final file = File(path);
+    if (!await file.exists()) return;
+
+    final bytes = await file.readAsBytes();
+    final base64String = base64Encode(bytes);
+    final filename = file.uri.pathSegments.last;
+
+    await _odoo.callKw(
+      model: 'fsm.order',
+      method: 'message_post',
+      args: [[orderOdooId]],
+      kwargs: {
+        'body': 'Ảnh hiện trường: $filename',
+        'message_type': 'comment',
+        'subtype_xmlid': 'mail.mt_comment',
+        'attachments': [
+          [filename, base64String],
+        ],
+      },
+    );
+  }
 }
+

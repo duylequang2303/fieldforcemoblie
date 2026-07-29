@@ -1,0 +1,10 @@
+---
+globs: ["lib/core/database/*.dart"]
+alwaysApply: false
+---
+# Isar Database & Sync Rules
+
+- **Khởi tạo Database**: Sử dụng `IsarService.instance.init(schemas)` để mở kết nối Isar DB tại hàm `main` khi khởi chạy ứng dụng.
+- **Truy cập cơ sở dữ liệu**: Lấy instance Isar thông qua `IsarService.instance.db`. Tránh giữ hoặc tạo nhiều kết nối Isar độc lập.
+- **Quản lý đồng bộ (SyncManager)**: `SyncManager` là manager trung tâm chịu trách nhiệm lắng nghe trạng thái kết nối mạng (`connectivity_plus`) và tự động kích hoạt tiến trình push các bản ghi offline (`isPendingSync == true`) lên Odoo khi thiết bị online trở lại.
+- **Transaction**: Mọi thao tác ghi (`writeTxn`) hoặc đọc ghi đồng thời trên Isar phải được thực hiện bất đồng bộ `writeTxn(() async { ... })` để tránh block UI Thread.

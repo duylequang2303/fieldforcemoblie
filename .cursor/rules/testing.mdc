@@ -1,0 +1,10 @@
+---
+globs: ["test/**/*.dart"]
+alwaysApply: false
+---
+# Testing Rules (from evanca/flutter-ai-rules)
+
+1. **Test Meaningfulness**: When looking at a test, ask: "Can this test actually fail if the real code is broken?" Avoid writing tests that just confirm behavior guaranteed by the language or the standard library.
+2. **Obvious code testing**: Avoid testing fake/mocked behavior that doesn't reflect real logic.
+3. **Use of Group**: Always use `group()` in test files — even if there’s only one test — and name the group after the class under test.
+4. **Naming convention**: Name test cases using "should" to clearly describe the expected behavior. Example: `test('value should start at 0', () {...});`.

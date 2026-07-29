@@ -1,0 +1,14 @@
+---
+globs: ["lib/**/models/*.dart"]
+alwaysApply: false
+---
+# Flutter Models Rules
+
+- **Isar Collection**: Các model lưu trữ offline trong local DB phải được đánh dấu `@collection` từ package `package:isar_community/isar.dart` và khai báo `part 'model_name.g.dart';` ở đầu file.
+- **Primary Key**: Sử dụng `Id id = Isar.autoIncrement;` làm khóa chính nội bộ của Isar.
+- **Odoo Mapping**: Khai báo trường `@Index(unique: true) late int odooId;` để lưu trữ ID bản ghi tương ứng trên server Odoo.
+- **Trạng thái đồng bộ**: Mỗi model cần chứa trường `late bool isPendingSync;` để đánh dấu bản ghi local chưa được đồng bộ/đẩy lên Odoo backend và `late DateTime lastSyncAt;`.
+- **Quy tắc Null/False**: Odoo có xu hướng trả về giá trị `false` (bool) thay vì `null` cho các trường trống (Many2one, char, text...). Khi parse dữ liệu JSON từ Odoo sang Dart Model, cần xử lý cẩn thận:
+  ```dart
+  partnerName: json['partner_id'] is List ? json['partner_id'][1] as String : null
+  ```

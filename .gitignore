@@ -9,10 +9,12 @@
 .history
 .svn/
 .swiftpm/
+.agent-state/
 
 # User-specific stuff
 .idea/
 .vscode/
+.cursor/
 *.iml
 *.ipr
 *.iws

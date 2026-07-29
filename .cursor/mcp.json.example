@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "dart": {
+      "command": "dart",
+      "args": ["mcp-server"]
+    },
+    "marionette": {
+      "command": "/home/odoodev/.pub-cache/bin/marionette_mcp",
+      "args": []
+    },
+    "odoo": {
+      "command": "npx",
+      "args": ["-y", "odoo-mcp-server"],
+      "env": {
+        "ODOO_URL": "https://demo002.crmhub.vn",
+        "ODOO_DB": "demo002.crmhub.vn",
+        "ODOO_USERNAME": "admin",
+        "ODOO_PASSWORD": "YOUR_ODOO_PASSWORD_HERE"
+      }
+    }
+  }
+}
