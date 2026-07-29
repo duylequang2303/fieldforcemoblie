@@ -1,0 +1,11 @@
+---
+globs: ["lib/**/pages/*.dart", "lib/**/widgets/*.dart"]
+alwaysApply: false
+---
+# Flutter Widgets & Pages Rules
+
+- **State Management**: Sử dụng `Consumer<XxxProvider>` hoặc `context.read<XxxProvider>()` / `context.watch<XxxProvider>()` từ package `provider`. KHÔNG sử dụng `setState` trong các trang phức tạp (chứa từ 2 state trở lên).
+- **Tuyệt đối KHÔNG gọi Odoo API trực tiếp**: Widgets và Pages không được import `OdooApiClient`, `OdooSessionManager` hoặc gọi các hàm Remote RPC trực tiếp (`callKw`, `search_read`). Mọi tương tác nghiệp vụ Odoo phải thông qua `Provider` hoặc các Service tương ứng.
+- **Styling & Colors**: KHÔNG được hardcode màu sắc (tránh dùng `AppColors` nếu có). Chỉ sử dụng Theme Color Scheme của Material 3: `theme.colorScheme.primary`, `theme.colorScheme.surface`, v.v. thông qua `Theme.of(context)`.
+- **Hiệu suất UI**: Sử dụng hằng số `const` tối đa cho các Widget tĩnh để tối ưu hóa quá trình rebuild.
+- **Xử lý văn bản từ Odoo**: Strip HTML tags (sử dụng regex hoặc helper) trước khi hiển thị văn bản mô tả lấy từ Odoo backend để tránh hiển thị raw HTML.

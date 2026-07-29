@@ -1,0 +1,9 @@
+---
+globs: ["lib/core/api/*.dart"]
+alwaysApply: false
+---
+# Odoo API & Client Rules
+
+- **Singleton Client**: Giao tiếp Odoo RPC tập trung thông qua `OdooApiClient.instance` để quản lý cấu hình kết nối.
+- **Quản lý phiên**: Toàn bộ session lưu trữ và xác thực được quản lý bởi `OdooSessionManager.instance` (đọc/ghi thông tin đăng nhập và endpoint cấu hình thông qua `flutter_secure_storage`).
+- **Đóng gói RPC**: Sử dụng hàm `callKw` của `OdooApiClient` để bọc các yêu cầu RPC, đảm bảo xử lý lỗi tập trung các loại ngoại lệ mạng và lỗi phiên đăng nhập đã hết hạn (`OdooSessionExpiredException`).

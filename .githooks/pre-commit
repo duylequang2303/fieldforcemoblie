@@ -1,0 +1,44 @@
+#!/bin/bash
+
+echo "=== Running pre-commit hooks ==="
+
+# 1. Chạy flutter analyze --no-pub
+echo "1. Chạy flutter analyze --no-pub..."
+analyze_output=$(flutter analyze --no-pub 2>&1)
+if echo "$analyze_output" | grep -q "error"; then
+  echo "$analyze_output"
+  echo "❌ Lỗi: flutter analyze phát hiện có lỗi biên dịch hoặc lỗi lint nghiêm trọng."
+  exit 1
+fi
+echo "✓ flutter analyze vượt qua."
+
+# 2. Block AppColors. trên các file .dart đang được stage
+echo "2. Kiểm tra hardcoded màu sắc (AppColors.)..."
+staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep "\.dart$")
+
+if [ -n "$staged_files" ]; then
+  # Kiểm tra AppColors.
+  hardcoded_colors=$(echo "$staged_files" | xargs grep -n "AppColors\." 2>/dev/null)
+  if [ -n "$hardcoded_colors" ]; then
+    echo "❌ Lỗi: Phát hiện hardcoded màu sắc bằng AppColors. ở các file sau:"
+    echo "$hardcoded_colors"
+    echo "⚠️ Vui lòng sử dụng theme.colorScheme.* thay thế."
+    exit 1
+  fi
+
+  # Kiểm tra gọi API Odoo trực tiếp từ Widget / Page
+  echo "3. Kiểm tra gọi trực tiếp API Odoo từ Widget/Page..."
+  staged_pages=$(echo "$staged_files" | grep "lib/features/.*/pages/")
+  if [ -n "$staged_pages" ]; then
+    direct_api_calls=$(echo "$staged_pages" | xargs grep -n -E "OdooApiClient|call_kw" 2>/dev/null)
+    if [ -n "$direct_api_calls" ]; then
+      echo "❌ Lỗi: Phát hiện gọi trực tiếp OdooApiClient hoặc call_kw trong Widget/Page:"
+      echo "$direct_api_calls"
+      echo "⚠️ Mọi thao tác gọi API Odoo bắt buộc phải thực hiện thông qua Service."
+      exit 1
+    fi
+  fi
+fi
+
+echo "✓ Tất cả các kiểm tra pre-commit đã vượt qua!"
+exit 0

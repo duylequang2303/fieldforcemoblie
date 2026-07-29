@@ -28,6 +28,9 @@ class MockWorkOrderService implements WorkOrderService {
 
   @override
   Future<void> uploadPhotos(WorkReport report) async {}
+
+  @override
+  Future<void> uploadSinglePhoto(int orderOdooId, String path) async {}
 }
 
 void main() {

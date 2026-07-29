@@ -1,0 +1,27 @@
+---
+globs: ["lib/**/*.dart", "test/**/*.dart"]
+alwaysApply: false
+---
+# Effective Dart Rules (from evanca/flutter-ai-rules)
+
+### Naming Conventions
+1. Name types using `UpperCamelCase` (classes, enums, typedefs, type parameters).
+2. Name packages, directories, and source files using `lowercase_with_underscores`.
+3. Name other identifiers using `lowerCamelCase` (variables, parameters, named parameters).
+4. Avoid starting a function or method name with `get`; prefer removing `get` and using a getter when the API conceptually exposes a property.
+
+### Types and Functions
+1. Type annotate variables without initializers.
+2. Annotate return types and parameter types on function declarations.
+3. Use `Future<void>` as the return type of asynchronous members that do not produce values.
+4. Prefer `final` over `var` when variable values won't change.
+5. Use `const` constructors for widgets and in `build()` methods whenever possible to reduce rebuilds.
+
+### Imports & Files
+1. Prefer relative import paths within a package.
+2. Don't use `/lib/` or `../` in import paths.
+3. Keep files focused on a single responsibility.
+
+### Usage & Error Handling
+1. Use `rethrow` to rethrow a caught exception.
+2. Prefer specific exception handling: avoid generic `catch (e)` handlers when possible; use `on SomeException catch (e, _)` instead.

@@ -12,6 +12,7 @@ import '../features/orders/models/fsm_order.dart';
 import '../features/orders/services/orders_service.dart';
 import '../features/stock/services/stock_service.dart';
 import '../features/stock/models/product.dart';
+import '../features/work_order/services/work_order_service.dart';
 
 class _MaterialResult {
   final Product? product;
@@ -176,14 +177,52 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
     }
   }
 
-  // TODO upload: cắm WorkOrderService.uploadPhotos khi có WorkReport (nợ).
+  /// Lưu ảnh vào WorkReport (Isar) + đẩy lên Odoo Chatter.
+  /// Online → upload ngay, xóa khỏi pending.
+  /// Offline → giữ pending, sẽ upload batch khi submitReport.
   Future<void> _uploadPhoto(String path) async {
     try {
-      // await WorkOrderService.instance.uploadPhotos(...);
-    } catch (_) {}
+      final report = await WorkOrderService.instance
+          .getOrCreateReport(widget.order.odooId);
+
+      // 1. Lưu vào Isar trước (offline safety)
+      if (!report.photoPaths.contains(path)) {
+        report.photoPaths = [...report.photoPaths, path];
+        await WorkOrderService.instance.saveReport(report);
+      }
+
+      // 2. Upload real-time lên Odoo Chatter
+      await WorkOrderService.instance
+          .uploadSinglePhoto(widget.order.odooId, path);
+
+      // 3. Thành công → xóa khỏi pending (tránh trùng khi submit sau)
+      report.photoPaths = [...report.photoPaths]..remove(path);
+      await WorkOrderService.instance.saveReport(report);
+
+      if (mounted) _showSnackBar('Photo uploaded.');
+    } on OdooApiException {
+      // Offline — ảnh đã lưu Isar, sẽ upload khi submitReport
+      if (mounted) {
+        _showSnackBar('Photo saved locally — will upload when online.');
+      }
+    } catch (e) {
+      if (mounted) _showSnackBar('Photo error: $e');
+    }
   }
 
-  void _removePhoto(int index) => setState(() => _photoPaths.removeAt(index));
+  void _removePhoto(int index) {
+    final path = _photoPaths[index];
+    setState(() => _photoPaths.removeAt(index));
+    // Đồng bộ xóa trong WorkReport (nếu chưa upload lên Odoo)
+    WorkOrderService.instance
+        .getOrCreateReport(widget.order.odooId)
+        .then((report) {
+      if (report.photoPaths.contains(path)) {
+        report.photoPaths = [...report.photoPaths]..remove(path);
+        return WorkOrderService.instance.saveReport(report);
+      }
+    }).catchError((_) {});
+  }
 
   Future<void> _onMaterialSaved(Product? product, int qty) async {
     if (product == null) return;
