@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/api/odoo_session_manager.dart';
@@ -143,8 +144,8 @@ class WorkOrderService {
     final file = File(path);
     if (!await file.exists()) return;
 
-    final bytes = await file.readAsBytes();
-    final base64String = base64Encode(bytes);
+    // ✅ Đẩy encode base64 sang background isolate — KHÔNG block UI thread
+    final base64String = await compute(_encodeBase64Isolate, path);
     final filename = file.uri.pathSegments.last;
 
     await _odoo.callKw(
@@ -160,6 +161,12 @@ class WorkOrderService {
         ],
       },
     );
+  }
+
+  /// Encode base64 trong isolate riêng — KHÔNG block UI thread.
+  static Future<String> _encodeBase64Isolate(String path) async {
+    final bytes = await File(path).readAsBytes();
+    return base64Encode(bytes);
   }
 }
 

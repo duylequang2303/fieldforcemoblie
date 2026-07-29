@@ -167,6 +167,13 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
       if (one != null) picked.add(one);
     }
     if (picked.isEmpty) return;
+    
+    // FIX 3 — Đo kích thước ảnh thật (chẩn đoán Samsung)
+    for (final x in picked) {
+      final size = await File(x.path).length();
+      debugPrint('📸 PICKED: ${x.path.split('/').last} — ${(size / 1024 / 1024).toStringAsFixed(1)}MB');
+    }
+    
     setState(() {
       for (final x in picked) {
         _photoPaths.add(x.path);
@@ -483,7 +490,14 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.file(File(path), width: 88, height: 88, fit: BoxFit.cover),
+            child: Image.file(
+              File(path),
+              width: 88,
+              height: 88,
+              fit: BoxFit.cover,
+              cacheWidth: 176, // ✅ decode ở 176px (2x Retina) thay vì full resolution
+              cacheHeight: 176,
+            ),
           ),
           Positioned(
             top: -6,
