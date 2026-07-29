@@ -103,13 +103,13 @@ class _SchedulePageState extends State<SchedulePage> {
 
   Widget _buildPropertiesBody() {
     final properties = const [
-      ScheduleProperty(address: '28 Spring Street', suburb: 'Abbotsford 2046', postcode: '2046', ownerName: 'Mable Adams', imageUrl: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600'),
-      ScheduleProperty(address: '25 Abbotsford Parade', suburb: 'Abbortsford 2046', postcode: '2046', ownerName: 'Cindi Abbots'),
-      ScheduleProperty(address: '29 Tindale Road', suburb: 'Artarmon 2064', postcode: '2064', ownerName: 'Casey Aguilar'),
-      ScheduleProperty(address: '47 Stafford Road', suburb: 'Artarmon 2064', postcode: '2064', ownerName: 'Todd Adams'),
-      ScheduleProperty(address: '42 Elizabeth Street', suburb: 'Artarmon 2064', postcode: '2064', ownerName: 'Donna Alexander'),
-      ScheduleProperty(address: '171 Avalon Parade', suburb: 'Avalon 2107', postcode: '2107', ownerName: 'Stewart Allen'),
-      ScheduleProperty(address: '131 Hudson Parade', suburb: 'Avalon 2107', postcode: '2107', ownerName: 'Stewart Allen'),
+      ScheduleProperty(id: 0, address: '28 Spring Street', suburb: 'Abbotsford 2046', postcode: '2046', ownerName: 'Mable Adams', imageUrl: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600'),
+      ScheduleProperty(id: 0, address: '25 Abbotsford Parade', suburb: 'Abbortsford 2046', postcode: '2046', ownerName: 'Cindi Abbots'),
+      ScheduleProperty(id: 0, address: '29 Tindale Road', suburb: 'Artarmon 2064', postcode: '2064', ownerName: 'Casey Aguilar'),
+      ScheduleProperty(id: 0, address: '47 Stafford Road', suburb: 'Artarmon 2064', postcode: '2064', ownerName: 'Todd Adams'),
+      ScheduleProperty(id: 0, address: '42 Elizabeth Street', suburb: 'Artarmon 2064', postcode: '2064', ownerName: 'Donna Alexander'),
+      ScheduleProperty(id: 0, address: '171 Avalon Parade', suburb: 'Avalon 2107', postcode: '2107', ownerName: 'Stewart Allen'),
+      ScheduleProperty(id: 0, address: '131 Hudson Parade', suburb: 'Avalon 2107', postcode: '2107', ownerName: 'Stewart Allen'),
     ];
 
     return SearchAnchor(

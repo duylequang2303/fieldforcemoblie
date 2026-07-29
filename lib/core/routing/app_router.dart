@@ -74,9 +74,7 @@ final GoRouter appRouter = GoRouter(
               name: 'shellProperties',
               pageBuilder: (context, state) {
                 return const NoTransitionPage(
-                  child: Scaffold(
-                    body: Center(child: Text('Properties')),
-                  ),
+                  child: SchedulePropertiesListPage(),
                 );
               },
             ),
@@ -206,6 +204,7 @@ final GoRouter appRouter = GoRouter(
         }
         return SchedulePropertyDetailPage(
           property: ScheduleProperty(
+            id: int.tryParse(id) ?? 0,
             address: 'Property $id',
             suburb: '',
             postcode: '',
