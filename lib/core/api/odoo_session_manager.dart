@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:odoo_rpc/odoo_rpc.dart';
 import 'api_exception.dart';
 import 'odoo_client.dart';
+import '../database/sync_manager.dart';
 
 class OdooSessionData {
   const OdooSessionData({
@@ -97,6 +99,8 @@ class OdooSessionManager {
         locale: userLang,
       );
 
+      unawaited(SyncManager.instance.syncAfterAuth());
+
       return _currentSession!;
     } on OdooSessionExpiredException {
       throw const OdooAuthException('Phiên đăng nhập đã hết hạn.');
@@ -156,6 +160,7 @@ class OdooSessionManager {
         sessionId: sessionId,
         locale: locale,
       );
+      unawaited(SyncManager.instance.syncAfterAuth());
       return true;
     } catch (_) {
       _currentSession = null;
