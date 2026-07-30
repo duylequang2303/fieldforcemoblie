@@ -104,33 +104,45 @@ class WorkOrderService {
     }
   }
 
-  /// Đẩy tất cả ảnh đính kèm lên Odoo Chatter qua 1 lượt gọi
+  /// Đẩy tất cả ảnh đính kèm lên Odoo Chatter
   Future<void> uploadPhotos(WorkReport report) async {
     if (report.photoPaths.isEmpty) return;
 
     try {
-      final attachments = <List<dynamic>>[];
       for (final path in report.photoPaths) {
         final file = File(path);
         if (await file.exists()) {
           final base64String = await compute(_encodeBase64Isolate, path);
-          final filename = file.uri.pathSegments.last; 
-          attachments.add([filename, base64String]);
-        }
-      }
+          final filename = file.uri.pathSegments.last;
 
-      if (attachments.isNotEmpty) {
-        await _odoo.callKw(
-          model: 'fsm.order',
-          method: 'message_post',
-          args: [[report.orderOdooId]],
-          kwargs: {
-            'body': 'Ảnh hiện trường (${attachments.length} ảnh)',
-            'message_type': 'comment',
-            'subtype_xmlid': 'mail.mt_comment',
-            'attachments': attachments,
-          },
-        );
+          // 1. Tạo attachment (datas nhận base64 đúng 1 lần — KHÔNG double)
+          final attId = await _odoo.callKw(
+            model: 'ir.attachment',
+            method: 'create',
+            args: [
+              {
+                'name': filename,
+                'datas': base64String,
+                'mimetype': 'image/jpeg',
+                'res_model': 'fsm.order',
+                'res_id': report.orderOdooId,
+              }
+            ],
+          ) as int;
+
+          // 2. Post message link tới attachment (BỎ kwargs 'attachments')
+          await _odoo.callKw(
+            model: 'fsm.order',
+            method: 'message_post',
+            args: [[report.orderOdooId]],
+            kwargs: {
+              'body': 'Ảnh hiện trường: $filename',
+              'message_type': 'comment',
+              'subtype_xmlid': 'mail.mt_comment',
+              'attachment_ids': [attId],
+            },
+          );
+        }
       }
     } catch (e) {
       // Bọc try-catch để không chặn luồng submit báo cáo nếu lỗi ảnh
@@ -147,6 +159,22 @@ class WorkOrderService {
     final base64String = await compute(_encodeBase64Isolate, path);
     final filename = file.uri.pathSegments.last;
 
+    // 1. Tạo attachment (datas nhận base64 đúng 1 lần — KHÔNG double)
+    final attId = await _odoo.callKw(
+      model: 'ir.attachment',
+      method: 'create',
+      args: [
+        {
+          'name': filename,
+          'datas': base64String,
+          'mimetype': 'image/jpeg',
+          'res_model': 'fsm.order',
+          'res_id': orderOdooId,
+        }
+      ],
+    ) as int;
+
+    // 2. Post message link tới attachment (BỎ kwargs 'attachments')
     await _odoo.callKw(
       model: 'fsm.order',
       method: 'message_post',
@@ -155,9 +183,7 @@ class WorkOrderService {
         'body': 'Ảnh hiện trường: $filename',
         'message_type': 'comment',
         'subtype_xmlid': 'mail.mt_comment',
-        'attachments': [
-          [filename, base64String],
-        ],
+        'attachment_ids': [attId],
       },
     );
   }
