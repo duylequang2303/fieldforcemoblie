@@ -412,9 +412,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
       }
 
       final newWorkDone = _workDoneController.text.trim();
-      if (newWorkDone.isNotEmpty || report.workDone.isEmpty) {
-        report.workDone = newWorkDone;
-      }
+      report.workDone = newWorkDone;
       await WorkOrderService.instance.saveReport(report);
 
       // Đẩy báo cáo + chữ ký + ảnh pending TRƯỚC khi đổi stage.

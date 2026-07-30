@@ -34,6 +34,10 @@ class WorkReport {
   bool isSignatureSynced = false;
   List<String> syncedPhotoPaths = [];
 
+  /// Persisted "path|attachmentId" entries — saved immediately after
+  /// ir.attachment.create so retries can skip re-creating duplicates.
+  List<String> syncedAttachmentEntries = [];
+
   WorkReport();
 
   factory WorkReport.create({required int orderOdooId}) {
