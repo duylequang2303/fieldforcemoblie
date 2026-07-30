@@ -69,7 +69,7 @@ class FsmOrder {
   factory FsmOrder.fromJson(Map<String, dynamic> json, {Map<int, Map<String, dynamic>>? locationCoordinates}) {
     final order = FsmOrder()
       ..odooId = (json['id'] as int)
-      ..name = (json['name'] as String?) ?? ''
+      ..name = _strOrNull(json['name']) ?? ''
       ..description = _strOrNull(json['description'])
       ..stageId = _idFromMany(json['stage_id'])
       ..stageName = _nameFromMany(json['stage_id'])
@@ -83,10 +83,10 @@ class FsmOrder {
       ..dateEnd = _dateOrNull(json['date_end'])
       ..personId = _idOrNull(json['person_id'])
       ..personName = _nameFromMany(json['person_id'])
-      ..priority = json['priority'] as String?
-      ..routeSequence = json['route_sequence'] as int?
+      ..priority = _strOrNull(json['priority'])
+      ..routeSequence = _intOrNull(json['route_sequence'])
       ..routeId = _idOrNull(json['route_id'])
-      ..routeState = json['route_state'] as String? // Sẽ được merge từ query riêng hoặc related field
+      ..routeState = _strOrNull(json['route_state']) // Sẽ được merge từ query riêng hoặc related field
       ..requireSignature = json['require_signature'] == true
       ..isPendingSync = false
       ..lastSyncAt = DateTime.now();
@@ -97,8 +97,8 @@ class FsmOrder {
       final locationId = (json['location_id'] as List)[0] as int;
       final locationData = locationCoordinates[locationId];
       if (locationData != null) {
-        order.locationLat = locationData['partner_latitude'] as double?;
-        order.locationLng = locationData['partner_longitude'] as double?;
+        order.locationLat = _doubleOrNull(locationData['partner_latitude']);
+        order.locationLng = _doubleOrNull(locationData['partner_longitude']);
         order.partnerId = _idOrNull(locationData['partner_id']);
         order.partnerName = _nameFromMany(locationData['partner_id']);
         order.inventoryLocationId = _idOrNull(locationData['inventory_location_id']);
@@ -114,6 +114,12 @@ class FsmOrder {
   // ── Helpers ──────────────────────────────────────────────
   static String? _strOrNull(dynamic v) =>
       (v == null || v == false) ? null : v as String;
+
+  static int? _intOrNull(dynamic v) =>
+      (v == null || v == false) ? null : v as int;
+
+  static double? _doubleOrNull(dynamic v) =>
+      (v == null || v == false) ? null : (v as num).toDouble();
 
   static int _idFromMany(dynamic v) =>
       (v == null || v == false) ? 0 : (v as List)[0] as int;

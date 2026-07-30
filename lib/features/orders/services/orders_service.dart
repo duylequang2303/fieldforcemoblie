@@ -70,6 +70,7 @@ class OrdersService {
   // Cache for stages
   static final Map<int, String> _stageNames = {};
   static final Map<String, int> _stageIdsByLowerName = {};
+  static int? _completedStageId;
 
   Future<void> fetchStagesIfNeeded() async {
     if (_stageNames.isNotEmpty) return;
@@ -90,6 +91,31 @@ class OrdersService {
     } catch (e) {
       logger.e('Failed to fetch fsm.stage', error: e);
     }
+  }
+
+  /// Resolve stage Completed bằng XML ID chuẩn của Odoo thay vì keyword.
+  /// Dùng ir.model.data(module=fieldservice, name=fsm_stage_completed).
+  Future<int?> getCompletedStageId() async {
+    if (_completedStageId != null) return _completedStageId;
+    try {
+      final result = await _odoo.callKw(
+        model: 'ir.model.data',
+        method: 'search_read',
+        args: [
+          [
+            ['module', '=', 'fieldservice'],
+            ['name', '=', 'fsm_stage_completed'],
+          ]
+        ],
+        kwargs: {'fields': ['res_id'], 'limit': 1},
+      ) as List<dynamic>;
+      if (result.isNotEmpty) {
+        _completedStageId = result.first['res_id'] as int;
+      }
+    } catch (e) {
+      logger.e('Failed to resolve fsm_stage_completed XML ID', error: e);
+    }
+    return _completedStageId;
   }
 
   Future<int?> getStageIdByKeywords(List<String> keywords) async {
@@ -381,6 +407,23 @@ class OrdersService {
   /// Đánh dấu hoàn thành đơn dịch vụ qua action chuẩn của Odoo thay vì ghi đè stage_id.
   /// Gọi API trước, nếu thành công mới cập nhật Isar local. Không cập nhật optimistic UI.
   Future<void> completeOrder(int odooId) async {
+    final local = await _isar.db.fsmOrders.getByOdooId(odooId);
+    final doneStageId = await getCompletedStageId();
+
+    // 1. Cập nhật local trước (Offline-First)
+    if (local != null) {
+      await _isar.db.writeTxn(() async {
+        local.stage = FsmOrderStage.done;
+        local.stageName = 'Completed';
+        if (doneStageId != null) {
+          local.stageId = doneStageId;
+        }
+        local.isPendingSync = true;
+        await _isar.db.fsmOrders.put(local);
+      });
+    }
+
+    // 2. Cố gắng ghi nhận lên Odoo
     try {
       await _odoo.callKw(
         model: _model,
@@ -388,25 +431,24 @@ class OrdersService {
         args: [[odooId]],
       );
       
-      // Chỉ cập nhật local nếu Odoo trả về thành công
-      final local = await _isar.db.fsmOrders.getByOdooId(odooId);
       if (local != null) {
         await _isar.db.writeTxn(() async {
-          local.stage = FsmOrderStage.done;
-          local.stageName = 'Completed';
-          // Nếu đã map stages trước đó, gán stageId đúng để đồng bộ
-          final doneStageId = await getStageIdByKeywords(['completed', 'done', 'hoàn']);
-          if (doneStageId != null) {
-            local.stageId = doneStageId;
-          }
           local.isPendingSync = false;
           await _isar.db.fsmOrders.put(local);
         });
       }
     } on OdooApiException catch (e) {
-      logger.w('OrdersService.completeOrder: API call failed', error: e);
+      logger.w('OrdersService.completeOrder: API call failed, saved local completion draft', error: e);
       rethrow;
     }
+  }
+
+  /// Format DateTime sang chuỗi UTC chuẩn Odoo Datetime ('YYYY-MM-DD HH:MM:SS').
+  /// Odoo lưu Datetime theo UTC, nên phải convert local → UTC trước khi gửi.
+  String _formatDateTimeUtc(DateTime dt) {
+    final utc = dt.toUtc();
+    return '${utc.year}-${utc.month.toString().padLeft(2, '0')}-${utc.day.toString().padLeft(2, '0')} '
+        '${utc.hour.toString().padLeft(2, '0')}:${utc.minute.toString().padLeft(2, '0')}:${utc.second.toString().padLeft(2, '0')}';
   }
 
   /// Ghi nhận giờ bắt đầu thực tế khi Worker check-in tại địa điểm (Offline-First).
@@ -425,15 +467,12 @@ class OrdersService {
 
     // 2. Cố gắng ghi nhận lên Odoo
     try {
-      final formatted = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
       await _odoo.callKw(
         model: _model,
         method: 'write',
         args: [
           [odooId],
-          {
-            'date_start': formatted,
-          },
+          {'date_start': _formatDateTimeUtc(now)},
         ],
       );
       if (local != null) {
@@ -448,7 +487,45 @@ class OrdersService {
     }
   }
 
+  /// Ghi nhận giờ kết thúc thực tế khi Worker check-out (Offline-First).
+  Future<void> checkOut(int odooId) async {
+    final now = DateTime.now();
+
+    // 1. Cập nhật local trước
+    final local = await _isar.db.fsmOrders.getByOdooId(odooId);
+    if (local != null) {
+      await _isar.db.writeTxn(() async {
+        local.dateEnd = now;
+        local.isPendingSync = true;
+        await _isar.db.fsmOrders.put(local);
+      });
+    }
+
+    // 2. Cố gắng ghi nhận lên Odoo
+    try {
+      await _odoo.callKw(
+        model: _model,
+        method: 'write',
+        args: [
+          [odooId],
+          {'date_end': _formatDateTimeUtc(now)},
+        ],
+      );
+      if (local != null) {
+        await _isar.db.writeTxn(() async {
+          local.isPendingSync = false;
+          await _isar.db.fsmOrders.put(local);
+        });
+      }
+    } on OdooApiException catch (e) {
+      logger.w('OrdersService.checkOut: offline, queued local check-out', error: e);
+      rethrow;
+    }
+  }
+
   /// Sync các order chưa push lên Odoo (isPendingSync = true).
+  /// Đơn completed → gọi action_complete thay vì write stage_id raw.
+  /// Đơn khác → write field data (stage_id, date_start, date_end) sang UTC.
   Future<void> syncPending() async {
     final pending = await _isar.db.fsmOrders
         .filter()
@@ -457,22 +534,47 @@ class OrdersService {
 
     for (final order in pending) {
       try {
-        final data = <String, dynamic>{
-          'stage_id': order.stageId,
-        };
-        if (order.dateStart != null) {
-          final ds = order.dateStart!;
-          data['date_start'] = '${ds.year}-${ds.month.toString().padLeft(2, '0')}-${ds.day.toString().padLeft(2, '0')} ${ds.hour.toString().padLeft(2, '0')}:${ds.minute.toString().padLeft(2, '0')}:${ds.second.toString().padLeft(2, '0')}';
+        // Đơn đã completed offline → gọi action chuẩn của Odoo
+        if (order.stage == FsmOrderStage.done) {
+          await _odoo.callKw(
+            model: _model,
+            method: 'action_complete',
+            args: [[order.odooId]],
+          );
+        } else {
+          // Các stage khác → write raw
+          final data = <String, dynamic>{
+            'stage_id': order.stageId,
+          };
+          await _odoo.callKw(
+            model: _model,
+            method: 'write',
+            args: [
+              [order.odooId],
+              data,
+            ],
+          );
         }
 
-        await _odoo.callKw(
-          model: _model,
-          method: 'write',
-          args: [
-            [order.odooId],
-            data,
-          ],
-        );
+        // Sync date_start / date_end nếu có (UTC)
+        final dateData = <String, dynamic>{};
+        if (order.dateStart != null) {
+          dateData['date_start'] = _formatDateTimeUtc(order.dateStart!);
+        }
+        if (order.dateEnd != null) {
+          dateData['date_end'] = _formatDateTimeUtc(order.dateEnd!);
+        }
+        if (dateData.isNotEmpty) {
+          await _odoo.callKw(
+            model: _model,
+            method: 'write',
+            args: [
+              [order.odooId],
+              dateData,
+            ],
+          );
+        }
+
         await _isar.db.writeTxn(() async {
           order.isPendingSync = false;
           await _isar.db.fsmOrders.put(order);
