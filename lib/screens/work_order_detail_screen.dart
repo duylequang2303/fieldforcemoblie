@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:signature/signature.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
@@ -169,9 +170,13 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
     if (picked.isEmpty) return;
     
     // FIX 3 — Đo kích thước ảnh thật (chẩn đoán Samsung)
-    for (final x in picked) {
-      final size = await File(x.path).length();
-      debugPrint('📸 PICKED: ${x.path.split('/').last} — ${(size / 1024 / 1024).toStringAsFixed(1)}MB');
+    if (kDebugMode) {
+      for (final x in picked) {
+        try {
+          final size = await File(x.path).length();
+          debugPrint('📸 PICKED: ${x.path.split('/').last} — ${(size / 1024 / 1024).toStringAsFixed(1)}MB');
+        } catch (_) {}
+      }
     }
     
     setState(() {
@@ -496,7 +501,6 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
               height: 88,
               fit: BoxFit.cover,
               cacheWidth: 176, // ✅ decode ở 176px (2x Retina) thay vì full resolution
-              cacheHeight: 176,
             ),
           ),
           Positioned(
