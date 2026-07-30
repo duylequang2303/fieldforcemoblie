@@ -95,6 +95,7 @@ class SyncManager {
   Future<void> syncAfterAuth() async {
     if (_isSyncing) return;
     if (!await _connectivity.isOnline) return; // offline → đợi tick/connectivity sau
+    if (!await _allowedByNetworkPref()) return;
     await syncPending();
   }
 

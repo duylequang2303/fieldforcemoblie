@@ -9,6 +9,28 @@ import '../../../core/utils/logger.dart';
 import '../models/work_report.dart';
 import '../../orders/models/fsm_order.dart';
 
+/// Detect mimetype từ extension file thay vì hardcode.
+String _mimeFromExtension(String path) {
+  final ext = path.split('.').last.toLowerCase();
+  switch (ext) {
+    case 'png':
+      return 'image/png';
+    case 'webp':
+      return 'image/webp';
+    case 'gif':
+      return 'image/gif';
+    case 'bmp':
+      return 'image/bmp';
+    case 'heic':
+    case 'heif':
+      return 'image/heic';
+    case 'jpg':
+    case 'jpeg':
+    default:
+      return 'image/jpeg';
+  }
+}
+
 class WorkOrderService {
   WorkOrderService._({OdooSessionManager? odoo, IsarService? isar})
     : _odoo = odoo ?? OdooSessionManager.instance,
@@ -41,6 +63,29 @@ class WorkOrderService {
 
   /// Lưu nội dung báo cáo (local).
   Future<void> saveReport(WorkReport report) async {
+    final existing = await _isar.db.workReports
+        .filter()
+        .orderOdooIdEqualTo(report.orderOdooId)
+        .findFirst();
+
+    if (existing != null) {
+      if (existing.workDone != report.workDone) {
+        report.isResolutionSynced = false;
+      }
+      if (existing.customerSignaturePath != report.customerSignaturePath ||
+          existing.customerName != report.customerName) {
+        report.isSignatureSynced = false;
+      }
+      final currentPhotos = report.photoPaths;
+      report.syncedPhotoPaths = report.syncedPhotoPaths
+          .where((p) => currentPhotos.contains(p))
+          .toList();
+    } else {
+      report.isResolutionSynced = false;
+      report.isSignatureSynced = false;
+      report.syncedPhotoPaths = [];
+    }
+
     report
       ..isPendingSync = true
       ..createdAt = DateTime.now();
@@ -52,20 +97,26 @@ class WorkOrderService {
   /// Submit báo cáo lên Odoo (chỉ gọi khi online và có chữ ký).
   Future<void> submitReport(WorkReport report) async {
     try {
-      // Ghi resolution thay vì description
-      await _odoo.callKw(
-        model: 'fsm.order',
-        method: 'write',
-        args: [
-          [report.orderOdooId],
-          {
-            'resolution': report.workDone,
-          },
-        ],
-      );
+      // 1. Ghi resolution thay vì description nếu chưa sync
+      if (!report.isResolutionSynced) {
+        await _odoo.callKw(
+          model: 'fsm.order',
+          method: 'write',
+          args: [
+            [report.orderOdooId],
+            {
+              'resolution': report.workDone,
+            },
+          ],
+        );
+        report.isResolutionSynced = true;
+        await _isar.db.writeTxn(() async {
+          await _isar.db.workReports.put(report);
+        });
+      }
 
-      // Submit chữ ký bằng Wizard chuẩn của Odoo
-      if (report.customerSignaturePath != null && report.customerName != null) {
+      // 2. Submit chữ ký bằng Wizard chuẩn của Odoo nếu chưa sync
+      if (!report.isSignatureSynced && report.customerSignaturePath != null && report.customerName != null) {
         final sigFile = File(report.customerSignaturePath!);
         if (sigFile.existsSync()) {
           final bytes = await sigFile.readAsBytes();
@@ -88,16 +139,30 @@ class WorkOrderService {
             method: 'action_sign',
             args: [[wizardId]],
           );
+
+          report.isSignatureSynced = true;
+          await _isar.db.writeTxn(() async {
+            await _isar.db.workReports.put(report);
+          });
+        } else {
+          logger.w('WorkOrderService.submitReport: Signature file not found at ${report.customerSignaturePath}, skipping upload');
         }
       }
       
-      // Upload ảnh đính kèm
+      // 3. Upload ảnh đính kèm
       await uploadPhotos(report);
       
-      await _isar.db.writeTxn(() async {
-        report.isPendingSync = false;
-        await _isar.db.workReports.put(report);
-      });
+      // Kiểm tra xem tất cả các bước đã hoàn tất đồng bộ thực sự chưa
+      final allPhotosSynced = report.photoPaths.every((path) => report.syncedPhotoPaths.contains(path));
+      final needsSignature = report.customerSignaturePath != null && report.customerName != null;
+      final signatureOk = !needsSignature || report.isSignatureSynced;
+
+      if (report.isResolutionSynced && signatureOk && allPhotosSynced) {
+        await _isar.db.writeTxn(() async {
+          report.isPendingSync = false;
+          await _isar.db.workReports.put(report);
+        });
+      }
     } on OdooApiException catch (e) {
       logger.e('WorkOrderService.submitReport', error: e);
       rethrow;
@@ -124,7 +189,13 @@ class WorkOrderService {
     if (report.photoPaths.isEmpty) return;
 
     try {
+      final updatedSyncedPaths = List<String>.from(report.syncedPhotoPaths);
+
       for (final path in report.photoPaths) {
+        if (updatedSyncedPaths.contains(path)) {
+          continue; // Bỏ qua ảnh đã sync thành công
+        }
+
         final file = File(path);
         if (await file.exists()) {
           final base64String = await compute(_encodeBase64Isolate, path);
@@ -138,7 +209,7 @@ class WorkOrderService {
               {
                 'name': filename,
                 'datas': base64String,
-                'mimetype': 'image/jpeg',
+                'mimetype': _mimeFromExtension(path),
                 'res_model': 'fsm.order',
                 'res_id': report.orderOdooId,
               }
@@ -157,11 +228,19 @@ class WorkOrderService {
               'attachment_ids': [attId],
             },
           );
+
+          // Cập nhật trạng thái từng ảnh đã sync và lưu Isar ngay lập tức
+          updatedSyncedPaths.add(path);
+          report.syncedPhotoPaths = updatedSyncedPaths;
+          await _isar.db.writeTxn(() async {
+            await _isar.db.workReports.put(report);
+          });
         }
       }
-    } catch (e) {
-      // Bọc try-catch để không chặn luồng submit báo cáo nếu lỗi ảnh
-      logger.w('WorkOrderService.uploadPhotos: Lỗi đẩy ảnh lên Odoo', error: e);
+    } on OdooApiException catch (e) {
+      logger.w('WorkOrderService.uploadPhotos: Lỗi Odoo API khi tải ảnh', error: e);
+    } on IOException catch (e) {
+      logger.w('WorkOrderService.uploadPhotos: Lỗi đọc file hoặc mạng khi tải ảnh', error: e);
     }
   }
 
@@ -182,7 +261,7 @@ class WorkOrderService {
         {
           'name': filename,
           'datas': base64String,
-          'mimetype': 'image/jpeg',
+          'mimetype': _mimeFromExtension(path),
           'res_model': 'fsm.order',
           'res_id': orderOdooId,
         }
