@@ -113,8 +113,7 @@ class WorkOrderService {
       for (final path in report.photoPaths) {
         final file = File(path);
         if (await file.exists()) {
-          final bytes = await file.readAsBytes();
-          final base64String = base64Encode(bytes);
+          final base64String = await compute(_encodeBase64Isolate, path);
           final filename = file.uri.pathSegments.last; 
           attachments.add([filename, base64String]);
         }

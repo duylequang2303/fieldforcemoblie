@@ -1,6 +1,8 @@
 ```
 # Dependencies
+.dart_tool/
 .pub/
+.pub-cache/
 .buildlog
 .flutter-plugins
 .flutter-plugins-dependencies
@@ -19,7 +21,6 @@ coverage/
 # Temporary files
 *.tmp
 *.temp
-*.lock
 .DS_Store
 Thumbs.db
 
