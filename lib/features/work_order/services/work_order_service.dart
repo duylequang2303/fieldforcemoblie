@@ -22,8 +22,9 @@ String _mimeFromExtension(String path) {
     case 'bmp':
       return 'image/bmp';
     case 'heic':
-    case 'heif':
       return 'image/heic';
+    case 'heif':
+      return 'image/heif';
     case 'jpg':
     case 'jpeg':
     default:
@@ -80,10 +81,14 @@ class WorkOrderService {
       report.syncedPhotoPaths = report.syncedPhotoPaths
           .where((p) => currentPhotos.contains(p))
           .toList();
+      report.syncedAttachmentEntries = report.syncedAttachmentEntries
+          .where((e) => currentPhotos.contains(e.split('|').first))
+          .toList();
     } else {
       report.isResolutionSynced = false;
       report.isSignatureSynced = false;
       report.syncedPhotoPaths = [];
+      report.syncedAttachmentEntries = [];
     }
 
     report
@@ -190,19 +195,36 @@ class WorkOrderService {
 
     try {
       final updatedSyncedPaths = List<String>.from(report.syncedPhotoPaths);
+      final updatedEntries = List<String>.from(report.syncedAttachmentEntries);
+
+      // Build lookup: path → attachmentId
+      final attIdByPath = <String, int>{};
+      for (final entry in updatedEntries) {
+        final parts = entry.split('|');
+        if (parts.length == 2) {
+          attIdByPath[parts[0]] = int.tryParse(parts[1]);
+        }
+      }
 
       for (final path in report.photoPaths) {
         if (updatedSyncedPaths.contains(path)) {
-          continue; // Bỏ qua ảnh đã sync thành công
+          continue; // Bỏ qua ảnh đã sync hoàn chỉnh
         }
 
         final file = File(path);
-        if (await file.exists()) {
-          final base64String = await compute(_encodeBase64Isolate, path);
-          final filename = file.uri.pathSegments.last;
+        if (!await file.exists()) continue;
 
-          // 1. Tạo attachment (datas nhận base64 đúng 1 lần — KHÔNG double)
-          final attId = await _odoo.callKw(
+        final filename = file.uri.pathSegments.last;
+
+        // Check nếu đã có attachment ID persisted từ lần retry trước
+        int attId;
+        if (attIdByPath.containsKey(path) && attIdByPath[path] != null) {
+          attId = attIdByPath[path]!;
+          logger.i('WorkOrderService.uploadPhotos: reusing persisted attachment $attId for $filename');
+        } else {
+          // 1. Tạo attachment mới
+          final base64String = await compute(_encodeBase64Isolate, path);
+          attId = await _odoo.callKw(
             model: 'ir.attachment',
             method: 'create',
             args: [
@@ -216,26 +238,33 @@ class WorkOrderService {
             ],
           ) as int;
 
-          // 2. Post message link tới attachment (BỎ kwargs 'attachments')
-          await _odoo.callKw(
-            model: 'fsm.order',
-            method: 'message_post',
-            args: [[report.orderOdooId]],
-            kwargs: {
-              'body': 'Ảnh hiện trường: $filename',
-              'message_type': 'comment',
-              'subtype_xmlid': 'mail.mt_comment',
-              'attachment_ids': [attId],
-            },
-          );
-
-          // Cập nhật trạng thái từng ảnh đã sync và lưu Isar ngay lập tức
-          updatedSyncedPaths.add(path);
-          report.syncedPhotoPaths = updatedSyncedPaths;
+          // Persist ngay "path|attId" — trước message_post để retry không tạo duplicate
+          updatedEntries.add('$path|$attId');
+          report.syncedAttachmentEntries = updatedEntries;
           await _isar.db.writeTxn(() async {
             await _isar.db.workReports.put(report);
           });
         }
+
+        // 2. Post message link tới attachment
+        await _odoo.callKw(
+          model: 'fsm.order',
+          method: 'message_post',
+          args: [[report.orderOdooId]],
+          kwargs: {
+            'body': 'Ảnh hiện trường: $filename',
+            'message_type': 'comment',
+            'subtype_xmlid': 'mail.mt_comment',
+            'attachment_ids': [attId],
+          },
+        );
+
+        // Cả attachment + message_post thành công → mới cập nhật syncedPhotoPaths
+        updatedSyncedPaths.add(path);
+        report.syncedPhotoPaths = updatedSyncedPaths;
+        await _isar.db.writeTxn(() async {
+          await _isar.db.workReports.put(report);
+        });
       }
     } on OdooApiException catch (e) {
       logger.w('WorkOrderService.uploadPhotos: Lỗi Odoo API khi tải ảnh', error: e);

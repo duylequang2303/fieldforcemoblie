@@ -405,10 +405,16 @@ class OrdersService {
   }
 
   /// Đánh dấu hoàn thành đơn dịch vụ qua action chuẩn của Odoo thay vì ghi đè stage_id.
-  /// Gọi API trước, nếu thành công mới cập nhật Isar local. Không cập nhật optimistic UI.
+  ///
+  /// Thực hiện theo chiến lược Offline-First:
+  /// 1. Cập nhật trạng thái local Isar ngay lập tức (stage = done, isPendingSync = true).
+  /// 2. Cố gắng ghi nhận lên Odoo qua action_complete.
+  /// 3. Nếu API thành công, xóa cờ isPendingSync.
+  /// 4. Nếu API thất bại, giữ nguyên bản ghi local với isPendingSync = true để đồng bộ sau.
   Future<void> completeOrder(int odooId) async {
     final local = await _isar.db.fsmOrders.getByOdooId(odooId);
-    final doneStageId = await getCompletedStageId();
+    final doneStageId = await getCompletedStageId() ??
+        await getStageIdByKeywords(['done', 'completed']);
 
     // 1. Cập nhật local trước (Offline-First)
     if (local != null) {
