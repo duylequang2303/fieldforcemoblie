@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:odoo_rpc/odoo_rpc.dart';
 import 'api_exception.dart';
 import 'odoo_client.dart';
+import '../auth/secure_storage.dart';
 import '../database/sync_manager.dart';
+import '../utils/logger.dart';
 
 class OdooSessionData {
   const OdooSessionData({
@@ -181,17 +183,95 @@ class OdooSessionManager {
   }
 
   /// Gọi Odoo RPC (delegate sang OdooApiClient).
+  /// Nếu session hết hạn → tự động re-authenticate bằng credentials đã lưu
+  /// trong SecureStorage rồi retry lại API call 1 lần.
+  bool _isReAuthenticating = false;
+
   Future<dynamic> callKw({
     required String model,
     required String method,
     required List<dynamic> args,
     Map<String, dynamic> kwargs = const {},
-  }) {
-    return OdooApiClient.instance.callKw(
-      model: model,
-      method: method,
-      args: args,
-      kwargs: kwargs,
-    );
+  }) async {
+    try {
+      return await OdooApiClient.instance.callKw(
+        model: model,
+        method: method,
+        args: args,
+        kwargs: kwargs,
+      );
+    } on OdooAuthException {
+      // Session expired → try to re-authenticate silently
+      if (_isReAuthenticating) {
+        // Already trying to re-auth, don't recurse
+        rethrow;
+      }
+      logger.w('Session expired, attempting silent re-authentication...');
+      final renewed = await _tryReAuthenticate();
+      if (!renewed) {
+        throw const OdooAuthException('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      }
+      // Retry the original call with the new session
+      return await OdooApiClient.instance.callKw(
+        model: model,
+        method: method,
+        args: args,
+        kwargs: kwargs,
+      );
+    }
+  }
+
+  /// Đọc credentials đã lưu và re-authenticate.
+  /// Trả về true nếu thành công, false nếu không có credentials hoặc login thất bại.
+  Future<bool> _tryReAuthenticate() async {
+    _isReAuthenticating = true;
+    try {
+      final saved = await SecureStorageService.instance.loadSession();
+      final serverUrl = saved['serverUrl'];
+      final database = saved['database'];
+      final username = saved['username'];
+      final password = saved['password'];
+
+      if (serverUrl == null || database == null || username == null || password == null) {
+        logger.w('Cannot re-authenticate: missing stored credentials');
+        return false;
+      }
+
+      // Re-initialize client and authenticate fresh
+      OdooApiClient.instance.initialize(serverUrl);
+      final client = OdooApiClient.instance.client;
+      final session = await client.authenticate(database, username, password);
+
+      _currentSession = OdooSessionData(
+        serverUrl: serverUrl,
+        database: database,
+        username: username,
+        userId: session.userId,
+        sessionId: session.id,
+        locale: _currentSession?.locale ?? 'vi_VN',
+      );
+
+      // Update stored session with new sessionId
+      await SecureStorageService.instance.saveSession(
+        serverUrl: serverUrl,
+        database: database,
+        username: username,
+        sessionId: session.id,
+        userId: session.userId,
+        locale: _currentSession?.locale ?? 'vi_VN',
+        password: password,
+      );
+
+      logger.i('Silent re-authentication successful');
+      return true;
+    } on OdooException catch (e) {
+      logger.e('Silent re-authentication failed', error: e);
+      return false;
+    } catch (e) {
+      logger.e('Silent re-authentication failed', error: e);
+      return false;
+    } finally {
+      _isReAuthenticating = false;
+    }
   }
 }
