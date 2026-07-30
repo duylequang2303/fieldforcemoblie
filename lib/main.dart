@@ -19,6 +19,7 @@ import 'features/orders/services/orders_service.dart';
 import 'features/timesheet/services/timesheet_service.dart';
 import 'features/expense/services/expense_service.dart';
 import 'features/stock/services/stock_service.dart';
+import 'features/work_order/services/work_order_service.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 import 'app/app.dart';
 
@@ -62,6 +63,7 @@ Future<void> main() async {
       SyncManager.instance.registerSyncHandler(TimesheetService.instance.syncPending);
       SyncManager.instance.registerSyncHandler(ExpenseService.instance.syncPending);
       SyncManager.instance.registerSyncHandler(StockService.instance.syncPending);
+      SyncManager.instance.registerSyncHandler(WorkOrderService.instance.syncPending);
 
       // Bắt đầu lắng nghe trạng thái mạng để tự động sync
       SyncManager.instance.startListening();

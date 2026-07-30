@@ -45,6 +45,7 @@ class FsmOrder {
   DateTime? scheduledDateStart;
   DateTime? scheduledDateEnd;
   DateTime? dateStart;        // Giờ bắt đầu thực tế
+  DateTime? dateEnd;          // Giờ kết thúc thực tế
   int? routeSequence;         // Thứ tự lộ trình từ Odoo optimal route
   int? routeId;               // ID của lộ trình fsm.route
   String? routeState;         // state của lộ trình ('draft', 'planned', 'done')
@@ -79,6 +80,7 @@ class FsmOrder {
       ..scheduledDateStart = _dateOrNull(json['scheduled_date_start'])
       ..scheduledDateEnd = _dateOrNull(json['scheduled_date_end'])
       ..dateStart = _dateOrNull(json['date_start'])
+      ..dateEnd = _dateOrNull(json['date_end'])
       ..personId = _idOrNull(json['person_id'])
       ..personName = _nameFromMany(json['person_id'])
       ..priority = json['priority'] as String?

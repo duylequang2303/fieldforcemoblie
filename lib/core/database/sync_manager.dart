@@ -91,6 +91,13 @@ class SyncManager {
     }
   }
 
+  /// Gọi sau khi login/restore thành công: sync pending ngay, không đợi tick 15 phút.
+  Future<void> syncAfterAuth() async {
+    if (_isSyncing) return;
+    if (!await _connectivity.isOnline) return; // offline → đợi tick/connectivity sau
+    await syncPending();
+  }
+
   final List<Future<void> Function()> _syncHandlers = [];
 
   void registerSyncHandler(Future<void> Function() handler) {
