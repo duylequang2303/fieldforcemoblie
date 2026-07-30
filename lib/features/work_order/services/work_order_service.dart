@@ -104,6 +104,21 @@ class WorkOrderService {
     }
   }
 
+  /// Sync các báo cáo chưa push (isPendingSync = true) — SyncManager gọi khi online.
+  Future<void> syncPending() async {
+    final pending = await _isar.db.workReports
+        .filter()
+        .isPendingSyncEqualTo(true)
+        .findAll();
+    for (final report in pending) {
+      try {
+        await submitReport(report);
+      } catch (e) {
+        logger.w('WorkOrderService.syncPending: failed for order ${report.orderOdooId}', error: e);
+      }
+    }
+  }
+
   /// Đẩy tất cả ảnh đính kèm lên Odoo Chatter
   Future<void> uploadPhotos(WorkReport report) async {
     if (report.photoPaths.isEmpty) return;

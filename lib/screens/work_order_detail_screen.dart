@@ -5,6 +5,7 @@ import 'package:signature/signature.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import '../core/api/api_exception.dart';
 import '../widgets/in_app_camera_screen.dart';
 import '../widgets/quick_action_button.dart';
@@ -32,6 +33,8 @@ class WorkOrderDetailScreen extends StatefulWidget {
 
 class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with WidgetsBindingObserver {
   late SignatureController _signatureController;
+  final TextEditingController _customerNameController = TextEditingController();
+  final TextEditingController _workDoneController = TextEditingController();
   final List<Map<String, dynamic>> _materialsUsed = [];
   final List<String> _photoPaths = [];
 
@@ -50,6 +53,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _signatureController.dispose();
+    _customerNameController.dispose();
+    _workDoneController.dispose();
     super.dispose();
   }
 
@@ -219,16 +224,6 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
         try {
           final size = await File(x.path).length();
           debugPrint('📸 PICKED: ${x.path.split('/').last} — ${(size / 1024 / 1024).toStringAsFixed(1)}MB');
-          try {
-            final raf = await File(x.path).open();
-            final head = await raf.read(4);
-            await raf.close();
-            final hex = head.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
-            final ok = head.length >= 2 && head[0] == 0xFF && head[1] == 0xD8;
-            debugPrint('🔍 HEADER ${x.path.split('/').last}: [$hex] ${ok ? "✅ JPEG" : "❌ NOT JPEG"}');
-          } catch (e) {
-            debugPrint('🔍 HEADER read fail: $e');
-          }
         } catch (_) {}
       }
     }
@@ -260,7 +255,9 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
       // 2. Upload real-time lên Odoo Chatter
       await WorkOrderService.instance
           .uploadSinglePhoto(widget.order.odooId, path);
-      debugPrint("📤 UPLOAD OK: ${path.split('/').last}");
+      if (kDebugMode) {
+        debugPrint("📤 UPLOAD OK: ${path.split('/').last}");
+      }
 
       // 3. Thành công → xóa khỏi pending (tránh trùng khi submit sau)
       report.photoPaths = [...report.photoPaths]..remove(path);
@@ -268,13 +265,17 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
 
       if (mounted) _showSnackBar('Photo uploaded.');
     } on OdooApiException {
-      debugPrint("📤 UPLOAD OFFLINE: ${path.split('/').last}");
+      if (kDebugMode) {
+        debugPrint("📤 UPLOAD OFFLINE: ${path.split('/').last}");
+      }
       // Offline — ảnh đã lưu Isar, sẽ upload khi submitReport
       if (mounted) {
         _showSnackBar('Photo saved locally — will upload when online.');
       }
     } catch (e) {
-      debugPrint("📤 UPLOAD ERROR: ${path.split('/').last} -> $e");
+      if (kDebugMode) {
+        debugPrint("📤 UPLOAD ERROR: ${path.split('/').last} -> $e");
+      }
       if (mounted) _showSnackBar('Photo error: $e');
     }
   }
@@ -346,19 +347,68 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
     }
   }
 
-  Future<void> _onComplete() async {
-    if (widget.order.requireSignature && _signatureController.isEmpty) {
-      _showSnackBar('Signature is required before completion.');
-      return;
-    }
+  Future<void> _onCheckOut() async {
     try {
+      await OrdersService.instance.checkOut(widget.order.odooId);
+      if (!mounted) return;
+      _showSnackBar('Checked out successfully.');
+    } on OdooApiException {
+      if (!mounted) return;
+      _showSnackBar('Checked out locally — will sync when online.');
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar('Check-out failed: $e');
+    }
+  }
+
+  Future<void> _onComplete() async {
+    try {
+      final report = await WorkOrderService.instance
+          .getOrCreateReport(widget.order.odooId);
+
+      // X: đã ký rồi (local hoặc Odoo) thì không bắt ký lại, không chạy lại wizard.
+      final alreadySigned = report.signedAt != null;
+
+      if (widget.order.requireSignature && !alreadySigned) {
+        if (_signatureController.isEmpty) {
+          _showSnackBar('Signature is required before completion.');
+          return;
+        }
+        if (_customerNameController.text.trim().isEmpty) {
+          _showSnackBar('Customer name is required to sign.');
+          return;
+        }
+      }
+
+      // Export chữ ký ra file PNG + bơm vào report (chỉ khi cần ký)
+      if (widget.order.requireSignature && !alreadySigned) {
+        final png = await _signatureController.toPngBytes();
+        if (png != null) {
+          final dir = await getApplicationDocumentsDirectory();
+          final f = File('${dir.path}/sig_${widget.order.odooId}_${DateTime.now().millisecondsSinceEpoch}.png');
+          await f.writeAsBytes(png);
+          report.customerSignaturePath = f.path;
+          report.customerName = _customerNameController.text.trim();
+          report.signedAt = DateTime.now();
+        }
+      }
+
+      report.workDone = _workDoneController.text.trim();
+      await WorkOrderService.instance.saveReport(report);
+
+      // Đẩy báo cáo + chữ ký + ảnh pending TRƯỚC khi đổi stage.
+      // isPendingSync=false nghĩa là report đã submit trọn vẹn lần trước -> skip để tránh trùng.
+      if (report.isPendingSync) {
+        await WorkOrderService.instance.submitReport(report);
+      }
+
       await OrdersService.instance.completeOrder(widget.order.odooId);
       if (!mounted) return;
       _showSnackBar('Order completed successfully.');
       Navigator.of(context).pop(true);
     } on OdooApiException {
       if (!mounted) return;
-      _showSnackBar('Cannot complete while offline — connect and retry.');
+      _showSnackBar('Offline - report & signature saved locally, will sync when online.');
     } catch (e) {
       if (!mounted) return;
       _showSnackBar('Failed to complete order: $e');
@@ -687,7 +737,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
                             Expanded(
                               child: OutlinedButton.icon(
                                 key: const Key('btn_check_out'),
-                                onPressed: () => _showSnackBar('Check-out mapping pending (TODO).'),
+                                onPressed: _onCheckOut,
                                 icon: const Icon(Icons.stop),
                                 label: const Text('Check-out'),
                               ),
@@ -705,10 +755,31 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
                     ),
                   ),
                   ExpandableSection(
+                    title: 'WORK REPORT / BÁO CÁO CÔNG VIỆC',
+                    child: TextField(
+                      controller: _workDoneController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Work done / Nội dung công việc',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  ExpandableSection(
                     title: 'SIGNATURE',
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: TextField(
+                            controller: _customerNameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Customer name (người ký)',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
                         Container(
                           decoration: BoxDecoration(
                             border: Border.all(color: theme.dividerColor),
