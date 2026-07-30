@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import '../core/api/api_exception.dart';
+import '../widgets/in_app_camera_screen.dart';
 import '../widgets/quick_action_button.dart';
 import '../widgets/section_header.dart';
 import '../widgets/material_entry_form.dart';
@@ -29,7 +30,7 @@ class WorkOrderDetailScreen extends StatefulWidget {
   State<WorkOrderDetailScreen> createState() => _WorkOrderDetailScreenState();
 }
 
-class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
+class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with WidgetsBindingObserver {
   late SignatureController _signatureController;
   final List<Map<String, dynamic>> _materialsUsed = [];
   final List<String> _photoPaths = [];
@@ -37,6 +38,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _signatureController = SignatureController(
       penStrokeWidth: 2,
       penColor: Colors.black,
@@ -46,8 +48,17 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _signatureController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      PaintingBinding.instance.imageCache.clear();
+      PaintingBinding.instance.imageCache.clearLiveImages();
+    }
   }
 
   void _showSnackBar(String message) {
@@ -137,6 +148,16 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
     );
   }
 
+  Future<void> _openInAppCamera() async {
+    final path = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(builder: (_) => const InAppCameraScreen()),
+    );
+    if (path == null) return;
+    setState(() => _photoPaths.add(path));
+    await _uploadPhoto(path);
+  }
+
   Future<void> _pickPhoto() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -144,6 +165,21 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ListTile(
+              leading: Icon(Icons.camera_alt, color: Theme.of(ctx).colorScheme.primary),
+              title: const Text('Camera (in-app, thử nghiệm)'),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final path = await Navigator.push<String>(
+                  ctx,
+                  MaterialPageRoute(builder: (_) => const InAppCameraScreen()),
+                );
+                if (path != null) {
+                  setState(() => _photoPaths.add(path));
+                  await _uploadPhoto(path);
+                }
+              },
+            ),
             ListTile(
               leading: Icon(Icons.camera_alt_outlined, color: Theme.of(ctx).colorScheme.primary),
               title: const Text('Take photo'),
@@ -153,6 +189,14 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
               leading: Icon(Icons.photo_library_outlined, color: Theme.of(ctx).colorScheme.primary),
               title: const Text('Choose from gallery'),
               onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            ListTile(
+              leading: Icon(Icons.camera, color: Theme.of(ctx).colorScheme.primary),
+              title: const Text('Camera (in-app)'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _openInAppCamera();
+              },
             ),
           ],
         ),
@@ -175,6 +219,16 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
         try {
           final size = await File(x.path).length();
           debugPrint('📸 PICKED: ${x.path.split('/').last} — ${(size / 1024 / 1024).toStringAsFixed(1)}MB');
+          try {
+            final raf = await File(x.path).open();
+            final head = await raf.read(4);
+            await raf.close();
+            final hex = head.map((b) => b.toRadixString(16).padLeft(2, '0')).join(' ');
+            final ok = head.length >= 2 && head[0] == 0xFF && head[1] == 0xD8;
+            debugPrint('🔍 HEADER ${x.path.split('/').last}: [$hex] ${ok ? "✅ JPEG" : "❌ NOT JPEG"}');
+          } catch (e) {
+            debugPrint('🔍 HEADER read fail: $e');
+          }
         } catch (_) {}
       }
     }
@@ -206,6 +260,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
       // 2. Upload real-time lên Odoo Chatter
       await WorkOrderService.instance
           .uploadSinglePhoto(widget.order.odooId, path);
+      debugPrint("📤 UPLOAD OK: ${path.split('/').last}");
 
       // 3. Thành công → xóa khỏi pending (tránh trùng khi submit sau)
       report.photoPaths = [...report.photoPaths]..remove(path);
@@ -213,11 +268,13 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> {
 
       if (mounted) _showSnackBar('Photo uploaded.');
     } on OdooApiException {
+      debugPrint("📤 UPLOAD OFFLINE: ${path.split('/').last}");
       // Offline — ảnh đã lưu Isar, sẽ upload khi submitReport
       if (mounted) {
         _showSnackBar('Photo saved locally — will upload when online.');
       }
     } catch (e) {
+      debugPrint("📤 UPLOAD ERROR: ${path.split('/').last} -> $e");
       if (mounted) _showSnackBar('Photo error: $e');
     }
   }
