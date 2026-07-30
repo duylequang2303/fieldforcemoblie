@@ -36,6 +36,7 @@ class AuthService {
       sessionId: session.sessionId,
       userId: session.userId,
       locale: session.locale,
+      password: password,
     );
   }
 

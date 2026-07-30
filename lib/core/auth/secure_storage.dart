@@ -17,6 +17,7 @@ class SecureStorageService {
   static const _keySessionId = 'odoo_session_id';
   static const _keyUserId = 'odoo_user_id';
   static const _keyLocale = 'odoo_locale';
+  static const _keyPassword = 'odoo_password';
   static const _keyBiometricEnabled = 'biometric_enabled';
 
   Future<void> saveSession({
@@ -26,15 +27,20 @@ class SecureStorageService {
     required String sessionId,
     required int userId,
     String locale = 'vi_VN',
+    String? password,
   }) async {
-    await Future.wait([
+    final writes = <Future<void>>[
       _storage.write(key: _keyServerUrl, value: serverUrl),
       _storage.write(key: _keyDatabase, value: database),
       _storage.write(key: _keyUsername, value: username),
       _storage.write(key: _keySessionId, value: sessionId),
       _storage.write(key: _keyUserId, value: userId.toString()),
       _storage.write(key: _keyLocale, value: locale),
-    ]);
+    ];
+    if (password != null) {
+      writes.add(_storage.write(key: _keyPassword, value: password));
+    }
+    await Future.wait(writes);
   }
 
   Future<Map<String, String?>> loadSession() async {
@@ -45,6 +51,7 @@ class SecureStorageService {
       _storage.read(key: _keySessionId),
       _storage.read(key: _keyUserId),
       _storage.read(key: _keyLocale),
+      _storage.read(key: _keyPassword),
     ]);
     return {
       'serverUrl': results[0],
@@ -53,6 +60,7 @@ class SecureStorageService {
       'sessionId': results[3],
       'userId': results[4],
       'locale': results[5],
+      'password': results[6],
     };
   }
 
@@ -79,6 +87,7 @@ class SecureStorageService {
       _storage.delete(key: _keySessionId),
       _storage.delete(key: _keyUserId),
       _storage.delete(key: _keyLocale),
+      _storage.delete(key: _keyPassword),
     ]);
   }
 

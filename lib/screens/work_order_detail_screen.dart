@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import '../core/api/api_exception.dart';
+import '../core/utils/logger.dart';
 import '../widgets/in_app_camera_screen.dart';
 import '../widgets/quick_action_button.dart';
 import '../widgets/section_header.dart';
@@ -47,6 +48,22 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
       penColor: Colors.black,
       exportBackgroundColor: Colors.white,
     );
+    _loadReportDraft();
+  }
+
+  Future<void> _loadReportDraft() async {
+    try {
+      final report = await WorkOrderService.instance.getOrCreateReport(widget.order.odooId);
+      if (mounted) {
+        setState(() {
+          _workDoneController.text = report.workDone;
+          _customerNameController.text = report.customerName ?? '';
+          _photoPaths.addAll(report.photoPaths);
+        });
+      }
+    } catch (e) {
+      logger.w('Failed to load report draft', error: e);
+    }
   }
 
   @override
@@ -380,8 +397,9 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
         }
       }
 
-      // Export chữ ký ra file PNG + bơm vào report (chỉ khi cần ký)
-      if (widget.order.requireSignature && !alreadySigned) {
+      // Export chữ ký ra file PNG + bơm vào report nếu người dùng đã vẽ chữ ký và nhập tên
+      final hasName = _customerNameController.text.trim().isNotEmpty;
+      if (_signatureController.isNotEmpty && hasName && !alreadySigned) {
         final png = await _signatureController.toPngBytes();
         if (png != null) {
           final dir = await getApplicationDocumentsDirectory();
@@ -393,13 +411,22 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
         }
       }
 
-      report.workDone = _workDoneController.text.trim();
+      final newWorkDone = _workDoneController.text.trim();
+      if (newWorkDone.isNotEmpty || report.workDone.isEmpty) {
+        report.workDone = newWorkDone;
+      }
       await WorkOrderService.instance.saveReport(report);
 
       // Đẩy báo cáo + chữ ký + ảnh pending TRƯỚC khi đổi stage.
       // isPendingSync=false nghĩa là report đã submit trọn vẹn lần trước -> skip để tránh trùng.
       if (report.isPendingSync) {
-        await WorkOrderService.instance.submitReport(report);
+        try {
+          await WorkOrderService.instance.submitReport(report);
+        } on OdooApiException catch (e) {
+          logger.w('Failed to submit report online (API error): $e');
+        } on IOException catch (e) {
+          logger.w('Failed to submit report online (network/file error): $e');
+        }
       }
 
       await OrdersService.instance.completeOrder(widget.order.odooId);

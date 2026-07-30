@@ -29,6 +29,11 @@ class WorkReport {
   late bool isPendingSync;
   late DateTime createdAt;
 
+  // Trạng thái đồng bộ từng bước
+  bool isResolutionSynced = false;
+  bool isSignatureSynced = false;
+  List<String> syncedPhotoPaths = [];
+
   WorkReport();
 
   factory WorkReport.create({required int orderOdooId}) {
@@ -36,6 +41,9 @@ class WorkReport {
       ..orderOdooId = orderOdooId
       ..workDone = ''
       ..photoPaths = []
+      ..isResolutionSynced = false
+      ..isSignatureSynced = false
+      ..syncedPhotoPaths = []
       ..isPendingSync = false
       ..createdAt = DateTime.now();
   }
