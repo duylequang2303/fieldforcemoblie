@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
 import 'api_exception.dart';
 
@@ -6,8 +7,20 @@ import 'api_exception.dart';
 class OdooApiClient {
   OdooApiClient._();
 
+  /// Constructor dành riêng cho test: cho phép subclass ghi đè [callKw]
+  /// để giả lập RPC và verify các lần gọi. Không dùng trong production.
+  @visibleForTesting
+  OdooApiClient.forTesting();
+
   static OdooApiClient? _instance;
   static OdooApiClient get instance => _instance ??= OdooApiClient._();
+
+  /// Cho phép test inject một fake/mock client để verify RPC calls.
+  /// Test xong gọi [dispose] để reset về singleton thật.
+  @visibleForTesting
+  static set instanceForTest(OdooApiClient? client) {
+    _instance = client;
+  }
 
   OdooClient? _client;
 

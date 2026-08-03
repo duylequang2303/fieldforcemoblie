@@ -37,6 +37,7 @@ class AuthService {
       userId: session.userId,
       locale: session.locale,
       password: password,
+      employeeId: session.employeeId,
     );
   }
 
@@ -54,6 +55,9 @@ class AuthService {
     final username = saved['username'] ?? '';
     final userIdStr = saved['userId'];
     final userId = userIdStr != null ? int.tryParse(userIdStr) : null;
+    final employeeIdStr = saved['employeeId'];
+    final employeeId = employeeIdStr != null ? int.tryParse(employeeIdStr) : null;
+    final password = saved['password'];
 
     if (serverUrl == null ||
         sessionId == null ||
@@ -69,6 +73,8 @@ class AuthService {
       savedUserId: userId,
       username: username,
       locale: locale ?? 'vi_VN',
+      employeeId: employeeId,
+      password: password,
     );
 
     if (restored && locale != null && locale.isNotEmpty) {

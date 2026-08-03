@@ -18,6 +18,7 @@ class SecureStorageService {
   static const _keyUserId = 'odoo_user_id';
   static const _keyLocale = 'odoo_locale';
   static const _keyPassword = 'odoo_password';
+  static const _keyEmployeeId = 'odoo_employee_id';
   static const _keyBiometricEnabled = 'biometric_enabled';
 
   Future<void> saveSession({
@@ -28,6 +29,7 @@ class SecureStorageService {
     required int userId,
     String locale = 'vi_VN',
     String? password,
+    int? employeeId,
   }) async {
     final writes = <Future<void>>[
       _storage.write(key: _keyServerUrl, value: serverUrl),
@@ -38,7 +40,15 @@ class SecureStorageService {
       _storage.write(key: _keyLocale, value: locale),
     ];
     if (password != null) {
+      // Password chỉ ghi đè khi có password mới. Trong silent re-auth,
+      // caller sẽ truyền lại password cũ đã đọc từ storage → giữ nguyên,
+      // đảm bảo silent re-auth sau này vẫn có password để dùng.
       writes.add(_storage.write(key: _keyPassword, value: password));
+    }
+    if (employeeId != null) {
+      writes.add(
+        _storage.write(key: _keyEmployeeId, value: employeeId.toString()),
+      );
     }
     await Future.wait(writes);
   }
@@ -52,6 +62,7 @@ class SecureStorageService {
       _storage.read(key: _keyUserId),
       _storage.read(key: _keyLocale),
       _storage.read(key: _keyPassword),
+      _storage.read(key: _keyEmployeeId),
     ]);
     return {
       'serverUrl': results[0],
@@ -61,6 +72,7 @@ class SecureStorageService {
       'userId': results[4],
       'locale': results[5],
       'password': results[6],
+      'employeeId': results[7],
     };
   }
 
@@ -88,6 +100,7 @@ class SecureStorageService {
       _storage.delete(key: _keyUserId),
       _storage.delete(key: _keyLocale),
       _storage.delete(key: _keyPassword),
+      _storage.delete(key: _keyEmployeeId),
     ]);
   }
 

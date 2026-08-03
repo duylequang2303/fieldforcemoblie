@@ -62,6 +62,11 @@ class FsmOrder {
   // Rules
   bool requireSignature = false;
 
+  String? materialNote;
+  double? collectedAmount;
+  String? paymentMethod;
+  bool isPaymentSynced = false;
+
   FsmOrder();
 
   /// Tạo từ JSON trả về từ Odoo API.
@@ -90,6 +95,10 @@ class FsmOrder {
       ..routeState = _strOrNull(json[
           'route_state']) // Sẽ được merge từ query riêng hoặc related field
       ..requireSignature = json['require_signature'] == true
+      ..materialNote = _strOrNull(json['material_note'])
+      ..collectedAmount = _doubleOrNull(json['collected_amount'])
+      ..paymentMethod = _strOrNull(json['payment_method'])
+      ..isPaymentSynced = true
       ..isPendingSync = false
       ..lastSyncAt = DateTime.now();
 

@@ -49,6 +49,9 @@ class OrdersService {
     'color',
     'state_name',
     'todo',
+    'material_note',
+    'collected_amount',
+    'payment_method',
   ];
 
   static const _locationFields = [
@@ -95,10 +98,31 @@ class OrdersService {
     }
   }
 
-  /// Resolve stage Completed bằng XML ID chuẩn của Odoo thay vì keyword.
-  /// Dùng ir.model.data(module=fieldservice, name=fsm_stage_completed).
+  /// Resolve stage Completed bằng method an toàn của backend fieldforce_payment.
+  /// Dùng fsm.order.get_fsm_stage_ids() để tránh AccessError trên ir.model.data.
+  /// Fallback về XML ID cũ nếu method mới không có.
   Future<int?> getCompletedStageId() async {
     if (_completedStageId != null) return _completedStageId;
+
+    // Cách 1: Gọi method an toàn từ module fieldforce_payment
+    try {
+      final result = await _odoo.callKw(
+        model: 'fsm.order',
+        method: 'get_fsm_stage_ids',
+        args: [[]],
+        kwargs: const {},
+      );
+      if (result is Map && result['completed'] is int) {
+        _completedStageId = result['completed'] as int;
+        logger.i('Resolved fsm_stage_completed => ${_completedStageId}');
+        return _completedStageId;
+      }
+      logger.w('get_fsm_stage_ids returned no completed stage: $result');
+    } catch (e) {
+      logger.w('get_fsm_stage_ids failed, falling back', error: e);
+    }
+
+    // Cách 2 (fallback): XML ID chuẩn của Odoo fieldservice
     try {
       final result = await _odoo.callKw(
         model: 'ir.model.data',
@@ -118,7 +142,7 @@ class OrdersService {
         _completedStageId = result.first['res_id'] as int;
       }
     } catch (e) {
-      logger.e('Failed to resolve fsm_stage_completed XML ID', error: e);
+      logger.e('Failed to resolve fsm_stage_completed XML ID (fallback)', error: e);
     }
     return _completedStageId;
   }
@@ -446,22 +470,41 @@ class OrdersService {
           local.stageId = doneStageId;
         }
         local.isPendingSync = true;
+        local.isPaymentSynced = false;
         await _isar.db.fsmOrders.put(local);
       });
     }
 
     // 2. Cố gắng ghi nhận lên Odoo
     try {
+      final now = DateTime.now();
+      final vals = <String, dynamic>{};
+      if (doneStageId != null) {
+        vals['stage_id'] = doneStageId;
+      }
+      if (local != null) {
+        vals['date_start'] = _formatDateTimeUtc(local.dateStart ?? now);
+        vals['date_end'] = _formatDateTimeUtc(now);
+        vals['material_note'] = local.materialNote;
+        vals['collected_amount'] = local.collectedAmount;
+        vals['payment_method'] = local.paymentMethod;
+      }
+
       await _odoo.callKw(
         model: _model,
-        method: 'action_complete',
+        method: 'write',
         args: [
-          [odooId]
+          [odooId],
+          vals,
         ],
+        kwargs: {
+          'context': {'bypass_order_completed_stage': true}
+        },
       );
 
       if (local != null) {
         await _isar.db.writeTxn(() async {
+          local.isPaymentSynced = true;
           local.isPendingSync = false;
           await _isar.db.fsmOrders.put(local);
         });
@@ -565,50 +608,34 @@ class OrdersService {
 
     for (final order in pending) {
       try {
-        // Đơn đã completed offline → gọi action chuẩn của Odoo
-        if (order.stage == FsmOrderStage.done) {
-          await _odoo.callKw(
-            model: _model,
-            method: 'action_complete',
-            args: [
-              [order.odooId]
-            ],
-          );
-        } else {
-          // Các stage khác → write raw
-          final data = <String, dynamic>{
-            'stage_id': order.stageId,
-          };
-          await _odoo.callKw(
-            model: _model,
-            method: 'write',
-            args: [
-              [order.odooId],
-              data,
-            ],
-          );
+        final vals = <String, dynamic>{};
+        if (order.stageId != null) {
+          vals['stage_id'] = order.stageId;
         }
-
-        // Sync date_start / date_end nếu có (UTC)
-        final dateData = <String, dynamic>{};
         if (order.dateStart != null) {
-          dateData['date_start'] = _formatDateTimeUtc(order.dateStart!);
+          vals['date_start'] = _formatDateTimeUtc(order.dateStart!);
         }
         if (order.dateEnd != null) {
-          dateData['date_end'] = _formatDateTimeUtc(order.dateEnd!);
+          vals['date_end'] = _formatDateTimeUtc(order.dateEnd!);
         }
-        if (dateData.isNotEmpty) {
-          await _odoo.callKw(
-            model: _model,
-            method: 'write',
-            args: [
-              [order.odooId],
-              dateData,
-            ],
-          );
-        }
+        vals['material_note'] = order.materialNote;
+        vals['collected_amount'] = order.collectedAmount;
+        vals['payment_method'] = order.paymentMethod;
+
+        await _odoo.callKw(
+          model: _model,
+          method: 'write',
+          args: [
+            [order.odooId],
+            vals,
+          ],
+          kwargs: {
+            'context': {'bypass_order_completed_stage': true}
+          },
+        );
 
         await _isar.db.writeTxn(() async {
+          order.isPaymentSynced = true;
           order.isPendingSync = false;
           await _isar.db.fsmOrders.put(order);
         });

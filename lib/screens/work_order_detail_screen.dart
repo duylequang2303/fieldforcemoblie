@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:signature/signature.dart';
@@ -7,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import '../core/api/api_exception.dart';
+import '../core/database/isar_service.dart';
 import '../core/utils/logger.dart';
 import '../widgets/in_app_camera_screen.dart';
 import '../widgets/quick_action_button.dart';
@@ -37,6 +39,12 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
   late SignatureController _signatureController;
   final TextEditingController _customerNameController = TextEditingController();
   final TextEditingController _workDoneController = TextEditingController();
+  final TextEditingController _materialNoteController = TextEditingController();
+  final TextEditingController _collectedAmountController =
+      TextEditingController();
+  String _paymentMethod = 'none';
+  Timer? _debounceTimer;
+
   final List<Map<String, dynamic>> _materialsUsed = [];
   final List<String> _photoPaths = [];
 
@@ -49,7 +57,42 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
       penColor: Colors.black,
       exportBackgroundColor: Colors.white,
     );
+    _materialNoteController.text = widget.order.materialNote ?? '';
+    _collectedAmountController.text = widget.order.collectedAmount != null &&
+            widget.order.collectedAmount! > 0
+        ? widget.order.collectedAmount!.toString()
+        : '';
+    _paymentMethod = widget.order.paymentMethod ?? 'none';
+
+    _materialNoteController.addListener(_saveDraft);
+    _collectedAmountController.addListener(_saveDraft);
+
     _loadReportDraft();
+  }
+
+  void _saveDraft() {
+    if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+      final amount = double.tryParse(_collectedAmountController.text) ?? 0.0;
+      final isar = IsarService.instance.db;
+      await isar.writeTxn(() async {
+        final order = await isar.fsmOrders.get(widget.order.id);
+        if (order != null) {
+          order.materialNote = _materialNoteController.text.trim();
+          order.collectedAmount = amount;
+          order.paymentMethod = _paymentMethod;
+          order.isPaymentSynced = false;
+          order.isPendingSync = true;
+          await isar.fsmOrders.put(order);
+
+          widget.order.materialNote = order.materialNote;
+          widget.order.collectedAmount = order.collectedAmount;
+          widget.order.paymentMethod = order.paymentMethod;
+          widget.order.isPaymentSynced = order.isPaymentSynced;
+          widget.order.isPendingSync = order.isPendingSync;
+        }
+      });
+    });
   }
 
   Future<void> _loadReportDraft() async {
@@ -71,9 +114,12 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _debounceTimer?.cancel();
     _signatureController.dispose();
     _customerNameController.dispose();
     _workDoneController.dispose();
+    _materialNoteController.dispose();
+    _collectedAmountController.dispose();
     super.dispose();
   }
 
@@ -382,6 +428,17 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
 
   Future<void> _onComplete() async {
     try {
+      final amountText = _collectedAmountController.text.trim();
+      double amount = 0.0;
+      if (amountText.isNotEmpty) {
+        final parsed = double.tryParse(amountText);
+        if (parsed == null || parsed < 0) {
+          _showSnackBar('Số tiền thu phải là số không âm (>= 0)');
+          return;
+        }
+        amount = parsed;
+      }
+
       final report = await WorkOrderService.instance
           .getOrCreateReport(widget.order.odooId);
 
@@ -417,6 +474,26 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
       final newWorkDone = _workDoneController.text.trim();
       report.workDone = newWorkDone;
       await WorkOrderService.instance.saveReport(report);
+
+      // Lưu 3 trường vào Isar trước khi complete
+      final isar = IsarService.instance.db;
+      await isar.writeTxn(() async {
+        final order = await isar.fsmOrders.get(widget.order.id);
+        if (order != null) {
+          order.materialNote = _materialNoteController.text.trim();
+          order.collectedAmount = amount;
+          order.paymentMethod = _paymentMethod;
+          order.isPaymentSynced = false;
+          order.isPendingSync = true;
+          await isar.fsmOrders.put(order);
+
+          widget.order.materialNote = order.materialNote;
+          widget.order.collectedAmount = order.collectedAmount;
+          widget.order.paymentMethod = order.paymentMethod;
+          widget.order.isPaymentSynced = order.isPaymentSynced;
+          widget.order.isPendingSync = order.isPendingSync;
+        }
+      });
 
       // Đẩy báo cáo + chữ ký + ảnh pending TRƯỚC khi đổi stage.
       // isPendingSync=false nghĩa là report đã submit trọn vẹn lần trước -> skip để tránh trùng.
@@ -842,6 +919,58 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                         labelText: 'Work done / Nội dung công việc',
                         border: OutlineInputBorder(),
                       ),
+                    ),
+                  ),
+                  ExpandableSection(
+                    title: 'VẬT TƯ & THANH TOÁN',
+                    child: Column(
+                      children: [
+                        TextField(
+                          key: const Key('input_material_note'),
+                          controller: _materialNoteController,
+                          maxLines: 2,
+                          decoration: const InputDecoration(
+                            labelText: 'Vật tư đã dùng & Ghi chú',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          key: const Key('input_collected_amount'),
+                          controller: _collectedAmountController,
+                          keyboardType: const TextInputType.numberWithOptions(
+                              decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Số tiền thu tại chỗ',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          key: const Key('dropdown_payment_method'),
+                          value: _paymentMethod,
+                          decoration: const InputDecoration(
+                            labelText: 'Hình thức thanh toán',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                                value: 'none', child: Text('Chưa thu')),
+                            DropdownMenuItem(
+                                value: 'cash', child: Text('Tiền mặt')),
+                            DropdownMenuItem(
+                                value: 'bank', child: Text('Chuyển khoản')),
+                          ],
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _paymentMethod = val;
+                              });
+                              _saveDraft();
+                            }
+                          },
+                        ),
+                      ],
                     ),
                   ),
                   ExpandableSection(

@@ -137,6 +137,8 @@ class OdooSessionManager {
     required int savedUserId,
     required String username,
     String locale = 'vi_VN',
+    int? employeeId,
+    String? password,
   }) async {
     try {
       // Dựng OdooSession từ dữ liệu đã lưu. Chỉ id + userId là quan trọng
@@ -169,8 +171,11 @@ class OdooSessionManager {
         userId: savedUserId,
         sessionId: sessionId,
         locale: locale,
+        employeeId: employeeId,
       );
-      unawaited(SyncManager.instance.syncAfterAuth());
+      // KHÔNG gọi syncAfterAuth() ở đây: session chỉ được restore một cách
+      // lạc quan (optimistic) — chưa xác minh còn hiệu lực. Sync thực sự sẽ
+      // được kích hoạt bởi SyncManager khi online, hoặc sau silent re-auth.
       return true;
     } catch (_) {
       _currentSession = null;
@@ -215,10 +220,12 @@ class OdooSessionManager {
         rethrow;
       }
       logger.w('Session expired, attempting silent re-authentication...');
-      final renewed = await _tryReAuthenticate();
-      if (!renewed) {
-        throw const OdooAuthException(
-            'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+      try {
+        await _tryReAuthenticate();
+      } on OdooMissingCredentialsException {
+        // Không có password lưu trong storage → không thể tự lấy lại session.
+        // Re-throw với thông điệp rõ ràng để UI yêu cầu đăng nhập lại.
+        rethrow;
       }
       // Retry the original call with the new session
       return await OdooApiClient.instance.callKw(
@@ -231,7 +238,9 @@ class OdooSessionManager {
   }
 
   /// Đọc credentials đã lưu và re-authenticate.
-  /// Trả về true nếu thành công, false nếu không có credentials hoặc login thất bại.
+  /// Trả về true nếu thành công.
+  /// Ném [OdooMissingCredentialsException] nếu không có credentials lưu trong storage.
+  /// Ném [OdooAuthException] khác nếu login thất bại (sai password, server từ chối).
   Future<bool> _tryReAuthenticate() async {
     _isReAuthenticating = true;
     try {
@@ -246,13 +255,25 @@ class OdooSessionManager {
           username == null ||
           password == null) {
         logger.w('Cannot re-authenticate: missing stored credentials');
-        return false;
+        throw const OdooMissingCredentialsException(
+            'Không tìm thấy thông tin đăng nhập đã lưu. Vui lòng đăng nhập lại.');
       }
 
       // Re-initialize client and authenticate fresh
       OdooApiClient.instance.initialize(serverUrl);
       final client = OdooApiClient.instance.client;
       final session = await client.authenticate(database, username, password);
+
+      // Load lại nhân viên đã lưu trong storage (silent re-auth không gọi RPC
+      // đọc lại hr.employee để tiết kiệm request). Giữ nguyên employeeId cũ
+      // của _currentSession nếu đã có.
+      int? employeeId = _currentSession?.employeeId;
+      if (employeeId == null) {
+        final existing =
+            await SecureStorageService.instance.loadSession();
+        final savedEmpId = existing['employeeId'];
+        employeeId = savedEmpId != null ? int.tryParse(savedEmpId) : null;
+      }
 
       _currentSession = OdooSessionData(
         serverUrl: serverUrl,
@@ -261,9 +282,10 @@ class OdooSessionManager {
         userId: session.userId,
         sessionId: session.id,
         locale: _currentSession?.locale ?? 'vi_VN',
+        employeeId: employeeId,
       );
 
-      // Update stored session with new sessionId
+      // Update stored session với sessionId mới + giữ password & employeeId
       await SecureStorageService.instance.saveSession(
         serverUrl: serverUrl,
         database: database,
@@ -272,16 +294,23 @@ class OdooSessionManager {
         userId: session.userId,
         locale: _currentSession?.locale ?? 'vi_VN',
         password: password,
+        employeeId: employeeId,
       );
 
       logger.i('Silent re-authentication successful');
       return true;
+    } on OdooMissingCredentialsException {
+      logger.e(
+          'Silent re-authentication impossible: missing stored credentials');
+      rethrow;
     } on OdooException catch (e) {
       logger.e('Silent re-authentication failed', error: e);
-      return false;
+      throw OdooAuthException(
+          'Không thể đăng nhập lại tự động: ${e.message}. Vui lòng đăng nhập lại.');
     } catch (e) {
       logger.e('Silent re-authentication failed', error: e);
-      return false;
+      throw OdooAuthException(
+          'Không thể đăng nhập lại tự động: $e. Vui lòng đăng nhập lại.');
     } finally {
       _isReAuthenticating = false;
     }
