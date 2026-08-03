@@ -67,6 +67,11 @@ class FsmOrder {
   String? paymentMethod;
   bool isPaymentSynced = false;
 
+  // ══ Checklist nghiệm thu ══
+  String? serviceType; // 'ac', 'cleaning', 'plant', 'garden', 'other'
+  int? checklistTemplateId;
+  String? checklistAnswers; // JSON: {"item_id": "answer"}
+
   FsmOrder();
 
   /// Tạo từ JSON trả về từ Odoo API.
@@ -98,6 +103,9 @@ class FsmOrder {
       ..materialNote = _strOrNull(json['material_note'])
       ..collectedAmount = _doubleOrNull(json['collected_amount'])
       ..paymentMethod = _strOrNull(json['payment_method'])
+      ..serviceType = _strOrNull(json['service_type'])
+      ..checklistTemplateId = _idOrNull(json['checklist_template_id'])
+      ..checklistAnswers = _strOrNull(json['checklist_answers'])
       ..isPaymentSynced = true
       ..isPendingSync = false
       ..lastSyncAt = DateTime.now();

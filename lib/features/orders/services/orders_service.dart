@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'package:isar_community/isar.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/database/isar_service.dart';
 import '../../../core/utils/logger.dart';
 import '../models/fsm_order.dart';
+import '../models/checklist_template.dart';
 
 /// Service giao tiếp với Odoo API cho fsm.order.
 /// Tất cả Odoo call đi qua đây, không gọi trực tiếp từ Provider hay Widget.
@@ -449,13 +451,15 @@ class OrdersService {
     }
   }
 
-  /// Đánh dấu hoàn thành đơn dịch vụ qua action chuẩn của Odoo thay vì ghi đè stage_id.
+  /// Đánh dấu hoàn thành đơn dịch vụ (Offline-First).
   ///
   /// Thực hiện theo chiến lược Offline-First:
-  /// 1. Cập nhật trạng thái local Isar ngay lập tức (stage = done, isPendingSync = true).
-  /// 2. Cố gắng ghi nhận lên Odoo qua action_complete.
-  /// 3. Nếu API thành công, xóa cờ isPendingSync.
-  /// 4. Nếu API thất bại, giữ nguyên bản ghi local với isPendingSync = true để đồng bộ sau.
+  /// 1. Cập nhật trạng thái local Isar ngay lập tức (stage = done, stage_id = completed stage, isPendingSync = true).
+  /// 2. Cố gắng ghi nhận lên Odoo qua write() với stage_id, date_start, date_end,
+  ///    material_note, collected_amount, payment_method (chỉ thêm những giá trị non-null).
+  /// 3. Context: {'bypass_order_completed_stage': true} để Odoo không tự động chuyển stage.
+  /// 4. Nếu API thành công, xóa cờ isPendingSync.
+  /// 5. Nếu API thất bại, giữ nguyên bản ghi local với isPendingSync = true để đồng bục sau.
   Future<void> completeOrder(int odooId) async {
     final local = await _isar.db.fsmOrders.getByOdooId(odooId);
     final doneStageId = await getCompletedStageId() ??
@@ -485,9 +489,17 @@ class OrdersService {
       if (local != null) {
         vals['date_start'] = _formatDateTimeUtc(local.dateStart ?? now);
         vals['date_end'] = _formatDateTimeUtc(now);
-        vals['material_note'] = local.materialNote;
-        vals['collected_amount'] = local.collectedAmount;
-        vals['payment_method'] = local.paymentMethod;
+        
+        // Chỉ thêm nếu có giá trị (non-null), tránh ghi đè field rỗng lên Odoo
+        if (local.materialNote != null) {
+          vals['material_note'] = local.materialNote;
+        }
+        if (local.collectedAmount != null) {
+          vals['collected_amount'] = local.collectedAmount;
+        }
+        if (local.paymentMethod != null) {
+          vals['payment_method'] = local.paymentMethod;
+        }
       }
 
       await _odoo.callKw(
@@ -618,9 +630,20 @@ class OrdersService {
         if (order.dateEnd != null) {
           vals['date_end'] = _formatDateTimeUtc(order.dateEnd!);
         }
-        vals['material_note'] = order.materialNote;
-        vals['collected_amount'] = order.collectedAmount;
-        vals['payment_method'] = order.paymentMethod;
+        
+        // Chỉ thêm nếu có giá trị (non-null), tránh ghi đè field rỗng lên Odoo
+        if (order.materialNote != null) {
+          vals['material_note'] = order.materialNote;
+        }
+        if (order.collectedAmount != null) {
+          vals['collected_amount'] = order.collectedAmount;
+        }
+        if (order.paymentMethod != null) {
+          vals['payment_method'] = order.paymentMethod;
+        }
+        if (order.checklistAnswers != null) {
+          vals['checklist_answers'] = order.checklistAnswers;
+        }
 
         await _odoo.callKw(
           model: _model,
@@ -644,5 +667,89 @@ class OrdersService {
             error: e);
       }
     }
+  }
+
+  /// Fetch checklist template theo service_type (cache 24h).
+  Future<ChecklistTemplate?> fetchChecklistTemplate(String serviceType) async {
+    try {
+      // 1. Check cache
+      final cached = await _isar.db.checklistTemplates
+          .filter()
+          .serviceTypeEqualTo(serviceType)
+          .findFirst();
+
+      if (cached != null &&
+          DateTime.now().difference(cached.lastSyncAt).inHours < 24) {
+        return cached;
+      }
+
+      // 2. Fetch from Odoo
+      final rawTemplates = await _odoo.callKw(
+        model: 'fsm.checklist.template',
+        method: 'search_read',
+        args: [
+          [
+            ['service_type', '=', serviceType],
+            ['active', '=', true]
+          ]
+        ],
+        kwargs: {'fields': ['id', 'name', 'service_type'], 'limit': 1},
+      ) as List<dynamic>;
+
+      if (rawTemplates.isEmpty) return null;
+
+      final templateData = rawTemplates.first;
+      final templateId = templateData['id'] as int;
+
+      // 3. Fetch items
+      final rawItems = await _odoo.callKw(
+        model: 'fsm.checklist.item',
+        method: 'search_read',
+        args: [
+          [
+            ['template_id', '=', templateId]
+          ]
+        ],
+        kwargs: {
+          'fields': ['id', 'sequence', 'question_text', 'answer_type', 'required', 'options'],
+          'order': 'sequence asc',
+        },
+      ) as List<dynamic>;
+
+      final items = rawItems.map((item) => ChecklistItem.fromJson(item as Map<String, dynamic>)).toList();
+
+      // 4. Save to Isar
+      final template = ChecklistTemplate()
+        ..odooId = templateId
+        ..name = templateData['name'] as String
+        ..serviceType = templateData['service_type'] as String
+        ..active = true
+        ..lastSyncAt = DateTime.now()
+        ..items = items;
+
+      await _isar.db.writeTxn(() async {
+        await _isar.db.checklistTemplates.put(template);
+      });
+
+      return template;
+    } catch (e) {
+      logger.e('Failed to fetch checklist template', error: e);
+      return null;
+    }
+  }
+
+  /// Save checklist answers locally (auto-save với debounce).
+  Future<void> saveChecklistAnswers(
+    int orderLocalId,
+    Map<String, dynamic> answers,
+  ) async {
+    await _isar.db.writeTxn(() async {
+      final order = await _isar.db.fsmOrders.get(orderLocalId);
+      if (order != null) {
+        order.checklistAnswers = jsonEncode(answers);
+        order.isPendingSync = true;
+        await _isar.db.fsmOrders.put(order);
+      }
+    });
   }
 }

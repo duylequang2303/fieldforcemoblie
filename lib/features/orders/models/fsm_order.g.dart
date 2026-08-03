@@ -17,144 +17,179 @@ const FsmOrderSchema = CollectionSchema(
   name: r'FsmOrder',
   id: -4877572877574585524,
   properties: {
-    r'dateEnd': PropertySchema(
+    r'checklistAnswers': PropertySchema(
       id: 0,
+      name: r'checklistAnswers',
+      type: IsarType.string,
+    ),
+    r'checklistTemplateId': PropertySchema(
+      id: 1,
+      name: r'checklistTemplateId',
+      type: IsarType.long,
+    ),
+    r'collectedAmount': PropertySchema(
+      id: 2,
+      name: r'collectedAmount',
+      type: IsarType.double,
+    ),
+    r'dateEnd': PropertySchema(
+      id: 3,
       name: r'dateEnd',
       type: IsarType.dateTime,
     ),
     r'dateStart': PropertySchema(
-      id: 1,
+      id: 4,
       name: r'dateStart',
       type: IsarType.dateTime,
     ),
     r'description': PropertySchema(
-      id: 2,
+      id: 5,
       name: r'description',
       type: IsarType.string,
     ),
     r'inventoryLocationId': PropertySchema(
-      id: 3,
+      id: 6,
       name: r'inventoryLocationId',
       type: IsarType.long,
     ),
+    r'isPaymentSynced': PropertySchema(
+      id: 7,
+      name: r'isPaymentSynced',
+      type: IsarType.bool,
+    ),
     r'isPendingSync': PropertySchema(
-      id: 4,
+      id: 8,
       name: r'isPendingSync',
       type: IsarType.bool,
     ),
     r'lastSyncAt': PropertySchema(
-      id: 5,
+      id: 9,
       name: r'lastSyncAt',
       type: IsarType.dateTime,
     ),
     r'locationAddress': PropertySchema(
-      id: 6,
+      id: 10,
       name: r'locationAddress',
       type: IsarType.string,
     ),
     r'locationLat': PropertySchema(
-      id: 7,
+      id: 11,
       name: r'locationLat',
       type: IsarType.double,
     ),
     r'locationLng': PropertySchema(
-      id: 8,
+      id: 12,
       name: r'locationLng',
       type: IsarType.double,
     ),
     r'locationName': PropertySchema(
-      id: 9,
+      id: 13,
       name: r'locationName',
       type: IsarType.string,
     ),
+    r'materialNote': PropertySchema(
+      id: 14,
+      name: r'materialNote',
+      type: IsarType.string,
+    ),
     r'name': PropertySchema(
-      id: 10,
+      id: 15,
       name: r'name',
       type: IsarType.string,
     ),
     r'odooId': PropertySchema(
-      id: 11,
+      id: 16,
       name: r'odooId',
       type: IsarType.long,
     ),
     r'partnerId': PropertySchema(
-      id: 12,
+      id: 17,
       name: r'partnerId',
       type: IsarType.long,
     ),
     r'partnerName': PropertySchema(
-      id: 13,
+      id: 18,
       name: r'partnerName',
       type: IsarType.string,
     ),
     r'partnerPhone': PropertySchema(
-      id: 14,
+      id: 19,
       name: r'partnerPhone',
       type: IsarType.string,
     ),
+    r'paymentMethod': PropertySchema(
+      id: 20,
+      name: r'paymentMethod',
+      type: IsarType.string,
+    ),
     r'personId': PropertySchema(
-      id: 15,
+      id: 21,
       name: r'personId',
       type: IsarType.long,
     ),
     r'personName': PropertySchema(
-      id: 16,
+      id: 22,
       name: r'personName',
       type: IsarType.string,
     ),
     r'priority': PropertySchema(
-      id: 17,
+      id: 23,
       name: r'priority',
       type: IsarType.string,
     ),
     r'requireSignature': PropertySchema(
-      id: 18,
+      id: 24,
       name: r'requireSignature',
       type: IsarType.bool,
     ),
     r'routeId': PropertySchema(
-      id: 19,
+      id: 25,
       name: r'routeId',
       type: IsarType.long,
     ),
     r'routeSequence': PropertySchema(
-      id: 20,
+      id: 26,
       name: r'routeSequence',
       type: IsarType.long,
     ),
     r'routeState': PropertySchema(
-      id: 21,
+      id: 27,
       name: r'routeState',
       type: IsarType.string,
     ),
     r'scheduledDateEnd': PropertySchema(
-      id: 22,
+      id: 28,
       name: r'scheduledDateEnd',
       type: IsarType.dateTime,
     ),
     r'scheduledDateStart': PropertySchema(
-      id: 23,
+      id: 29,
       name: r'scheduledDateStart',
       type: IsarType.dateTime,
     ),
+    r'serviceType': PropertySchema(
+      id: 30,
+      name: r'serviceType',
+      type: IsarType.string,
+    ),
     r'stage': PropertySchema(
-      id: 24,
+      id: 31,
       name: r'stage',
       type: IsarType.string,
       enumMap: _FsmOrderstageEnumValueMap,
     ),
     r'stageId': PropertySchema(
-      id: 25,
+      id: 32,
       name: r'stageId',
       type: IsarType.long,
     ),
     r'stageName': PropertySchema(
-      id: 26,
+      id: 33,
       name: r'stageName',
       type: IsarType.string,
     ),
     r'warehouseId': PropertySchema(
-      id: 27,
+      id: 34,
       name: r'warehouseId',
       type: IsarType.long,
     )
@@ -194,6 +229,12 @@ int _fsmOrderEstimateSize(
 ) {
   var bytesCount = offsets.last;
   {
+    final value = object.checklistAnswers;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
     final value = object.description;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
@@ -211,6 +252,12 @@ int _fsmOrderEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.materialNote;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.name.length * 3;
   {
     final value = object.partnerName;
@@ -220,6 +267,12 @@ int _fsmOrderEstimateSize(
   }
   {
     final value = object.partnerPhone;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.paymentMethod;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -242,6 +295,12 @@ int _fsmOrderEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  {
+    final value = object.serviceType;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.stage.name.length * 3;
   bytesCount += 3 + object.stageName.length * 3;
   return bytesCount;
@@ -253,34 +312,41 @@ void _fsmOrderSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeDateTime(offsets[0], object.dateEnd);
-  writer.writeDateTime(offsets[1], object.dateStart);
-  writer.writeString(offsets[2], object.description);
-  writer.writeLong(offsets[3], object.inventoryLocationId);
-  writer.writeBool(offsets[4], object.isPendingSync);
-  writer.writeDateTime(offsets[5], object.lastSyncAt);
-  writer.writeString(offsets[6], object.locationAddress);
-  writer.writeDouble(offsets[7], object.locationLat);
-  writer.writeDouble(offsets[8], object.locationLng);
-  writer.writeString(offsets[9], object.locationName);
-  writer.writeString(offsets[10], object.name);
-  writer.writeLong(offsets[11], object.odooId);
-  writer.writeLong(offsets[12], object.partnerId);
-  writer.writeString(offsets[13], object.partnerName);
-  writer.writeString(offsets[14], object.partnerPhone);
-  writer.writeLong(offsets[15], object.personId);
-  writer.writeString(offsets[16], object.personName);
-  writer.writeString(offsets[17], object.priority);
-  writer.writeBool(offsets[18], object.requireSignature);
-  writer.writeLong(offsets[19], object.routeId);
-  writer.writeLong(offsets[20], object.routeSequence);
-  writer.writeString(offsets[21], object.routeState);
-  writer.writeDateTime(offsets[22], object.scheduledDateEnd);
-  writer.writeDateTime(offsets[23], object.scheduledDateStart);
-  writer.writeString(offsets[24], object.stage.name);
-  writer.writeLong(offsets[25], object.stageId);
-  writer.writeString(offsets[26], object.stageName);
-  writer.writeLong(offsets[27], object.warehouseId);
+  writer.writeString(offsets[0], object.checklistAnswers);
+  writer.writeLong(offsets[1], object.checklistTemplateId);
+  writer.writeDouble(offsets[2], object.collectedAmount);
+  writer.writeDateTime(offsets[3], object.dateEnd);
+  writer.writeDateTime(offsets[4], object.dateStart);
+  writer.writeString(offsets[5], object.description);
+  writer.writeLong(offsets[6], object.inventoryLocationId);
+  writer.writeBool(offsets[7], object.isPaymentSynced);
+  writer.writeBool(offsets[8], object.isPendingSync);
+  writer.writeDateTime(offsets[9], object.lastSyncAt);
+  writer.writeString(offsets[10], object.locationAddress);
+  writer.writeDouble(offsets[11], object.locationLat);
+  writer.writeDouble(offsets[12], object.locationLng);
+  writer.writeString(offsets[13], object.locationName);
+  writer.writeString(offsets[14], object.materialNote);
+  writer.writeString(offsets[15], object.name);
+  writer.writeLong(offsets[16], object.odooId);
+  writer.writeLong(offsets[17], object.partnerId);
+  writer.writeString(offsets[18], object.partnerName);
+  writer.writeString(offsets[19], object.partnerPhone);
+  writer.writeString(offsets[20], object.paymentMethod);
+  writer.writeLong(offsets[21], object.personId);
+  writer.writeString(offsets[22], object.personName);
+  writer.writeString(offsets[23], object.priority);
+  writer.writeBool(offsets[24], object.requireSignature);
+  writer.writeLong(offsets[25], object.routeId);
+  writer.writeLong(offsets[26], object.routeSequence);
+  writer.writeString(offsets[27], object.routeState);
+  writer.writeDateTime(offsets[28], object.scheduledDateEnd);
+  writer.writeDateTime(offsets[29], object.scheduledDateStart);
+  writer.writeString(offsets[30], object.serviceType);
+  writer.writeString(offsets[31], object.stage.name);
+  writer.writeLong(offsets[32], object.stageId);
+  writer.writeString(offsets[33], object.stageName);
+  writer.writeLong(offsets[34], object.warehouseId);
 }
 
 FsmOrder _fsmOrderDeserialize(
@@ -290,37 +356,44 @@ FsmOrder _fsmOrderDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = FsmOrder();
-  object.dateEnd = reader.readDateTimeOrNull(offsets[0]);
-  object.dateStart = reader.readDateTimeOrNull(offsets[1]);
-  object.description = reader.readStringOrNull(offsets[2]);
+  object.checklistAnswers = reader.readStringOrNull(offsets[0]);
+  object.checklistTemplateId = reader.readLongOrNull(offsets[1]);
+  object.collectedAmount = reader.readDoubleOrNull(offsets[2]);
+  object.dateEnd = reader.readDateTimeOrNull(offsets[3]);
+  object.dateStart = reader.readDateTimeOrNull(offsets[4]);
+  object.description = reader.readStringOrNull(offsets[5]);
   object.id = id;
-  object.inventoryLocationId = reader.readLongOrNull(offsets[3]);
-  object.isPendingSync = reader.readBool(offsets[4]);
-  object.lastSyncAt = reader.readDateTime(offsets[5]);
-  object.locationAddress = reader.readStringOrNull(offsets[6]);
-  object.locationLat = reader.readDoubleOrNull(offsets[7]);
-  object.locationLng = reader.readDoubleOrNull(offsets[8]);
-  object.locationName = reader.readStringOrNull(offsets[9]);
-  object.name = reader.readString(offsets[10]);
-  object.odooId = reader.readLong(offsets[11]);
-  object.partnerId = reader.readLongOrNull(offsets[12]);
-  object.partnerName = reader.readStringOrNull(offsets[13]);
-  object.partnerPhone = reader.readStringOrNull(offsets[14]);
-  object.personId = reader.readLongOrNull(offsets[15]);
-  object.personName = reader.readStringOrNull(offsets[16]);
-  object.priority = reader.readStringOrNull(offsets[17]);
-  object.requireSignature = reader.readBool(offsets[18]);
-  object.routeId = reader.readLongOrNull(offsets[19]);
-  object.routeSequence = reader.readLongOrNull(offsets[20]);
-  object.routeState = reader.readStringOrNull(offsets[21]);
-  object.scheduledDateEnd = reader.readDateTimeOrNull(offsets[22]);
-  object.scheduledDateStart = reader.readDateTimeOrNull(offsets[23]);
+  object.inventoryLocationId = reader.readLongOrNull(offsets[6]);
+  object.isPaymentSynced = reader.readBool(offsets[7]);
+  object.isPendingSync = reader.readBool(offsets[8]);
+  object.lastSyncAt = reader.readDateTime(offsets[9]);
+  object.locationAddress = reader.readStringOrNull(offsets[10]);
+  object.locationLat = reader.readDoubleOrNull(offsets[11]);
+  object.locationLng = reader.readDoubleOrNull(offsets[12]);
+  object.locationName = reader.readStringOrNull(offsets[13]);
+  object.materialNote = reader.readStringOrNull(offsets[14]);
+  object.name = reader.readString(offsets[15]);
+  object.odooId = reader.readLong(offsets[16]);
+  object.partnerId = reader.readLongOrNull(offsets[17]);
+  object.partnerName = reader.readStringOrNull(offsets[18]);
+  object.partnerPhone = reader.readStringOrNull(offsets[19]);
+  object.paymentMethod = reader.readStringOrNull(offsets[20]);
+  object.personId = reader.readLongOrNull(offsets[21]);
+  object.personName = reader.readStringOrNull(offsets[22]);
+  object.priority = reader.readStringOrNull(offsets[23]);
+  object.requireSignature = reader.readBool(offsets[24]);
+  object.routeId = reader.readLongOrNull(offsets[25]);
+  object.routeSequence = reader.readLongOrNull(offsets[26]);
+  object.routeState = reader.readStringOrNull(offsets[27]);
+  object.scheduledDateEnd = reader.readDateTimeOrNull(offsets[28]);
+  object.scheduledDateStart = reader.readDateTimeOrNull(offsets[29]);
+  object.serviceType = reader.readStringOrNull(offsets[30]);
   object.stage =
-      _FsmOrderstageValueEnumMap[reader.readStringOrNull(offsets[24])] ??
+      _FsmOrderstageValueEnumMap[reader.readStringOrNull(offsets[31])] ??
           FsmOrderStage.draft;
-  object.stageId = reader.readLong(offsets[25]);
-  object.stageName = reader.readString(offsets[26]);
-  object.warehouseId = reader.readLongOrNull(offsets[27]);
+  object.stageId = reader.readLong(offsets[32]);
+  object.stageName = reader.readString(offsets[33]);
+  object.warehouseId = reader.readLongOrNull(offsets[34]);
   return object;
 }
 
@@ -332,61 +405,75 @@ P _fsmOrderDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 1:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 2:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 3:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 4:
-      return (reader.readBool(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 5:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 6:
-      return (reader.readStringOrNull(offset)) as P;
-    case 7:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 8:
-      return (reader.readDoubleOrNull(offset)) as P;
-    case 9:
-      return (reader.readStringOrNull(offset)) as P;
-    case 10:
-      return (reader.readString(offset)) as P;
-    case 11:
-      return (reader.readLong(offset)) as P;
-    case 12:
       return (reader.readLongOrNull(offset)) as P;
+    case 7:
+      return (reader.readBool(offset)) as P;
+    case 8:
+      return (reader.readBool(offset)) as P;
+    case 9:
+      return (reader.readDateTime(offset)) as P;
+    case 10:
+      return (reader.readStringOrNull(offset)) as P;
+    case 11:
+      return (reader.readDoubleOrNull(offset)) as P;
+    case 12:
+      return (reader.readDoubleOrNull(offset)) as P;
     case 13:
       return (reader.readStringOrNull(offset)) as P;
     case 14:
       return (reader.readStringOrNull(offset)) as P;
     case 15:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 16:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 17:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 18:
-      return (reader.readBool(offset)) as P;
-    case 19:
-      return (reader.readLongOrNull(offset)) as P;
-    case 20:
-      return (reader.readLongOrNull(offset)) as P;
-    case 21:
       return (reader.readStringOrNull(offset)) as P;
+    case 19:
+      return (reader.readStringOrNull(offset)) as P;
+    case 20:
+      return (reader.readStringOrNull(offset)) as P;
+    case 21:
+      return (reader.readLongOrNull(offset)) as P;
     case 22:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 23:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 24:
+      return (reader.readBool(offset)) as P;
+    case 25:
+      return (reader.readLongOrNull(offset)) as P;
+    case 26:
+      return (reader.readLongOrNull(offset)) as P;
+    case 27:
+      return (reader.readStringOrNull(offset)) as P;
+    case 28:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 29:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 30:
+      return (reader.readStringOrNull(offset)) as P;
+    case 31:
       return (_FsmOrderstageValueEnumMap[reader.readStringOrNull(offset)] ??
           FsmOrderStage.draft) as P;
-    case 25:
+    case 32:
       return (reader.readLong(offset)) as P;
-    case 26:
+    case 33:
       return (reader.readString(offset)) as P;
-    case 27:
+    case 34:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -647,6 +734,318 @@ extension FsmOrderQueryWhere on QueryBuilder<FsmOrder, FsmOrder, QWhereClause> {
 
 extension FsmOrderQueryFilter
     on QueryBuilder<FsmOrder, FsmOrder, QFilterCondition> {
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistAnswersIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'checklistAnswers',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistAnswersIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'checklistAnswers',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistAnswersEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'checklistAnswers',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistAnswersGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'checklistAnswers',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistAnswersLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'checklistAnswers',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistAnswersBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'checklistAnswers',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistAnswersStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'checklistAnswers',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistAnswersEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'checklistAnswers',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistAnswersContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'checklistAnswers',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistAnswersMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'checklistAnswers',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistAnswersIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'checklistAnswers',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistAnswersIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'checklistAnswers',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistTemplateIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'checklistTemplateId',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistTemplateIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'checklistTemplateId',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistTemplateIdEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'checklistTemplateId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistTemplateIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'checklistTemplateId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistTemplateIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'checklistTemplateId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      checklistTemplateIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'checklistTemplateId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      collectedAmountIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'collectedAmount',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      collectedAmountIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'collectedAmount',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      collectedAmountEqualTo(
+    double? value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'collectedAmount',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      collectedAmountGreaterThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'collectedAmount',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      collectedAmountLessThan(
+    double? value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'collectedAmount',
+        value: value,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      collectedAmountBetween(
+    double? lower,
+    double? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'collectedAmount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        epsilon: epsilon,
+      ));
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> dateEndIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1056,6 +1455,16 @@ extension FsmOrderQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      isPaymentSyncedEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isPaymentSynced',
+        value: value,
       ));
     });
   }
@@ -1583,6 +1992,157 @@ extension FsmOrderQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'locationName',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> materialNoteIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'materialNote',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      materialNoteIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'materialNote',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> materialNoteEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'materialNote',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      materialNoteGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'materialNote',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> materialNoteLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'materialNote',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> materialNoteBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'materialNote',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      materialNoteStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'materialNote',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> materialNoteEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'materialNote',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> materialNoteContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'materialNote',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> materialNoteMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'materialNote',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      materialNoteIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'materialNote',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      materialNoteIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'materialNote',
         value: '',
       ));
     });
@@ -2135,6 +2695,158 @@ extension FsmOrderQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'partnerPhone',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      paymentMethodIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'paymentMethod',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      paymentMethodIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'paymentMethod',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> paymentMethodEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'paymentMethod',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      paymentMethodGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'paymentMethod',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> paymentMethodLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'paymentMethod',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> paymentMethodBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'paymentMethod',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      paymentMethodStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'paymentMethod',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> paymentMethodEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'paymentMethod',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> paymentMethodContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'paymentMethod',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> paymentMethodMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'paymentMethod',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      paymentMethodIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'paymentMethod',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      paymentMethodIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'paymentMethod',
         value: '',
       ));
     });
@@ -2950,6 +3662,155 @@ extension FsmOrderQueryFilter
     });
   }
 
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> serviceTypeIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'serviceType',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      serviceTypeIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'serviceType',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> serviceTypeEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'serviceType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      serviceTypeGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'serviceType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> serviceTypeLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'serviceType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> serviceTypeBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'serviceType',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> serviceTypeStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'serviceType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> serviceTypeEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'serviceType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> serviceTypeContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'serviceType',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> serviceTypeMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'serviceType',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> serviceTypeIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'serviceType',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      serviceTypeIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'serviceType',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> stageEqualTo(
     FsmOrderStage value, {
     bool caseSensitive = true,
@@ -3343,6 +4204,43 @@ extension FsmOrderQueryLinks
     on QueryBuilder<FsmOrder, FsmOrder, QFilterCondition> {}
 
 extension FsmOrderQuerySortBy on QueryBuilder<FsmOrder, FsmOrder, QSortBy> {
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByChecklistAnswers() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'checklistAnswers', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByChecklistAnswersDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'checklistAnswers', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByChecklistTemplateId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'checklistTemplateId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy>
+      sortByChecklistTemplateIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'checklistTemplateId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByCollectedAmount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'collectedAmount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByCollectedAmountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'collectedAmount', Sort.desc);
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByDateEnd() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dateEnd', Sort.asc);
@@ -3389,6 +4287,18 @@ extension FsmOrderQuerySortBy on QueryBuilder<FsmOrder, FsmOrder, QSortBy> {
       sortByInventoryLocationIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'inventoryLocationId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByIsPaymentSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPaymentSynced', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByIsPaymentSyncedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPaymentSynced', Sort.desc);
     });
   }
 
@@ -3464,6 +4374,18 @@ extension FsmOrderQuerySortBy on QueryBuilder<FsmOrder, FsmOrder, QSortBy> {
     });
   }
 
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByMaterialNote() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'materialNote', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByMaterialNoteDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'materialNote', Sort.desc);
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -3521,6 +4443,18 @@ extension FsmOrderQuerySortBy on QueryBuilder<FsmOrder, FsmOrder, QSortBy> {
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByPartnerPhoneDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'partnerPhone', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByPaymentMethod() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'paymentMethod', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByPaymentMethodDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'paymentMethod', Sort.desc);
     });
   }
 
@@ -3633,6 +4567,18 @@ extension FsmOrderQuerySortBy on QueryBuilder<FsmOrder, FsmOrder, QSortBy> {
     });
   }
 
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByServiceType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serviceType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByServiceTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serviceType', Sort.desc);
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByStage() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'stage', Sort.asc);
@@ -3684,6 +4630,43 @@ extension FsmOrderQuerySortBy on QueryBuilder<FsmOrder, FsmOrder, QSortBy> {
 
 extension FsmOrderQuerySortThenBy
     on QueryBuilder<FsmOrder, FsmOrder, QSortThenBy> {
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByChecklistAnswers() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'checklistAnswers', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByChecklistAnswersDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'checklistAnswers', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByChecklistTemplateId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'checklistTemplateId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy>
+      thenByChecklistTemplateIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'checklistTemplateId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByCollectedAmount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'collectedAmount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByCollectedAmountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'collectedAmount', Sort.desc);
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByDateEnd() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dateEnd', Sort.asc);
@@ -3742,6 +4725,18 @@ extension FsmOrderQuerySortThenBy
       thenByInventoryLocationIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'inventoryLocationId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByIsPaymentSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPaymentSynced', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByIsPaymentSyncedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPaymentSynced', Sort.desc);
     });
   }
 
@@ -3817,6 +4812,18 @@ extension FsmOrderQuerySortThenBy
     });
   }
 
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByMaterialNote() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'materialNote', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByMaterialNoteDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'materialNote', Sort.desc);
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -3874,6 +4881,18 @@ extension FsmOrderQuerySortThenBy
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByPartnerPhoneDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'partnerPhone', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByPaymentMethod() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'paymentMethod', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByPaymentMethodDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'paymentMethod', Sort.desc);
     });
   }
 
@@ -3986,6 +5005,18 @@ extension FsmOrderQuerySortThenBy
     });
   }
 
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByServiceType() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serviceType', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByServiceTypeDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'serviceType', Sort.desc);
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByStage() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'stage', Sort.asc);
@@ -4037,6 +5068,26 @@ extension FsmOrderQuerySortThenBy
 
 extension FsmOrderQueryWhereDistinct
     on QueryBuilder<FsmOrder, FsmOrder, QDistinct> {
+  QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByChecklistAnswers(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'checklistAnswers',
+          caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByChecklistTemplateId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'checklistTemplateId');
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByCollectedAmount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'collectedAmount');
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByDateEnd() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'dateEnd');
@@ -4059,6 +5110,12 @@ extension FsmOrderQueryWhereDistinct
   QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByInventoryLocationId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'inventoryLocationId');
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByIsPaymentSynced() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isPaymentSynced');
     });
   }
 
@@ -4101,6 +5158,13 @@ extension FsmOrderQueryWhereDistinct
     });
   }
 
+  QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByMaterialNote(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'materialNote', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -4131,6 +5195,14 @@ extension FsmOrderQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'partnerPhone', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByPaymentMethod(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'paymentMethod',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -4191,6 +5263,13 @@ extension FsmOrderQueryWhereDistinct
     });
   }
 
+  QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByServiceType(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'serviceType', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByStage(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -4226,6 +5305,24 @@ extension FsmOrderQueryProperty
     });
   }
 
+  QueryBuilder<FsmOrder, String?, QQueryOperations> checklistAnswersProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'checklistAnswers');
+    });
+  }
+
+  QueryBuilder<FsmOrder, int?, QQueryOperations> checklistTemplateIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'checklistTemplateId');
+    });
+  }
+
+  QueryBuilder<FsmOrder, double?, QQueryOperations> collectedAmountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'collectedAmount');
+    });
+  }
+
   QueryBuilder<FsmOrder, DateTime?, QQueryOperations> dateEndProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'dateEnd');
@@ -4247,6 +5344,12 @@ extension FsmOrderQueryProperty
   QueryBuilder<FsmOrder, int?, QQueryOperations> inventoryLocationIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'inventoryLocationId');
+    });
+  }
+
+  QueryBuilder<FsmOrder, bool, QQueryOperations> isPaymentSyncedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isPaymentSynced');
     });
   }
 
@@ -4286,6 +5389,12 @@ extension FsmOrderQueryProperty
     });
   }
 
+  QueryBuilder<FsmOrder, String?, QQueryOperations> materialNoteProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'materialNote');
+    });
+  }
+
   QueryBuilder<FsmOrder, String, QQueryOperations> nameProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'name');
@@ -4313,6 +5422,12 @@ extension FsmOrderQueryProperty
   QueryBuilder<FsmOrder, String?, QQueryOperations> partnerPhoneProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'partnerPhone');
+    });
+  }
+
+  QueryBuilder<FsmOrder, String?, QQueryOperations> paymentMethodProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'paymentMethod');
     });
   }
 
@@ -4369,6 +5484,12 @@ extension FsmOrderQueryProperty
       scheduledDateStartProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'scheduledDateStart');
+    });
+  }
+
+  QueryBuilder<FsmOrder, String?, QQueryOperations> serviceTypeProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'serviceType');
     });
   }
 

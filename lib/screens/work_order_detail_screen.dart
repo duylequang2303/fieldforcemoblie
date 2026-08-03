@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:signature/signature.dart';
@@ -19,6 +20,7 @@ import '../features/orders/services/orders_service.dart';
 import '../features/stock/services/stock_service.dart';
 import '../features/stock/models/product.dart';
 import '../features/work_order/services/work_order_service.dart';
+import '../features/orders/models/checklist_template.dart';
 
 class _MaterialResult {
   final Product? product;
@@ -47,6 +49,12 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
 
   final List<Map<String, dynamic>> _materialsUsed = [];
   final List<String> _photoPaths = [];
+  
+  // ══ Checklist nghiệm thu ══
+  ChecklistTemplate? _checklistTemplate;
+  Map<String, dynamic> _checklistAnswers = {};
+  final Map<String, TextEditingController> _checklistControllers = {};
+  Timer? _checklistDebouncer;
 
   @override
   void initState() {
@@ -68,6 +76,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
     _collectedAmountController.addListener(_saveDraft);
 
     _loadReportDraft();
+    _loadChecklistTemplate();
+    _loadChecklistAnswers();
   }
 
   void _saveDraft() {
@@ -111,15 +121,189 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
     }
   }
 
+  Future<void> _loadChecklistTemplate() async {
+    if (widget.order.serviceType == null) return;
+    
+    try {
+      final template = await OrdersService.instance
+          .fetchChecklistTemplate(widget.order.serviceType!);
+      
+      if (mounted) {
+        setState(() {
+          _checklistTemplate = template;
+          if (template != null) {
+            widget.order.checklistTemplateId = template.odooId;
+          }
+        });
+      }
+    } catch (e) {
+      logger.w('Failed to load checklist template', error: e);
+    }
+  }
+
+  void _loadChecklistAnswers() {
+    if (widget.order.checklistAnswers != null) {
+      try {
+        _checklistAnswers = jsonDecode(widget.order.checklistAnswers!) as Map<String, dynamic>;
+      } catch (e) {
+        _checklistAnswers = {};
+      }
+    }
+  }
+
+  void _updateChecklistAnswer(int itemId, dynamic value) {
+    setState(() {
+      _checklistAnswers[itemId.toString()] = value;
+    });
+    
+    _checklistDebouncer?.cancel();
+    _checklistDebouncer = Timer(const Duration(milliseconds: 500), () {
+      OrdersService.instance.saveChecklistAnswers(
+        widget.order.id,
+        _checklistAnswers,
+      );
+    });
+  }
+
+  List<ChecklistItem> _getMissingRequiredItems() {
+    if (_checklistTemplate == null) return [];
+    
+    return _checklistTemplate!.items.where((item) {
+      if (!item.required) return false;
+      
+      final answer = _checklistAnswers[item.id.toString()];
+      if (answer == null) return true;
+      
+      if (answer is String && answer.trim().isEmpty) return true;
+      if (answer is bool && !answer) return false;
+      
+      return false;
+    }).toList();
+  }
+
+  Widget _buildChecklistSection() {
+    if (_checklistTemplate == null) return const SizedBox.shrink();
+    
+    return ExpandableSection(
+      title: 'CHECKLIST NGHIỆM THU',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _checklistTemplate!.name,
+            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+          ),
+          const SizedBox(height: 16),
+          ..._checklistTemplate!.items.map((item) => _buildChecklistItem(item)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildChecklistItem(ChecklistItem item) {
+    final answer = _checklistAnswers[item.id.toString()];
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            item.questionText + (item.required ? ' *' : ''),
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          _buildAnswerInput(item, answer),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnswerInput(ChecklistItem item, dynamic answer) {
+    switch (item.answerType) {
+      case 'checkbox':
+        return CheckboxListTile(
+          value: answer == true,
+          onChanged: (val) => _updateChecklistAnswer(item.id, val ?? false),
+          title: const Text('Đã kiểm tra'),
+          contentPadding: EdgeInsets.zero,
+        );
+      
+      case 'number':
+        final controllerKey = 'number_${item.id}';
+        _checklistControllers[controllerKey] ??= TextEditingController(
+          text: answer?.toString() ?? '',
+        );
+        
+        return TextField(
+          controller: _checklistControllers[controllerKey],
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: 'Nhập số',
+          ),
+          onChanged: (val) {
+            if (val.trim().isEmpty) {
+              _updateChecklistAnswer(item.id, 0.0);
+            } else {
+              final num = double.tryParse(val) ?? 0.0;
+              _updateChecklistAnswer(item.id, num);
+            }
+          },
+        );
+      
+      case 'text':
+        final controllerKey = 'text_${item.id}';
+        _checklistControllers[controllerKey] ??= TextEditingController(
+          text: answer as String? ?? '',
+        );
+        
+        return TextField(
+          controller: _checklistControllers[controllerKey],
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: 'Nhập text',
+          ),
+          maxLines: 3,
+          onChanged: (val) => _updateChecklistAnswer(item.id, val),
+        );
+      
+      case 'dropdown':
+        final options = item.options != null 
+            ? (jsonDecode(item.options!) as List<dynamic>).cast<String>()
+            : <String>[];
+        
+        return DropdownButtonFormField<String>(
+          value: options.contains(answer as String?) ? answer as String? : null,
+          items: options.map((opt) => DropdownMenuItem(
+            value: opt,
+            child: Text(opt),
+          )).toList(),
+          onChanged: (val) => _updateChecklistAnswer(item.id, val),
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            hintText: 'Chọn...',
+          ),
+        );
+      
+      default:
+        return Text('Unsupported answer type: ${item.answerType}');
+    }
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _debounceTimer?.cancel();
+    _checklistDebouncer?.cancel();
     _signatureController.dispose();
     _customerNameController.dispose();
     _workDoneController.dispose();
     _materialNoteController.dispose();
     _collectedAmountController.dispose();
+    for (final controller in _checklistControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -497,6 +681,15 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
 
       // Đẩy báo cáo + chữ ký + ảnh pending TRƯỚC khi đổi stage.
       // isPendingSync=false nghĩa là report đã submit trọn vẹn lần trước -> skip để tránh trùng.
+      // ═══ VALIDATE CHECKLIST TRƯỚC KHI COMPLETE ═══
+      if (widget.order.checklistTemplateId != null) {
+        final missing = _getMissingRequiredItems();
+        if (missing.isNotEmpty) {
+          _showSnackBar('Thiếu thông tin bắt buộc trong checklist');
+          return;
+        }
+      }
+
       if (report.isPendingSync) {
         try {
           await WorkOrderService.instance.submitReport(report);
@@ -846,6 +1039,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                         style: theme.textTheme.bodyMedium),
                   ),
                   _buildAttachments(),
+                  if (_checklistTemplate != null) _buildChecklistSection(),
                   ExpandableSection(
                     title: 'MATERIALS USED',
                     child: Column(

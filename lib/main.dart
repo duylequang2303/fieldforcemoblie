@@ -9,6 +9,7 @@ import 'core/database/sync_manager.dart';
 // Isar schemas — import generated .g.dart files
 import 'features/auth/models/user_session.dart';
 import 'features/orders/models/fsm_order.dart';
+import 'features/orders/models/checklist_template.dart';
 import 'features/route_map/models/route_stop.dart';
 import 'features/stock/models/product.dart';
 import 'features/stock/models/stock_move.dart';
@@ -51,6 +52,7 @@ Future<void> main() async {
       await IsarService.instance.init([
         UserSessionSchema,
         FsmOrderSchema,
+        ChecklistTemplateSchema,
         RouteStopSchema,
         ProductSchema,
         StockMoveSchema,
