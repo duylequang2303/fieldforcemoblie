@@ -16,14 +16,18 @@ class ChecklistTemplate {
   late String serviceType; // 'ac', 'cleaning', 'plant', 'garden', 'other'
   late bool active;
   late DateTime lastSyncAt;
+  late bool isPendingSync;
 
   /// Items được serialize thành JSON string để tránh nested collection.
   late String itemsJson;
 
+  @ignore
   List<ChecklistItem> get items {
     try {
       final list = jsonDecode(itemsJson) as List<dynamic>;
-      return list.map((e) => ChecklistItem.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => ChecklistItem.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       return [];
     }
@@ -74,13 +78,18 @@ class ChecklistItem {
         ? rawSeq
         : int.tryParse(rawSeq.toString()) ?? 10;
 
+    // Normalize false to null for optional string fields
+    final questionText = json['question_text'];
+    final answerType = json['answer_type'];
+    final options = json['options'];
+
     return ChecklistItem(
       id: id,
       sequence: sequence,
-      questionText: json['question_text'] as String? ?? '',
-      answerType: json['answer_type'] as String? ?? 'checkbox',
-      required: json['required'] as bool? ?? false,
-      options: json['options'] as String?,
+      questionText: questionText == false ? '' : (questionText as String?) ?? '',
+      answerType: answerType == false ? 'checkbox' : (answerType as String?) ?? 'checkbox',
+      required: json['required'] == true,
+      options: options == false ? null : (options as String?),
     );
   }
 }

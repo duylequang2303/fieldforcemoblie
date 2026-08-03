@@ -244,7 +244,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
           ),
           onChanged: (val) {
             if (val.trim().isEmpty) {
-              _updateChecklistAnswer(item.id, 0.0);
+              _updateChecklistAnswer(item.id, null);
             } else {
               final num = double.tryParse(val) ?? 0.0;
               _updateChecklistAnswer(item.id, num);
@@ -612,6 +612,20 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
 
   Future<void> _onComplete() async {
     try {
+      // ═══ FLUSH PENDING CHECKLIST SAVE BEFORE COMPLETION ═══
+      // Cancel debouncer and save latest checklist answers immediately
+      _checklistDebouncer?.cancel();
+      if (_checklistAnswers.isNotEmpty) {
+        try {
+          await OrdersService.instance.saveChecklistAnswers(
+            widget.order.id,
+            _checklistAnswers,
+          );
+        } catch (e) {
+          logger.w('Failed to flush checklist answers before completion: $e');
+        }
+      }
+
       final amountText = _collectedAmountController.text.trim();
       double amount = 0.0;
       if (amountText.isNotEmpty) {

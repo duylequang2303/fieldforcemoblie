@@ -54,6 +54,9 @@ class OrdersService {
     'material_note',
     'collected_amount',
     'payment_method',
+    'service_type',
+    'checklist_template_id',
+    'checklist_answers',
   ];
 
   static const _locationFields = [
@@ -500,6 +503,9 @@ class OrdersService {
         if (local.paymentMethod != null) {
           vals['payment_method'] = local.paymentMethod;
         }
+        if (local.checklistAnswers != null) {
+          vals['checklist_answers'] = local.checklistAnswers;
+        }
       }
 
       await _odoo.callKw(
@@ -718,14 +724,25 @@ class OrdersService {
 
       final items = rawItems.map((item) => ChecklistItem.fromJson(item as Map<String, dynamic>)).toList();
 
-      // 4. Save to Isar
+      // 4. Check if template exists and preserve Isar id
+      final existing = await _isar.db.checklistTemplates
+          .filter()
+          .odooIdEqualTo(templateId)
+          .findFirst();
+
       final template = ChecklistTemplate()
         ..odooId = templateId
         ..name = templateData['name'] as String
         ..serviceType = templateData['service_type'] as String
         ..active = true
         ..lastSyncAt = DateTime.now()
+        ..isPendingSync = false
         ..items = items;
+
+      // Preserve existing Isar id to maintain referential integrity
+      if (existing != null) {
+        template.id = existing.id;
+      }
 
       await _isar.db.writeTxn(() async {
         await _isar.db.checklistTemplates.put(template);

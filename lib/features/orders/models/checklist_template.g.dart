@@ -22,28 +22,33 @@ const ChecklistTemplateSchema = CollectionSchema(
       name: r'active',
       type: IsarType.bool,
     ),
-    r'itemsJson': PropertySchema(
+    r'isPendingSync': PropertySchema(
       id: 1,
+      name: r'isPendingSync',
+      type: IsarType.bool,
+    ),
+    r'itemsJson': PropertySchema(
+      id: 2,
       name: r'itemsJson',
       type: IsarType.string,
     ),
     r'lastSyncAt': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'lastSyncAt',
       type: IsarType.dateTime,
     ),
     r'name': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'name',
       type: IsarType.string,
     ),
     r'odooId': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'odooId',
       type: IsarType.long,
     ),
     r'serviceType': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'serviceType',
       type: IsarType.string,
     )
@@ -95,11 +100,12 @@ void _checklistTemplateSerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeBool(offsets[0], object.active);
-  writer.writeString(offsets[1], object.itemsJson);
-  writer.writeDateTime(offsets[2], object.lastSyncAt);
-  writer.writeString(offsets[3], object.name);
-  writer.writeLong(offsets[4], object.odooId);
-  writer.writeString(offsets[5], object.serviceType);
+  writer.writeBool(offsets[1], object.isPendingSync);
+  writer.writeString(offsets[2], object.itemsJson);
+  writer.writeDateTime(offsets[3], object.lastSyncAt);
+  writer.writeString(offsets[4], object.name);
+  writer.writeLong(offsets[5], object.odooId);
+  writer.writeString(offsets[6], object.serviceType);
 }
 
 ChecklistTemplate _checklistTemplateDeserialize(
@@ -111,11 +117,12 @@ ChecklistTemplate _checklistTemplateDeserialize(
   final object = ChecklistTemplate();
   object.active = reader.readBool(offsets[0]);
   object.id = id;
-  object.itemsJson = reader.readString(offsets[1]);
-  object.lastSyncAt = reader.readDateTime(offsets[2]);
-  object.name = reader.readString(offsets[3]);
-  object.odooId = reader.readLong(offsets[4]);
-  object.serviceType = reader.readString(offsets[5]);
+  object.isPendingSync = reader.readBool(offsets[1]);
+  object.itemsJson = reader.readString(offsets[2]);
+  object.lastSyncAt = reader.readDateTime(offsets[3]);
+  object.name = reader.readString(offsets[4]);
+  object.odooId = reader.readLong(offsets[5]);
+  object.serviceType = reader.readString(offsets[6]);
   return object;
 }
 
@@ -129,14 +136,16 @@ P _checklistTemplateDeserializeProp<P>(
     case 0:
       return (reader.readBool(offset)) as P;
     case 1:
-      return (reader.readString(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 2:
-      return (reader.readDateTime(offset)) as P;
-    case 3:
       return (reader.readString(offset)) as P;
+    case 3:
+      return (reader.readDateTime(offset)) as P;
     case 4:
-      return (reader.readLong(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 5:
+      return (reader.readLong(offset)) as P;
+    case 6:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -457,6 +466,16 @@ extension ChecklistTemplateQueryFilter
         includeLower: includeLower,
         upper: upper,
         includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<ChecklistTemplate, ChecklistTemplate, QAfterFilterCondition>
+      isPendingSyncEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isPendingSync',
+        value: value,
       ));
     });
   }
@@ -1005,6 +1024,20 @@ extension ChecklistTemplateQuerySortBy
   }
 
   QueryBuilder<ChecklistTemplate, ChecklistTemplate, QAfterSortBy>
+      sortByIsPendingSync() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPendingSync', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ChecklistTemplate, ChecklistTemplate, QAfterSortBy>
+      sortByIsPendingSyncDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPendingSync', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ChecklistTemplate, ChecklistTemplate, QAfterSortBy>
       sortByItemsJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'itemsJson', Sort.asc);
@@ -1105,6 +1138,20 @@ extension ChecklistTemplateQuerySortThenBy
   }
 
   QueryBuilder<ChecklistTemplate, ChecklistTemplate, QAfterSortBy>
+      thenByIsPendingSync() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPendingSync', Sort.asc);
+    });
+  }
+
+  QueryBuilder<ChecklistTemplate, ChecklistTemplate, QAfterSortBy>
+      thenByIsPendingSyncDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPendingSync', Sort.desc);
+    });
+  }
+
+  QueryBuilder<ChecklistTemplate, ChecklistTemplate, QAfterSortBy>
       thenByItemsJson() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'itemsJson', Sort.asc);
@@ -1185,6 +1232,13 @@ extension ChecklistTemplateQueryWhereDistinct
   }
 
   QueryBuilder<ChecklistTemplate, ChecklistTemplate, QDistinct>
+      distinctByIsPendingSync() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isPendingSync');
+    });
+  }
+
+  QueryBuilder<ChecklistTemplate, ChecklistTemplate, QDistinct>
       distinctByItemsJson({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'itemsJson', caseSensitive: caseSensitive);
@@ -1231,6 +1285,13 @@ extension ChecklistTemplateQueryProperty
   QueryBuilder<ChecklistTemplate, bool, QQueryOperations> activeProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'active');
+    });
+  }
+
+  QueryBuilder<ChecklistTemplate, bool, QQueryOperations>
+      isPendingSyncProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isPendingSync');
     });
   }
 
