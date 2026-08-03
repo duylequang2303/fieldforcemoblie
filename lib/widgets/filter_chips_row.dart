@@ -88,9 +88,7 @@ class _Chip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? SfTokens.primary : SfTokens.surface,
           borderRadius: BorderRadius.circular(SfTokens.radiusSm),
-          border: isSelected
-              ? null
-              : Border.all(color: SfTokens.divider),
+          border: isSelected ? null : Border.all(color: SfTokens.divider),
         ),
         alignment: Alignment.center,
         child: Row(

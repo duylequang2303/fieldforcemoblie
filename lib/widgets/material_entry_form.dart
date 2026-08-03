@@ -37,17 +37,20 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
   }
 
   double get _subtotal {
-    if (_selectedProduct == null || _selectedProduct!.standardPrice == null) return 0.0;
+    if (_selectedProduct == null || _selectedProduct!.standardPrice == null)
+      return 0.0;
     return _quantity * _selectedProduct!.standardPrice!;
   }
 
   void _save() {
     if (_selectedProduct == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a material')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a material')));
       return;
     }
     if (_quantity <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Quantity must be greater than 0')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Quantity must be greater than 0')));
       return;
     }
     widget.onSaved(_selectedProduct, _quantity);
@@ -94,7 +97,10 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                     onPressed: _save,
                     child: Text(
                       'Save',
-                      style: TextStyle(color: theme.colorScheme.onPrimary, fontWeight: FontWeight.w600, fontSize: 16),
+                      style: TextStyle(
+                          color: theme.colorScheme.onPrimary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16),
                     ),
                   ),
                 ],
@@ -111,12 +117,18 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                       children: [
                         Text('MATERIAL', style: _labelStyle(theme)),
                         InkWell(
-                          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Create new products in Odoo web, not on mobile.')),
+                          onTap: () =>
+                              ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text(
+                                    'Create new products in Odoo web, not on mobile.')),
                           ),
                           child: Text(
                             'ADD NEW',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: theme.colorScheme.primary),
+                            style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: theme.colorScheme.primary),
                           ),
                         ),
                       ],
@@ -124,9 +136,12 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                     const SizedBox(height: 8),
                     Autocomplete<Product>(
                       displayStringForOption: (Product option) => option.name,
-                      optionsBuilder: (TextEditingValue value) => _search(value.text),
-                      onSelected: (Product selection) => setState(() => _selectedProduct = selection),
-                      fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
+                      optionsBuilder: (TextEditingValue value) =>
+                          _search(value.text),
+                      onSelected: (Product selection) =>
+                          setState(() => _selectedProduct = selection),
+                      fieldViewBuilder:
+                          (context, controller, focusNode, onFieldSubmitted) {
                         return TextField(
                           key: const Key('input_material_search'),
                           controller: controller,
@@ -161,10 +176,13 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                               TextField(
                                 key: const Key('input_quantity'),
                                 keyboardType: TextInputType.number,
-                                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly
+                                ],
                                 decoration: _inputDecoration(theme),
                                 controller: _quantityController,
-                                onChanged: (val) => setState(() => _quantity = int.tryParse(val) ?? 0),
+                                onChanged: (val) => setState(
+                                    () => _quantity = int.tryParse(val) ?? 0),
                               ),
                             ],
                           ),
@@ -179,13 +197,18 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                               const SizedBox(height: 8),
                               Container(
                                 width: double.infinity,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                                decoration: BoxDecoration(color: mutedBox, borderRadius: BorderRadius.circular(4)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 16),
+                                decoration: BoxDecoration(
+                                    color: mutedBox,
+                                    borderRadius: BorderRadius.circular(4)),
                                 child: Text(
                                   _selectedProduct != null
                                       ? '\$${_selectedProduct!.standardPrice?.toStringAsFixed(2) ?? '0.00'}'
                                       : '-',
-                                  style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                                  style: TextStyle(
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.6)),
                                 ),
                               ),
                             ],
@@ -201,11 +224,16 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                               const SizedBox(height: 8),
                               Container(
                                 width: double.infinity,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                                decoration: BoxDecoration(color: mutedBox, borderRadius: BorderRadius.circular(4)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 16),
+                                decoration: BoxDecoration(
+                                    color: mutedBox,
+                                    borderRadius: BorderRadius.circular(4)),
                                 child: Text(
                                   '\$${_subtotal.toStringAsFixed(2)}',
-                                  style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: theme.colorScheme.onSurface),
                                 ),
                               ),
                             ],
@@ -220,7 +248,8 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                       key: const Key('input_material_note'),
                       controller: _noteController,
                       maxLines: 2,
-                      decoration: _inputDecoration(theme).copyWith(hintText: 'Optional note...'),
+                      decoration: _inputDecoration(theme)
+                          .copyWith(hintText: 'Optional note...'),
                     ),
                   ],
                 ),

@@ -14,8 +14,7 @@ class ExpenseProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  double get totalAmount =>
-      _expenses.fold(0.0, (sum, e) => sum + e.amount);
+  double get totalAmount => _expenses.fold(0.0, (sum, e) => sum + e.amount);
 
   Future<void> loadExpenses(int orderOdooId) async {
     _isLoading = true;

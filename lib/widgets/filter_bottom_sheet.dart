@@ -68,8 +68,7 @@ class _FilterBottomSheetBody extends StatefulWidget {
   });
 
   @override
-  State<_FilterBottomSheetBody> createState() =>
-      _FilterBottomSheetBodyState();
+  State<_FilterBottomSheetBody> createState() => _FilterBottomSheetBodyState();
 }
 
 class _FilterBottomSheetBodyState extends State<_FilterBottomSheetBody> {
@@ -104,12 +103,10 @@ class _FilterBottomSheetBodyState extends State<_FilterBottomSheetBody> {
         return false;
       }
       if (_persons.isNotEmpty &&
-          (order.personName == null ||
-              !_persons.contains(order.personName))) {
+          (order.personName == null || !_persons.contains(order.personName))) {
         return false;
       }
-      if (_priorities.isNotEmpty &&
-          !_priorities.contains(order.priority)) {
+      if (_priorities.isNotEmpty && !_priorities.contains(order.priority)) {
         return false;
       }
       return true;
@@ -118,9 +115,7 @@ class _FilterBottomSheetBodyState extends State<_FilterBottomSheetBody> {
 
   void _toggleStage(FsmOrderStage stage) {
     setState(() {
-      _stages.contains(stage)
-          ? _stages.remove(stage)
-          : _stages.add(stage);
+      _stages.contains(stage) ? _stages.remove(stage) : _stages.add(stage);
     });
   }
 
@@ -169,8 +164,7 @@ class _FilterBottomSheetBodyState extends State<_FilterBottomSheetBody> {
                 height: 4,
                 decoration: BoxDecoration(
                   color: SfTokens.divider,
-                  borderRadius:
-                      BorderRadius.circular(SfTokens.radiusFull),
+                  borderRadius: BorderRadius.circular(SfTokens.radiusFull),
                 ),
               ),
             ),
@@ -194,8 +188,7 @@ class _FilterBottomSheetBodyState extends State<_FilterBottomSheetBody> {
                   const Spacer(),
                   InkWell(
                     onTap: () => Navigator.pop(context),
-                    borderRadius:
-                        BorderRadius.circular(SfTokens.radiusFull),
+                    borderRadius: BorderRadius.circular(SfTokens.radiusFull),
                     child: const Padding(
                       padding: EdgeInsets.all(SfTokens.spacingXxs),
                       child: Icon(
@@ -327,8 +320,8 @@ class _FilterBottomSheetBodyState extends State<_FilterBottomSheetBody> {
                         backgroundColor: SfTokens.primary,
                         foregroundColor: SfTokens.surface,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                              SfTokens.radiusSm),
+                          borderRadius:
+                              BorderRadius.circular(SfTokens.radiusSm),
                         ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: SfTokens.spacingLg,
@@ -337,8 +330,7 @@ class _FilterBottomSheetBodyState extends State<_FilterBottomSheetBody> {
                       ),
                       child: Text(
                         'Show $_resultCount result${_resultCount == 1 ? '' : 's'}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w600),
+                        style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                     ),
                   ],
@@ -401,9 +393,7 @@ class _SheetChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected ? SfTokens.primary : SfTokens.background,
           borderRadius: BorderRadius.circular(SfTokens.radiusSm),
-          border: isSelected
-              ? null
-              : Border.all(color: SfTokens.divider),
+          border: isSelected ? null : Border.all(color: SfTokens.divider),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -427,11 +417,8 @@ class _SheetChip extends StatelessWidget {
               label,
               style: TextStyle(
                 fontSize: 13,
-                fontWeight:
-                    isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected
-                    ? SfTokens.surface
-                    : SfTokens.onSurface,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                color: isSelected ? SfTokens.surface : SfTokens.onSurface,
               ),
             ),
           ],

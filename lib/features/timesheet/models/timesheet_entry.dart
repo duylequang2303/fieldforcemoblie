@@ -12,13 +12,13 @@ class TimesheetEntry {
   int? odooId;
 
   @Index()
-  late int orderOdooId;   // fsm.order.id
+  late int orderOdooId; // fsm.order.id
 
-  late DateTime date;          // Ngày làm việc
-  late double hours;           // Số giờ công
-  late String name;            // Mô tả công việc
+  late DateTime date; // Ngày làm việc
+  late double hours; // Số giờ công
+  late String name; // Mô tả công việc
 
-  String? employeeName;        // Tên nhân viên
+  String? employeeName; // Tên nhân viên
 
   late bool isPendingSync;
   late DateTime createdAt;

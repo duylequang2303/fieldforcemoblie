@@ -64,7 +64,8 @@ class _ExpenseFormState extends State<ExpenseForm> {
             decoration: const InputDecoration(
               labelText: 'Mô tả chi phí *',
               border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.description_outlined, color: AppColors.primary),
+              prefixIcon:
+                  Icon(Icons.description_outlined, color: AppColors.primary),
             ),
             validator: (v) =>
                 (v == null || v.trim().isEmpty) ? 'Vui lòng nhập mô tả' : null,
@@ -79,7 +80,8 @@ class _ExpenseFormState extends State<ExpenseForm> {
             decoration: const InputDecoration(
               labelText: 'Số tiền (VND) *',
               border: OutlineInputBorder(),
-              prefixIcon: Icon(Icons.payments_outlined, color: AppColors.primary),
+              prefixIcon:
+                  Icon(Icons.payments_outlined, color: AppColors.primary),
               suffixText: 'VND',
             ),
             validator: (v) {
@@ -94,7 +96,8 @@ class _ExpenseFormState extends State<ExpenseForm> {
           // Ngày
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.calendar_today_outlined, color: AppColors.primary),
+            leading: const Icon(Icons.calendar_today_outlined,
+                color: AppColors.primary),
             title: const Text('Ngày chi'),
             subtitle: Text(
               DateFormat('dd/MM/yyyy', 'vi').format(_date),
@@ -136,14 +139,17 @@ class _ExpenseFormState extends State<ExpenseForm> {
             onPressed: _isSubmitting ? null : _submit,
             icon: _isSubmitting
                 ? const SizedBox(
-                    width: 16, height: 16,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2))
                 : const Icon(Icons.save_outlined, size: 18),
             label: Text(_isSubmitting ? 'Đang lưu...' : 'Lưu chi phí'),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.secondary,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ],
@@ -177,7 +183,10 @@ class _ExpenseFormState extends State<ExpenseForm> {
       _nameController.clear();
       _amountController.clear();
       _noteController.clear();
-      setState(() { _receiptPath = null; _category = ExpenseCategory.other; });
+      setState(() {
+        _receiptPath = null;
+        _category = ExpenseCategory.other;
+      });
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -216,21 +225,31 @@ class _CategoryPicker extends StatelessWidget {
 
   String _label(ExpenseCategory c) {
     switch (c) {
-      case ExpenseCategory.fuel:      return 'Nhiên liệu';
-      case ExpenseCategory.meal:      return 'Ăn uống';
-      case ExpenseCategory.transport: return 'Vận chuyển';
-      case ExpenseCategory.material:  return 'Vật liệu';
-      case ExpenseCategory.other:     return 'Khác';
+      case ExpenseCategory.fuel:
+        return 'Nhiên liệu';
+      case ExpenseCategory.meal:
+        return 'Ăn uống';
+      case ExpenseCategory.transport:
+        return 'Vận chuyển';
+      case ExpenseCategory.material:
+        return 'Vật liệu';
+      case ExpenseCategory.other:
+        return 'Khác';
     }
   }
 
   IconData _icon(ExpenseCategory c) {
     switch (c) {
-      case ExpenseCategory.fuel:      return Icons.local_gas_station_outlined;
-      case ExpenseCategory.meal:      return Icons.restaurant_outlined;
-      case ExpenseCategory.transport: return Icons.directions_car_outlined;
-      case ExpenseCategory.material:  return Icons.build_outlined;
-      case ExpenseCategory.other:     return Icons.more_horiz;
+      case ExpenseCategory.fuel:
+        return Icons.local_gas_station_outlined;
+      case ExpenseCategory.meal:
+        return Icons.restaurant_outlined;
+      case ExpenseCategory.transport:
+        return Icons.directions_car_outlined;
+      case ExpenseCategory.material:
+        return Icons.build_outlined;
+      case ExpenseCategory.other:
+        return Icons.more_horiz;
     }
   }
 }

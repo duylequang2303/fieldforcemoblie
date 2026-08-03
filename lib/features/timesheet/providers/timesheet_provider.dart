@@ -14,8 +14,7 @@ class TimesheetProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  double get totalHours =>
-      _entries.fold(0.0, (sum, e) => sum + e.hours);
+  double get totalHours => _entries.fold(0.0, (sum, e) => sum + e.hours);
 
   Future<void> loadEntries(int orderOdooId) async {
     _isLoading = true;

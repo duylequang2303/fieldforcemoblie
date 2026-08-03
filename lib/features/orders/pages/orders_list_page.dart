@@ -59,7 +59,8 @@ class _OrdersListPageState extends State<OrdersListPage> {
                                 onRefresh: provider.fetchOrders,
                                 color: AppColors.primary,
                                 child: ListView.builder(
-                                  padding: const EdgeInsets.only(top: 8, bottom: 80),
+                                  padding:
+                                      const EdgeInsets.only(top: 8, bottom: 80),
                                   itemCount: filtered.length,
                                   itemBuilder: (context, i) =>
                                       OrderCard(order: filtered[i]),
@@ -79,7 +80,8 @@ class _OrdersListPageState extends State<OrdersListPage> {
                   icon: const Icon(Icons.sync, color: Colors.white),
                   label: const Text(
                     'Làm mới',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.w600),
                   ),
                 ),
         );
@@ -161,8 +163,10 @@ class _OrdersListPageState extends State<OrdersListPage> {
                 onChanged: (v) => setState(() => _searchQuery = v),
                 decoration: InputDecoration(
                   hintText: 'Tìm theo mã, khách hàng...',
-                  hintStyle: const TextStyle(fontSize: 13, color: Colors.black45),
-                  prefixIcon: const Icon(Icons.search, size: 18, color: Colors.black45),
+                  hintStyle:
+                      const TextStyle(fontSize: 13, color: Colors.black45),
+                  prefixIcon:
+                      const Icon(Icons.search, size: 18, color: Colors.black45),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
@@ -191,7 +195,8 @@ class _OrdersListPageState extends State<OrdersListPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.assignment_outlined, size: 72, color: AppColors.onSurfaceMuted.withValues(alpha: 0.4)),
+          Icon(Icons.assignment_outlined,
+              size: 72, color: AppColors.onSurfaceMuted.withValues(alpha: 0.4)),
           const SizedBox(height: 16),
           const Text(
             'Không có đơn nào',
@@ -238,9 +243,12 @@ class _StageFilterButton extends StatelessWidget {
       itemBuilder: (_) => [
         const PopupMenuItem(value: null, child: Text('Tất cả')),
         const PopupMenuItem(value: FsmOrderStage.draft, child: Text('Mới')),
-        const PopupMenuItem(value: FsmOrderStage.inProgress, child: Text('Đang thực hiện')),
-        const PopupMenuItem(value: FsmOrderStage.done, child: Text('Hoàn thành')),
-        const PopupMenuItem(value: FsmOrderStage.cancelled, child: Text('Đã huỷ')),
+        const PopupMenuItem(
+            value: FsmOrderStage.inProgress, child: Text('Đang thực hiện')),
+        const PopupMenuItem(
+            value: FsmOrderStage.done, child: Text('Hoàn thành')),
+        const PopupMenuItem(
+            value: FsmOrderStage.cancelled, child: Text('Đã huỷ')),
       ],
       child: Container(
         height: 36,

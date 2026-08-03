@@ -95,3 +95,10 @@
     );
     ```
 - ⚠️ **Hạn chế hỏi quyền tối đa**: Tránh chạy các lệnh shell thăm dò hoặc truy vấn rời rạc làm phiền User phê duyệt quyền nhiều lần. Nếu cần thông tin hoặc tạo dữ liệu test, hãy hỏi trực tiếp User hoặc gom các lệnh SQL/CLI cần thiết vào duy nhất một lần thực thi.
+
+## 12. Quy tắc sử dụng MCP Subagents (a2a-platform)
+- 💡 **Tự động hóa Agent (a2a)**: Để tối ưu hóa chất lượng code và tránh rủi ro, AI nên chủ động gọi các subagents của `a2a-platform` tùy theo ngữ cảnh của nhiệm vụ:
+  - **Khi Code/Refactor**: Sử dụng `softwareengineeringexpert` để hỗ trợ dọn rác, tái cấu trúc hoặc phát triển tính năng mới.
+  - **Khi Review/Kiểm lỗi**: Sử dụng `constructivecritic` để kiểm tra chéo các thay đổi, đặc biệt là các logic nghiệp vụ quan trọng.
+  - **Khi Sandbox/Thử nghiệm**: Sử dụng `sandboxcodingagent` để thử nghiệm mã nguồn một cách cô lập.
+- ⚡ **Thiết lập Nhớ Bối cảnh**: Kết hợp các Rule này cùng với việc huấn luyện trí nhớ dài hạn (qua các công cụ lưu trữ như `supermemory` hoặc Agent Memory) để AI ở các phiên chat khác tự động nhận diện và phối hợp các bộ tool MCP một cách hiệu quả.

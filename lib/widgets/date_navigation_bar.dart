@@ -21,7 +21,8 @@ class DateNavigationBar extends StatelessWidget {
     final theme = Theme.of(context);
 
     // Mock date string
-    final dateStr = "${selectedDate.day} Thg ${selectedDate.month}, ${selectedDate.year}";
+    final dateStr =
+        "${selectedDate.day} Thg ${selectedDate.month}, ${selectedDate.year}";
 
     return Container(
       color: theme.colorScheme.surface,

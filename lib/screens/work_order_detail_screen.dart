@@ -32,7 +32,8 @@ class WorkOrderDetailScreen extends StatefulWidget {
   State<WorkOrderDetailScreen> createState() => _WorkOrderDetailScreenState();
 }
 
-class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with WidgetsBindingObserver {
+class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
+    with WidgetsBindingObserver {
   late SignatureController _signatureController;
   final TextEditingController _customerNameController = TextEditingController();
   final TextEditingController _workDoneController = TextEditingController();
@@ -53,7 +54,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
 
   Future<void> _loadReportDraft() async {
     try {
-      final report = await WorkOrderService.instance.getOrCreateReport(widget.order.odooId);
+      final report = await WorkOrderService.instance
+          .getOrCreateReport(widget.order.odooId);
       if (mounted) {
         setState(() {
           _workDoneController.text = report.workDone;
@@ -85,11 +87,13 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
 
   void _showSnackBar(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   String _stripHtml(String? html) {
-    if (html == null || html.isEmpty) return 'No general instructions provided.';
+    if (html == null || html.isEmpty)
+      return 'No general instructions provided.';
     var t = html.replaceAll(RegExp(r'<[^>]*>'), ' ');
     t = t
         .replaceAll('&nbsp;', ' ')
@@ -131,7 +135,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
     await _launchUrlRobust(Uri.parse('sms:$phone'), 'Cannot open SMS app');
   }
 
-  void _onEmail() => _showSnackBar('Email not available for this customer yet.');
+  void _onEmail() =>
+      _showSnackBar('Email not available for this customer yet.');
 
   Future<void> _onDirections() async {
     final lat = widget.order.locationLat;
@@ -147,10 +152,15 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
         context: context,
         builder: (ctx) => AlertDialog(
           title: const Text('Location Services Disabled'),
-          content: const Text('GPS is off. Enable it so Maps can route you to the customer.'),
+          content: const Text(
+              'GPS is off. Enable it so Maps can route you to the customer.'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Later')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Open Settings')),
+            TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Later')),
+            FilledButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Open Settings')),
           ],
         ),
       );
@@ -161,7 +171,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
       _showSnackBar('Location permission required for routing.');
     }
     await _launchUrlRobust(
@@ -188,32 +199,20 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(Icons.camera_alt, color: Theme.of(ctx).colorScheme.primary),
-              title: const Text('Camera (in-app, thử nghiệm)'),
-              onTap: () async {
-                Navigator.pop(ctx);
-                final path = await Navigator.push<String>(
-                  ctx,
-                  MaterialPageRoute(builder: (_) => const InAppCameraScreen()),
-                );
-                if (path != null) {
-                  setState(() => _photoPaths.add(path));
-                  await _uploadPhoto(path);
-                }
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.camera_alt_outlined, color: Theme.of(ctx).colorScheme.primary),
+              leading: Icon(Icons.camera_alt_outlined,
+                  color: Theme.of(ctx).colorScheme.primary),
               title: const Text('Take photo'),
               onTap: () => Navigator.pop(ctx, ImageSource.camera),
             ),
             ListTile(
-              leading: Icon(Icons.photo_library_outlined, color: Theme.of(ctx).colorScheme.primary),
+              leading: Icon(Icons.photo_library_outlined,
+                  color: Theme.of(ctx).colorScheme.primary),
               title: const Text('Choose from gallery'),
               onTap: () => Navigator.pop(ctx, ImageSource.gallery),
             ),
             ListTile(
-              leading: Icon(Icons.camera, color: Theme.of(ctx).colorScheme.primary),
+              leading:
+                  Icon(Icons.camera, color: Theme.of(ctx).colorScheme.primary),
               title: const Text('Camera (in-app)'),
               onTap: () {
                 Navigator.pop(ctx);
@@ -228,23 +227,26 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
     final picker = ImagePicker();
     final List<XFile> picked = <XFile>[];
     if (source == ImageSource.gallery) {
-      picked.addAll(await picker.pickMultiImage(imageQuality: 70, maxWidth: 1280));
+      picked.addAll(
+          await picker.pickMultiImage(imageQuality: 70, maxWidth: 1280));
     } else {
-      final one = await picker.pickImage(source: source, imageQuality: 70, maxWidth: 1280);
+      final one = await picker.pickImage(
+          source: source, imageQuality: 70, maxWidth: 1280);
       if (one != null) picked.add(one);
     }
     if (picked.isEmpty) return;
-    
+
     // FIX 3 — Đo kích thước ảnh thật (chẩn đoán Samsung)
     if (kDebugMode) {
       for (final x in picked) {
         try {
           final size = await File(x.path).length();
-          debugPrint('📸 PICKED: ${x.path.split('/').last} — ${(size / 1024 / 1024).toStringAsFixed(1)}MB');
+          debugPrint(
+              '📸 PICKED: ${x.path.split('/').last} — ${(size / 1024 / 1024).toStringAsFixed(1)}MB');
         } catch (_) {}
       }
     }
-    
+
     setState(() {
       for (final x in picked) {
         _photoPaths.add(x.path);
@@ -403,7 +405,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
         final png = await _signatureController.toPngBytes();
         if (png != null) {
           final dir = await getApplicationDocumentsDirectory();
-          final f = File('${dir.path}/sig_${widget.order.odooId}_${DateTime.now().millisecondsSinceEpoch}.png');
+          final f = File(
+              '${dir.path}/sig_${widget.order.odooId}_${DateTime.now().millisecondsSinceEpoch}.png');
           await f.writeAsBytes(png);
           report.customerSignaturePath = f.path;
           report.customerName = _customerNameController.text.trim();
@@ -433,7 +436,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
       Navigator.of(context).pop(true);
     } on OdooApiException {
       if (!mounted) return;
-      _showSnackBar('Offline - report & signature saved locally, will sync when online.');
+      _showSnackBar(
+          'Offline - report & signature saved locally, will sync when online.');
     } catch (e) {
       if (!mounted) return;
       _showSnackBar('Failed to complete order: $e');
@@ -441,7 +445,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
   }
 
   Future<void> _onSkipConfirm() async {
-    final stageId = await OrdersService.instance.getStageIdByKeywords(['cancel', 'huỷ', 'cancelled']);
+    final stageId = await OrdersService.instance
+        .getStageIdByKeywords(['cancel', 'huỷ', 'cancelled']);
     if (stageId == null) {
       if (!mounted) return;
       _showSnackBar('Cancelled stage not configured in Odoo.');
@@ -469,7 +474,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
         title: const Text('Skip Order'),
         content: const Text('Mark this order as cancelled?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('No')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('No')),
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
@@ -513,36 +519,48 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.calendar_today, size: 14, color: onSurfaceMuted),
+                          Icon(Icons.calendar_today,
+                              size: 14, color: onSurfaceMuted),
                           const SizedBox(width: 6),
                           Text(
                             _formatDate(widget.order.scheduledDateStart),
-                            style: TextStyle(fontSize: 14, color: onSurfaceMuted, fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                                fontSize: 14,
+                                color: onSurfaceMuted,
+                                fontWeight: FontWeight.w500),
                           ),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Text(
                         widget.order.locationAddress ?? widget.order.name,
-                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700, height: 1.3),
+                        style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700, height: 1.3),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         widget.order.partnerName ?? 'Anonymous customer',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.colorScheme.primary),
+                        style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.primary),
                       ),
                     ],
                   ),
                 ),
                 Column(
                   children: [
-                    QuickActionButton(icon: Icons.phone_outlined, onTap: _onCall),
+                    QuickActionButton(
+                        icon: Icons.phone_outlined, onTap: _onCall),
                     const SizedBox(height: 8),
-                    QuickActionButton(icon: Icons.chat_bubble_outline, onTap: _onSms),
+                    QuickActionButton(
+                        icon: Icons.chat_bubble_outline, onTap: _onSms),
                     const SizedBox(height: 8),
-                    QuickActionButton(icon: Icons.email_outlined, onTap: _onEmail),
+                    QuickActionButton(
+                        icon: Icons.email_outlined, onTap: _onEmail),
                     const SizedBox(height: 8),
-                    QuickActionButton(icon: Icons.directions_outlined, onTap: _onDirections),
+                    QuickActionButton(
+                        icon: Icons.directions_outlined, onTap: _onDirections),
                   ],
                 ),
               ],
@@ -556,11 +574,18 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('DUE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: onSurfaceFaint)),
+                      Text('DUE',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: onSurfaceFaint)),
                       const SizedBox(height: 4),
                       Text(
                         '${_formatDate(widget.order.scheduledDateStart)}\n(Does not repeat)',
-                        style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface, height: 1.4),
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: theme.colorScheme.onSurface,
+                            height: 1.4),
                       ),
                     ],
                   ),
@@ -569,11 +594,18 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('DURATION / PRICE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: onSurfaceFaint)),
+                      Text('DURATION / PRICE',
+                          style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: onSurfaceFaint)),
                       const SizedBox(height: 4),
                       Text(
                         '${_duration(widget.order.scheduledDateStart, widget.order.scheduledDateEnd)}\nPrice TBD',
-                        style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface, height: 1.4),
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: theme.colorScheme.onSurface,
+                            height: 1.4),
                       ),
                     ],
                   ),
@@ -591,9 +623,11 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
                       backgroundColor: theme.colorScheme.primary,
                       foregroundColor: theme.colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
-                    child: const Text('Mark complete', style: TextStyle(fontWeight: FontWeight.w600)),
+                    child: const Text('Mark complete',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -604,9 +638,14 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       side: BorderSide(color: theme.dividerColor),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
-                    child: Text('Skip', style: TextStyle(fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface.withOpacity(0.7))),
+                    child: Text('Skip',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color:
+                                theme.colorScheme.onSurface.withOpacity(0.7))),
                   ),
                 ),
               ],
@@ -632,7 +671,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
               width: 88,
               height: 88,
               fit: BoxFit.cover,
-              cacheWidth: 176, // ✅ decode ở 176px (2x Retina) thay vì full resolution
+              cacheWidth:
+                  176, // ✅ decode ở 176px (2x Retina) thay vì full resolution
             ),
           ),
           Positioned(
@@ -643,8 +683,10 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
               child: Container(
                 width: 22,
                 height: 22,
-                decoration: BoxDecoration(color: theme.colorScheme.error, shape: BoxShape.circle),
-                child: Icon(Icons.close, color: theme.colorScheme.onError, size: 14),
+                decoration: BoxDecoration(
+                    color: theme.colorScheme.error, shape: BoxShape.circle),
+                child: Icon(Icons.close,
+                    color: theme.colorScheme.onError, size: 14),
               ),
             ),
           ),
@@ -661,7 +703,10 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
         spacing: 12,
         runSpacing: 12,
         children: [
-          ..._photoPaths.asMap().entries.map((e) => _photoThumb(e.key, e.value)),
+          ..._photoPaths
+              .asMap()
+              .entries
+              .map((e) => _photoThumb(e.key, e.value)),
           InkWell(
             onTap: _pickPhoto,
             borderRadius: BorderRadius.circular(8),
@@ -676,9 +721,12 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.add_a_photo_outlined, size: 28, color: theme.colorScheme.primary),
+                  Icon(Icons.add_a_photo_outlined,
+                      size: 28, color: theme.colorScheme.primary),
                   const SizedBox(height: 4),
-                  Text('Add Photo', style: TextStyle(fontSize: 10, color: theme.colorScheme.primary)),
+                  Text('Add Photo',
+                      style: TextStyle(
+                          fontSize: 10, color: theme.colorScheme.primary)),
                 ],
               ),
             ),
@@ -693,9 +741,13 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.of(context).pop()),
+        leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => Navigator.of(context).pop()),
         title: Text(widget.order.locationAddress ?? widget.order.name),
-        actions: [IconButton(icon: const Icon(Icons.edit_outlined), onPressed: () {})],
+        actions: [
+          IconButton(icon: const Icon(Icons.edit_outlined), onPressed: () {})
+        ],
       ),
       body: Column(
         children: [
@@ -708,11 +760,13 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
                   ExpandableSection(
                     title: 'GENERAL INSTRUCTIONS',
                     initiallyExpanded: true,
-                    child: Text(_stripHtml(widget.order.description), style: theme.textTheme.bodyMedium),
+                    child: Text(_stripHtml(widget.order.description),
+                        style: theme.textTheme.bodyMedium),
                   ),
                   ExpandableSection(
                     title: 'WORK REQUIRED',
-                    child: Text(_stripHtml(widget.order.description), style: theme.textTheme.bodyMedium),
+                    child: Text(_stripHtml(widget.order.description),
+                        style: theme.textTheme.bodyMedium),
                   ),
                   _buildAttachments(),
                   ExpandableSection(
@@ -816,14 +870,17 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen> with Widg
                               key: const Key('signature_pad'),
                               controller: _signatureController,
                               height: 150,
-                              backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                              backgroundColor:
+                                  theme.colorScheme.surfaceContainerHighest,
                             ),
                           ),
                         ),
                         const SizedBox(height: 8),
                         Align(
                           alignment: Alignment.centerRight,
-                          child: TextButton(onPressed: () => _signatureController.clear(), child: const Text('Clear')),
+                          child: TextButton(
+                              onPressed: () => _signatureController.clear(),
+                              child: const Text('Clear')),
                         ),
                       ],
                     ),

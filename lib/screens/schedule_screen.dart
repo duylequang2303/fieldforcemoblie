@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../widgets/empty_state_widget.dart';
 import '../widgets/schedule_top_bar.dart';
@@ -43,7 +44,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     try {
       cached = await OrdersService.instance.loadCachedOrders();
     } catch (e) {
-      debugPrint('ScheduleScreen loadCachedOrders failed: $e');
+      if (kDebugMode) {
+        debugPrint('ScheduleScreen loadCachedOrders failed: $e');
+      }
     }
     if (!mounted) return;
     setState(() => _orders = cached);
@@ -61,7 +64,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       if (!mounted) return;
       setState(() => _orders = fresh);
     } catch (e) {
-      debugPrint('ScheduleScreen fetchMyOrders failed (offline?): $e');
+      if (kDebugMode) {
+        debugPrint('ScheduleScreen fetchMyOrders failed (offline?): $e');
+      }
     } finally {
       if (showSpinner && mounted) setState(() => _isLoading = false);
     }
@@ -102,8 +107,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     for (var order in _filteredOrders) {
       if (order.scheduledDateStart != null && order.scheduledDateEnd != null) {
         totalHours += order.scheduledDateEnd!
-            .difference(order.scheduledDateStart!)
-            .inMinutes / 60.0;
+                .difference(order.scheduledDateStart!)
+                .inMinutes /
+            60.0;
       }
     }
     // Giả lập tính tiền: $50 / giờ (do FsmOrder hiện tại chưa có field giá trị)
@@ -112,20 +118,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   List<String> get _availablePersons {
-    return _orders
-        .map((o) => o.personName)
-        .whereType<String>()
-        .toSet()
-        .toList()
+    return _orders.map((o) => o.personName).whereType<String>().toSet().toList()
       ..sort();
   }
 
   Future<void> _openFilterSheet() async {
     final result = await showFilterBottomSheet(
       context: context,
-      initialStages: _selectedStage != null
-          ? {_selectedStage!}
-          : _filterStages,
+      initialStages: _selectedStage != null ? {_selectedStage!} : _filterStages,
       initialPersons: _filterPersons,
       initialPriorities: _filterPriorities,
       availablePersons: _availablePersons,

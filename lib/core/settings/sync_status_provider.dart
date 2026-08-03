@@ -45,10 +45,7 @@ class SyncStatusProvider extends ChangeNotifier {
   Future<int> _countPendingFromIsar() async {
     try {
       final db = IsarService.instance.db;
-      return await db.fsmOrders
-          .filter()
-          .isPendingSyncEqualTo(true)
-          .count();
+      return await db.fsmOrders.filter().isPendingSyncEqualTo(true).count();
     } catch (_) {
       return 0;
     }

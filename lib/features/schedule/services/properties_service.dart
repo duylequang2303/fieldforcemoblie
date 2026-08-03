@@ -52,7 +52,6 @@ class PropertiesService {
             ? name
             : [street, street2].where((s) => s.isNotEmpty).join(', ');
 
-        final partner = m['partner_id'];
         final city = str('city');
         final owner = m['owner_id'];
         final ownerName =

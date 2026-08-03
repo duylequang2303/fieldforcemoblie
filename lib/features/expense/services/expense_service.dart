@@ -77,10 +77,8 @@ class ExpenseService {
   }
 
   Future<void> syncPending() async {
-    final pending = await _isar.db.expenses
-        .filter()
-        .isPendingSyncEqualTo(true)
-        .findAll();
+    final pending =
+        await _isar.db.expenses.filter().isPendingSyncEqualTo(true).findAll();
 
     for (final expense in pending) {
       if (expense.odooId != null) {

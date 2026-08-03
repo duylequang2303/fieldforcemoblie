@@ -71,13 +71,15 @@ class _ExpensePageState extends State<ExpensePage> {
                           height: _showForm ? null : 0,
                           child: _showForm
                               ? Container(
-                                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                                  margin:
+                                      const EdgeInsets.fromLTRB(16, 0, 16, 12),
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(16),
                                     border: Border.all(
-                                      color: AppColors.secondary.withOpacity(0.3),
+                                      color:
+                                          AppColors.secondary.withOpacity(0.3),
                                       width: 2,
                                     ),
                                     boxShadow: [
@@ -106,7 +108,8 @@ class _ExpensePageState extends State<ExpensePage> {
                                         receiptImagePath: receiptImagePath,
                                         note: note,
                                       );
-                                      if (mounted) setState(() => _showForm = false);
+                                      if (mounted)
+                                        setState(() => _showForm = false);
                                     },
                                   ),
                                 )
@@ -117,10 +120,11 @@ class _ExpensePageState extends State<ExpensePage> {
                           child: provider.expenses.isEmpty && !_showForm
                               ? _buildEmptyState()
                               : ListView.builder(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
                                   itemCount: provider.expenses.length,
-                                  itemBuilder: (context, i) =>
-                                      _ExpenseCard(expense: provider.expenses[i]),
+                                  itemBuilder: (context, i) => _ExpenseCard(
+                                      expense: provider.expenses[i]),
                                 ),
                         ),
                       ],
@@ -129,10 +133,12 @@ class _ExpensePageState extends State<ExpensePage> {
             heroTag: 'fab_expense',
             onPressed: () => setState(() => _showForm = !_showForm),
             backgroundColor: _showForm ? AppColors.error : AppColors.secondary,
-            icon: Icon(_showForm ? Icons.close : Icons.add, color: Colors.white),
+            icon:
+                Icon(_showForm ? Icons.close : Icons.add, color: Colors.white),
             label: Text(
               _showForm ? 'Đóng' : 'Thêm khoản chi',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                  color: Colors.white, fontWeight: FontWeight.w600),
             ),
           ),
         );
@@ -188,7 +194,8 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = LocaleService.instance.currentLocale;
-    final fmt = NumberFormat.currency(locale: locale, symbol: '₫', decimalDigits: 0);
+    final fmt =
+        NumberFormat.currency(locale: locale, symbol: '₫', decimalDigits: 0);
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -286,7 +293,8 @@ class _ExpenseCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final locale = LocaleService.instance.currentLocale;
-    final fmt = NumberFormat.currency(locale: locale, symbol: '₫', decimalDigits: 0);
+    final fmt =
+        NumberFormat.currency(locale: locale, symbol: '₫', decimalDigits: 0);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -358,7 +366,8 @@ class _ExpenseCard extends StatelessWidget {
                     children: [
                       // Category badge
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: categoryColor.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(6),
@@ -374,7 +383,8 @@ class _ExpenseCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       // Date
-                      Icon(Icons.calendar_today, size: 13, color: AppColors.onSurfaceMuted),
+                      Icon(Icons.calendar_today,
+                          size: 13, color: AppColors.onSurfaceMuted),
                       const SizedBox(width: 4),
                       Text(
                         DateFormat('dd/MM/yyyy', 'vi').format(expense.date),
@@ -424,9 +434,13 @@ class _ExpenseCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(
-                    expense.isPendingSync ? Icons.sync_problem : Icons.cloud_done,
+                    expense.isPendingSync
+                        ? Icons.sync_problem
+                        : Icons.cloud_done,
                     size: 14,
-                    color: expense.isPendingSync ? AppColors.warning : AppColors.success,
+                    color: expense.isPendingSync
+                        ? AppColors.warning
+                        : AppColors.success,
                   ),
                 ),
               ],

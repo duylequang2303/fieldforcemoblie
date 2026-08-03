@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../schedule/models/schedule_visit.dart';
 import '../../schedule/models/schedule_property.dart';
@@ -13,7 +12,6 @@ class SchedulePage extends StatefulWidget {
 }
 
 class _SchedulePageState extends State<SchedulePage> {
-  final List<String> _employees = ['Janice', 'Martin'];
   final Set<String> _selectedEmployees = {'Janice', 'Martin'};
 
   final List<ScheduleVisit> _visits = const [
@@ -76,9 +74,12 @@ class _SchedulePageState extends State<SchedulePage> {
         type: BottomNavigationBarType.fixed,
         elevation: 8,
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Schedule'),
-          BottomNavigationBarItem(icon: Icon(Icons.home_work_outlined), label: 'Properties'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: 'Settings'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today), label: 'Schedule'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home_work_outlined), label: 'Properties'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined), label: 'Settings'),
         ],
       ),
     );
@@ -103,45 +104,105 @@ class _SchedulePageState extends State<SchedulePage> {
 
   Widget _buildPropertiesBody() {
     final properties = const [
-      ScheduleProperty(id: 0, address: '28 Spring Street', suburb: 'Abbotsford 2046', postcode: '2046', ownerName: 'Mable Adams', imageUrl: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600'),
-      ScheduleProperty(id: 0, address: '25 Abbotsford Parade', suburb: 'Abbortsford 2046', postcode: '2046', ownerName: 'Cindi Abbots'),
-      ScheduleProperty(id: 0, address: '29 Tindale Road', suburb: 'Artarmon 2064', postcode: '2064', ownerName: 'Casey Aguilar'),
-      ScheduleProperty(id: 0, address: '47 Stafford Road', suburb: 'Artarmon 2064', postcode: '2064', ownerName: 'Todd Adams'),
-      ScheduleProperty(id: 0, address: '42 Elizabeth Street', suburb: 'Artarmon 2064', postcode: '2064', ownerName: 'Donna Alexander'),
-      ScheduleProperty(id: 0, address: '171 Avalon Parade', suburb: 'Avalon 2107', postcode: '2107', ownerName: 'Stewart Allen'),
-      ScheduleProperty(id: 0, address: '131 Hudson Parade', suburb: 'Avalon 2107', postcode: '2107', ownerName: 'Stewart Allen'),
+      ScheduleProperty(
+          id: 0,
+          address: '28 Spring Street',
+          suburb: 'Abbotsford 2046',
+          postcode: '2046',
+          ownerName: 'Mable Adams',
+          imageUrl:
+              'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=600'),
+      ScheduleProperty(
+          id: 0,
+          address: '25 Abbotsford Parade',
+          suburb: 'Abbortsford 2046',
+          postcode: '2046',
+          ownerName: 'Cindi Abbots'),
+      ScheduleProperty(
+          id: 0,
+          address: '29 Tindale Road',
+          suburb: 'Artarmon 2064',
+          postcode: '2064',
+          ownerName: 'Casey Aguilar'),
+      ScheduleProperty(
+          id: 0,
+          address: '47 Stafford Road',
+          suburb: 'Artarmon 2064',
+          postcode: '2064',
+          ownerName: 'Todd Adams'),
+      ScheduleProperty(
+          id: 0,
+          address: '42 Elizabeth Street',
+          suburb: 'Artarmon 2064',
+          postcode: '2064',
+          ownerName: 'Donna Alexander'),
+      ScheduleProperty(
+          id: 0,
+          address: '171 Avalon Parade',
+          suburb: 'Avalon 2107',
+          postcode: '2107',
+          ownerName: 'Stewart Allen'),
+      ScheduleProperty(
+          id: 0,
+          address: '131 Hudson Parade',
+          suburb: 'Avalon 2107',
+          postcode: '2107',
+          ownerName: 'Stewart Allen'),
     ];
 
     return SearchAnchor(
       builder: (context, controller) => SearchBar(
         controller: controller,
-        padding: const MaterialStatePropertyAll<EdgeInsets>(EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
-        leading: Icon(Icons.search, color: AppColors.scheduleSecondaryText, size: 20),
+        padding: const MaterialStatePropertyAll<EdgeInsets>(
+            EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
+        leading: Icon(Icons.search,
+            color: AppColors.scheduleSecondaryText, size: 20),
         trailing: [
-          IconButton(onPressed: () {}, icon: Icon(Icons.close, size: 18, color: AppColors.scheduleSecondaryText)),
-          TextButton(onPressed: () {}, child: const Text('Search', style: TextStyle(fontSize: 14))),
+          IconButton(
+              onPressed: () {},
+              icon: Icon(Icons.close,
+                  size: 18, color: AppColors.scheduleSecondaryText)),
+          TextButton(
+              onPressed: () {},
+              child: const Text('Search', style: TextStyle(fontSize: 14))),
         ],
         hintText: 'Search properties',
-        hintStyle: MaterialStatePropertyAll(TextStyle(color: AppColors.scheduleSecondaryText, fontSize: 14)),
+        hintStyle: MaterialStatePropertyAll(
+            TextStyle(color: AppColors.scheduleSecondaryText, fontSize: 14)),
       ),
       suggestionsBuilder: (context, controller) {
         final filtered = properties.where((p) {
           final q = controller.text.toLowerCase();
-          return p.address.toLowerCase().contains(q) || p.ownerName.toLowerCase().contains(q);
+          return p.address.toLowerCase().contains(q) ||
+              p.ownerName.toLowerCase().contains(q);
         }).toList();
         return filtered
             .map((p) => ListTile(
-                  title: Text(p.address, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.scheduleText)),
+                  title: Text(p.address,
+                      style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.scheduleText)),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(p.suburb, style: const TextStyle(fontSize: 14, color: AppColors.scheduleSecondaryText)),
-                      Text(p.ownerName, style: const TextStyle(fontSize: 14, color: AppColors.scheduleSecondaryText)),
+                      Text(p.suburb,
+                          style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.scheduleSecondaryText)),
+                      Text(p.ownerName,
+                          style: const TextStyle(
+                              fontSize: 14,
+                              color: AppColors.scheduleSecondaryText)),
                     ],
                   ),
                   onTap: () {
                     controller.closeView(p.address);
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => SchedulePropertyDetailPage(property: p)));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                SchedulePropertyDetailPage(property: p)));
                   },
                 ))
             .toList();
@@ -249,7 +310,6 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   Widget _buildWeekToggle() {
-    final isWeek = true;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -258,7 +318,11 @@ class _SchedulePageState extends State<SchedulePage> {
       ),
       child: Row(
         children: [
-          Text('Week', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: isWeek ? FontWeight.w600 : FontWeight.normal)),
+          Text('Week',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600)),
           const SizedBox(width: 6),
           Icon(Icons.expand_more, color: Colors.white, size: 18),
         ],
@@ -285,9 +349,13 @@ class _SchedulePageState extends State<SchedulePage> {
           height: 48,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
-            color: isSelected ? AppColors.accentLight : Colors.white.withOpacity(0.15),
+            color: isSelected
+                ? AppColors.accentLight
+                : Colors.white.withOpacity(0.15),
             borderRadius: BorderRadius.circular(8),
-            border: isSelected ? null : Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+            border: isSelected
+                ? null
+                : Border.all(color: Colors.white.withOpacity(0.3), width: 1),
           ),
           child: Row(
             children: [
@@ -303,7 +371,8 @@ class _SchedulePageState extends State<SchedulePage> {
                   child: Text(
                     name[0].toUpperCase(),
                     style: TextStyle(
-                      color: isSelected ? Colors.white : AppColors.schedulePrimary,
+                      color:
+                          isSelected ? Colors.white : AppColors.schedulePrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
@@ -315,7 +384,8 @@ class _SchedulePageState extends State<SchedulePage> {
                 child: Text(
                   name,
                   style: TextStyle(
-                    color: isSelected ? AppColors.schedulePrimary : Colors.white,
+                    color:
+                        isSelected ? AppColors.schedulePrimary : Colors.white,
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
@@ -324,7 +394,8 @@ class _SchedulePageState extends State<SchedulePage> {
               if (isSelected)
                 Icon(Icons.close, color: AppColors.schedulePrimary, size: 20)
               else
-                Icon(Icons.person_add_outlined, color: Colors.white.withOpacity(0.8), size: 20),
+                Icon(Icons.person_add_outlined,
+                    color: Colors.white.withOpacity(0.8), size: 20),
             ],
           ),
         ),
@@ -337,7 +408,8 @@ class _SchedulePageState extends State<SchedulePage> {
       padding: const EdgeInsets.all(16),
       itemCount: _visits.length + 1,
       itemBuilder: (context, i) {
-        if (i == _visits.length) return _buildAddVisitAndTotal(totalHrs, totalCost);
+        if (i == _visits.length)
+          return _buildAddVisitAndTotal(totalHrs, totalCost);
         return _VisitCard(
           visit: _visits[i],
           onTap: () => _showVisitDetailModal(context, _visits[i]),
@@ -368,7 +440,10 @@ class _SchedulePageState extends State<SchedulePage> {
               border: Border.all(color: AppColors.divider, width: 1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: const Center(child: Text('Add Visit', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600))),
+            child: const Center(
+                child: Text('Add Visit',
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.w600))),
           ),
         ),
         const SizedBox(height: 16),
@@ -378,7 +453,12 @@ class _SchedulePageState extends State<SchedulePage> {
           child: Row(
             children: [
               Expanded(
-                child: Text('${totalHrs.toStringAsFixed(2)} hrs (\$ ${totalCost.toStringAsFixed(0)})', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15)),
+                child: Text(
+                    '${totalHrs.toStringAsFixed(2)} hrs (\$ ${totalCost.toStringAsFixed(0)})',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15)),
               ),
               Icon(Icons.settings, color: Colors.white70, size: 18),
             ],
@@ -438,7 +518,8 @@ class _VisitCard extends StatelessWidget {
                     // Date badge
                     Row(
                       children: [
-                        Icon(Icons.calendar_today, size: 14, color: AppColors.onSurfaceMuted),
+                        Icon(Icons.calendar_today,
+                            size: 14, color: AppColors.onSurfaceMuted),
                         const SizedBox(width: 6),
                         Text(
                           visit.dueDate,
@@ -451,14 +532,16 @@ class _VisitCard extends StatelessWidget {
                         const Spacer(),
                         // Hours badge
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: AppColors.infoContainer,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.access_time, size: 13, color: AppColors.info),
+                              const Icon(Icons.access_time,
+                                  size: 13, color: AppColors.info),
                               const SizedBox(width: 4),
                               Text(
                                 '${visit.hours} hr',
@@ -496,7 +579,8 @@ class _VisitCard extends StatelessWidget {
                     // Customer name (with person icon)
                     Row(
                       children: [
-                        const Icon(Icons.person_outline, size: 16, color: AppColors.accent),
+                        const Icon(Icons.person_outline,
+                            size: 16, color: AppColors.accent),
                         const SizedBox(width: 6),
                         Text(
                           visit.customerName,
@@ -637,22 +721,27 @@ class _VisitDetailModal extends StatelessWidget {
                   // Date and time
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today, size: 16, color: AppColors.accent),
+                      const Icon(Icons.calendar_today,
+                          size: 16, color: AppColors.accent),
                       const SizedBox(width: 8),
                       Text(
                         visit.dueDate,
-                        style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceMuted),
+                        style: const TextStyle(
+                            fontSize: 14, color: AppColors.onSurfaceMuted),
                       ),
                       const SizedBox(width: 16),
-                      const Icon(Icons.access_time, size: 16, color: AppColors.accent),
+                      const Icon(Icons.access_time,
+                          size: 16, color: AppColors.accent),
                       const SizedBox(width: 8),
                       Text(
                         '${visit.hours} hr',
-                        style: const TextStyle(fontSize: 14, color: AppColors.onSurfaceMuted),
+                        style: const TextStyle(
+                            fontSize: 14, color: AppColors.onSurfaceMuted),
                       ),
                       const Spacer(),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: AppColors.infoContainer,
                           borderRadius: BorderRadius.circular(12),
@@ -690,7 +779,8 @@ class _VisitDetailModal extends StatelessWidget {
                   ),
                   Text(
                     '${visit.suburb} NSW 2068',
-                    style: const TextStyle(fontSize: 15, color: AppColors.onSurfaceMuted),
+                    style: const TextStyle(
+                        fontSize: 15, color: AppColors.onSurfaceMuted),
                   ),
                   const SizedBox(height: 20),
                   // Customer
@@ -753,7 +843,8 @@ class _VisitDetailModal extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.warningContainer,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                        border: Border.all(
+                            color: AppColors.warning.withOpacity(0.3)),
                       ),
                       child: Text(
                         visit.note!,

@@ -40,11 +40,11 @@ class PhotoCaptureWidget extends StatelessWidget {
 
               // Photo thumbnails
               ...photoPaths.asMap().entries.map(
-                (entry) => _PhotoThumbnail(
-                  path: entry.value,
-                  onRemove: () => onRemove(entry.key),
-                ),
-              ),
+                    (entry) => _PhotoThumbnail(
+                      path: entry.value,
+                      onRemove: () => onRemove(entry.key),
+                    ),
+                  ),
             ],
           ),
         ),
@@ -60,7 +60,8 @@ class PhotoCaptureWidget extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+              leading: const Icon(Icons.camera_alt_outlined,
+                  color: AppColors.primary),
               title: const Text('Chụp ảnh'),
               onTap: () async {
                 Navigator.pop(context);
@@ -68,7 +69,8 @@ class PhotoCaptureWidget extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+              leading: const Icon(Icons.photo_library_outlined,
+                  color: AppColors.primary),
               title: const Text('Chọn từ thư viện'),
               onTap: () async {
                 Navigator.pop(context);
@@ -85,9 +87,10 @@ class PhotoCaptureWidget extends StatelessWidget {
     final picker = ImagePicker();
     final images = source == ImageSource.gallery
         ? await picker.pickMultiImage(imageQuality: 70, maxWidth: 1280)
-        : [await picker.pickImage(source: source, imageQuality: 70, maxWidth: 1280)]
-            .whereType<XFile>()
-            .toList();
+        : [
+            await picker.pickImage(
+                source: source, imageQuality: 70, maxWidth: 1280)
+          ].whereType<XFile>().toList();
 
     for (final img in images) {
       onAdd(img.path);
@@ -120,7 +123,8 @@ class _AddPhotoButton extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_a_photo_outlined, color: AppColors.primary, size: 28),
+            Icon(Icons.add_a_photo_outlined,
+                color: AppColors.primary, size: 28),
             const SizedBox(height: 4),
             const Text(
               'Thêm ảnh',

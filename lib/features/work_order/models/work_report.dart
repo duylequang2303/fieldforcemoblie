@@ -13,16 +13,16 @@ class WorkReport {
   late int orderOdooId;
 
   // Nội dung báo cáo
-  late String workDone;           // Công việc đã thực hiện
-  String? problemsFound;          // Vấn đề phát sinh
-  String? recommendation;         // Khuyến nghị
+  late String workDone; // Công việc đã thực hiện
+  String? problemsFound; // Vấn đề phát sinh
+  String? recommendation; // Khuyến nghị
 
   // Ảnh hiện trường (paths local)
   late List<String> photoPaths;
 
   // Chữ ký khách hàng (base64 SVG path data)
-  String? customerSignaturePath;  // Path đến file ảnh chữ ký
-  String? customerName;           // Tên khách hàng ký
+  String? customerSignaturePath; // Path đến file ảnh chữ ký
+  String? customerName; // Tên khách hàng ký
 
   // Timestamps
   DateTime? signedAt;

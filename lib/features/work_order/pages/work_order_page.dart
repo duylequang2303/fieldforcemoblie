@@ -65,19 +65,21 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
               // Save locally
               IconButton(
                 icon: const Icon(Icons.save_outlined),
-                onPressed: provider.isLoading ? null : () async {
-                  provider.updateWorkDone(_workDoneController.text);
-                  provider.updateProblems(_problemsController.text);
-                  await provider.saveLocally();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Đã lưu bản nháp'),
-                        backgroundColor: AppColors.success,
-                      ),
-                    );
-                  }
-                },
+                onPressed: provider.isLoading
+                    ? null
+                    : () async {
+                        provider.updateWorkDone(_workDoneController.text);
+                        provider.updateProblems(_problemsController.text);
+                        await provider.saveLocally();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Đã lưu bản nháp'),
+                              backgroundColor: AppColors.success,
+                            ),
+                          );
+                        }
+                      },
                 tooltip: 'Lưu nháp',
               ),
             ],
@@ -173,7 +175,8 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Công Việc Đã Thực Hiện', Icons.assignment_turned_in_outlined),
+        _buildSectionHeader(
+            'Công Việc Đã Thực Hiện', Icons.assignment_turned_in_outlined),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(16),
@@ -212,7 +215,8 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
           ),
         ),
         const SizedBox(height: 16),
-        _buildSectionHeader('Vấn Đề Phát Sinh (Nếu Có)', Icons.warning_outlined),
+        _buildSectionHeader(
+            'Vấn Đề Phát Sinh (Nếu Có)', Icons.warning_outlined),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(16),
@@ -283,7 +287,9 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
           child: CustomerSignatureWidget(
             existingSignaturePath: provider.report?.customerSignaturePath,
             existingCustomerName: provider.report?.customerName,
-            onSigned: ({required String signaturePath, required String customerName}) async {
+            onSigned: (
+                {required String signaturePath,
+                required String customerName}) async {
               provider.setSignature(signaturePath, customerName);
             },
           ),
@@ -336,7 +342,8 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
                 const Expanded(
                   child: Text(
                     'Vui lòng hoàn thành mô tả công việc và chữ ký khách hàng trước khi gửi.',
-                    style: TextStyle(fontSize: 13, color: AppColors.warning, height: 1.4),
+                    style: TextStyle(
+                        fontSize: 13, color: AppColors.warning, height: 1.4),
                   ),
                 ),
               ],
@@ -455,7 +462,9 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
                           ),
                         )
                       : const Icon(Icons.check_circle),
-                  label: provider.isSubmitting ? const Text('Đang gửi...') : const Text('Gửi Nghiệm Thu'),
+                  label: provider.isSubmitting
+                      ? const Text('Đang gửi...')
+                      : const Text('Gửi Nghiệm Thu'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.success,
                     foregroundColor: Colors.white,
@@ -464,14 +473,14 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     elevation: 0,
-                    disabledBackgroundColor: AppColors.onSurfaceWeak.withOpacity(0.3),
+                    disabledBackgroundColor:
+                        AppColors.onSurfaceWeak.withOpacity(0.3),
                   ),
                 ),
         ),
       ],
     );
   }
-
 
   Future<void> _submit(BuildContext context, WorkOrderProvider provider) async {
     provider.updateWorkDone(_workDoneController.text);
@@ -496,55 +505,6 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
         ),
       );
     }
-  }
-}
-
-class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.isOk,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final bool isOk;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(
-            isOk ? Icons.check_circle : Icons.radio_button_unchecked,
-            color: isOk ? AppColors.success : AppColors.onSurfaceMuted,
-            size: 20,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.onSurfaceMuted)),
-                Text(value,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isOk ? AppColors.onSurface : AppColors.onSurfaceMuted,
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -643,7 +603,8 @@ class _ReviewRow extends StatelessWidget {
                   value,
                   style: TextStyle(
                     fontSize: 14,
-                    color: isOk ? AppColors.onSurface : AppColors.onSurfaceMuted,
+                    color:
+                        isOk ? AppColors.onSurface : AppColors.onSurfaceMuted,
                     fontWeight: isOk ? FontWeight.w600 : FontWeight.w400,
                   ),
                   maxLines: 3,

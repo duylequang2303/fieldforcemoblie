@@ -129,52 +129,54 @@ class _StopTile extends StatelessWidget {
                             ),
                           ),
                         ),
-                       if (stop.locationName != null)
-                         Padding(
-                           padding: const EdgeInsets.only(top: 2),
-                           child: Row(
-                             children: [
-                               const Icon(Icons.location_on_outlined,
-                                   size: 12, color: AppColors.onSurfaceMuted),
-                               const SizedBox(width: 2),
-                               Expanded(
-                                 child: Text(
-                                   stop.locationName!,
-                                   style: const TextStyle(
-                                     fontSize: 11,
-                                     color: AppColors.onSurfaceMuted,
-                                   ),
-                                   maxLines: 1,
-                                   overflow: TextOverflow.ellipsis,
-                                 ),
-                               ),
-                               // Navigate button or warning message
-                               if (stop.latitude != null && stop.longitude != null)
-                                 GestureDetector(
-                                   onTap: onNavigate,
-                                   child: const Padding(
-                                     padding: EdgeInsets.only(left: 8),
-                                     child: Icon(
-                                       Icons.navigation_outlined,
-                                       size: 18,
-                                       color: AppColors.primary,
-                                     ),
-                                   ),
-                                 ),
-                               if (stop.latitude == null || stop.longitude == null)
-                                 Padding(
-                                   padding: const EdgeInsets.only(left: 8),
-                                   child: Text(
-                                     'Chưa có tọa độ GPS',
-                                     style: const TextStyle(
-                                       fontSize: 11,
-                                       color: AppColors.error,
-                                     ),
-                                   ),
-                                 ),
-                             ],
-                           ),
-                         ),
+                      if (stop.locationName != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.location_on_outlined,
+                                  size: 12, color: AppColors.onSurfaceMuted),
+                              const SizedBox(width: 2),
+                              Expanded(
+                                child: Text(
+                                  stop.locationName!,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.onSurfaceMuted,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              // Navigate button or warning message
+                              if (stop.latitude != null &&
+                                  stop.longitude != null)
+                                GestureDetector(
+                                  onTap: onNavigate,
+                                  child: const Padding(
+                                    padding: EdgeInsets.only(left: 8),
+                                    child: Icon(
+                                      Icons.navigation_outlined,
+                                      size: 18,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ),
+                              if (stop.latitude == null ||
+                                  stop.longitude == null)
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 8),
+                                  child: Text(
+                                    'Chưa có tọa độ GPS',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppColors.error,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                 ),

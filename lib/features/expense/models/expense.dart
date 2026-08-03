@@ -4,11 +4,11 @@ part 'expense.g.dart';
 
 /// Loại chi phí.
 enum ExpenseCategory {
-  fuel,         // Nhiên liệu
-  meal,         // Ăn uống
-  transport,    // Vận chuyển
-  material,     // Vật liệu
-  other,        // Khác
+  fuel, // Nhiên liệu
+  meal, // Ăn uống
+  transport, // Vận chuyển
+  material, // Vật liệu
+  other, // Khác
 }
 
 /// Một khoản chi phí của Worker trong chuyến công tác.
@@ -22,14 +22,14 @@ class Expense {
   @Index()
   late int orderOdooId;
 
-  late String name;             // Mô tả chi phí
-  late double amount;           // Số tiền (VND)
+  late String name; // Mô tả chi phí
+  late double amount; // Số tiền (VND)
   late DateTime date;
 
   @Enumerated(EnumType.name)
   late ExpenseCategory category;
 
-  String? receiptImagePath;     // Đường dẫn ảnh hoá đơn local
+  String? receiptImagePath; // Đường dẫn ảnh hoá đơn local
   String? note;
 
   late bool isPendingSync;
@@ -60,11 +60,16 @@ class Expense {
 
   String get categoryLabel {
     switch (category) {
-      case ExpenseCategory.fuel:        return 'Nhiên liệu';
-      case ExpenseCategory.meal:        return 'Ăn uống';
-      case ExpenseCategory.transport:   return 'Vận chuyển';
-      case ExpenseCategory.material:    return 'Vật liệu';
-      case ExpenseCategory.other:       return 'Khác';
+      case ExpenseCategory.fuel:
+        return 'Nhiên liệu';
+      case ExpenseCategory.meal:
+        return 'Ăn uống';
+      case ExpenseCategory.transport:
+        return 'Vận chuyển';
+      case ExpenseCategory.material:
+        return 'Vật liệu';
+      case ExpenseCategory.other:
+        return 'Khác';
     }
   }
 }

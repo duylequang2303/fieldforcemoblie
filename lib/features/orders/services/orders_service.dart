@@ -15,7 +15,7 @@ class OrdersService {
   final _isar = IsarService.instance;
 
   static const _model = 'fsm.order';
-  
+
   // Fields cơ bản cho fsm.order
   static const _fields = [
     'id',
@@ -50,7 +50,7 @@ class OrdersService {
     'state_name',
     'todo',
   ];
-  
+
   static const _locationFields = [
     'id',
     'partner_latitude',
@@ -79,7 +79,9 @@ class OrdersService {
         model: 'fsm.stage',
         method: 'search_read',
         args: [[]],
-        kwargs: {'fields': ['id', 'name']},
+        kwargs: {
+          'fields': ['id', 'name']
+        },
       ) as List<dynamic>;
 
       for (final s in rawList) {
@@ -107,7 +109,10 @@ class OrdersService {
             ['name', '=', 'fsm_stage_completed'],
           ]
         ],
-        kwargs: {'fields': ['res_id'], 'limit': 1},
+        kwargs: {
+          'fields': ['res_id'],
+          'limit': 1
+        },
       ) as List<dynamic>;
       if (result.isNotEmpty) {
         _completedStageId = result.first['res_id'] as int;
@@ -134,7 +139,7 @@ class OrdersService {
   /// Fetch từ Odoo → lưu Isar → trả về list.
   Future<List<FsmOrder>> fetchMyOrders() async {
     final userId = _odoo.currentUserId;
-    
+
     if (userId == null) {
       logger.w('OrdersService.fetchMyOrders: userId null, trả về empty list');
       return [];
@@ -143,7 +148,7 @@ class OrdersService {
     // [WARNING] Quy ước nội bộ công ty:
     // Dùng field person_id.user_id (thường là Salesperson) để map thợ (fsm.person) với user login.
     // KHÔNG SỬA thành chuẩn Odoo (person_id.partner_id.user_ids) vì dữ liệu partner_id không chứa user.
-    
+
     // Domain chính: person_id.user_id = userId
     final domain = [
       ['person_id.user_id', '=', userId]
@@ -156,13 +161,14 @@ class OrdersService {
     final domainFallback1 = [
       ['person_ids.user_id', '=', userId] // many2many field person_ids
     ];
-    
+
     final domainFallback2 = [
       ['team_id.calendar_user_id', '=', userId] // team với calendar_user_id
     ];
 
     // Fetch orders với domain chính
-    logger.i('OrdersService.fetchMyOrders: Fetching with domain: person_id.user_id = $userId');
+    logger.i(
+        'OrdersService.fetchMyOrders: Fetching with domain: person_id.user_id = $userId');
     final rawOrders = await _odoo.callKw(
       model: _model,
       method: 'search_read',
@@ -172,32 +178,37 @@ class OrdersService {
 
     // Nếu không có kết quả, thử fallback domains
     if (rawOrders.isEmpty) {
-      logger.w('OrdersService.fetchMyOrders: Không có kết quả với domain chính, thử fallback domains');
+      logger.w(
+          'OrdersService.fetchMyOrders: Không có kết quả với domain chính, thử fallback domains');
 
       // Thử fallback 1: person_ids
       final fallbackOrders1 = await _tryFetchOrders(domainFallback1);
       if (fallbackOrders1.isNotEmpty) {
-        logger.i('OrdersService.fetchMyOrders: Found orders via person_ids fallback');
+        logger.i(
+            'OrdersService.fetchMyOrders: Found orders via person_ids fallback');
         return fallbackOrders1;
       }
 
       // Thử fallback 2: team_id.calendar_user_id
       final fallbackOrders2 = await _tryFetchOrders(domainFallback2);
       if (fallbackOrders2.isNotEmpty) {
-        logger.i('OrdersService.fetchMyOrders: Found orders via team_id fallback');
+        logger.i(
+            'OrdersService.fetchMyOrders: Found orders via team_id fallback');
         return fallbackOrders2;
       }
 
-      logger.w('OrdersService.fetchMyOrders: Không có kết quả với bất kỳ domain nào');
+      logger.w(
+          'OrdersService.fetchMyOrders: Không có kết quả với bất kỳ domain nào');
     }
 
     // Process location_ids và route_ids như cũ
     final locationIds = rawOrders
-        .where((e) => (e as Map)['location_id'] != null && e['location_id'] is List)
+        .where((e) =>
+            (e as Map)['location_id'] != null && e['location_id'] is List)
         .map((e) => ((e as Map)['location_id'] as List)[0] as int)
         .toSet()
         .toList();
-    
+
     Map<int, Map<String, dynamic>> locationCoordinates = {};
     if (locationIds.isNotEmpty) {
       final locData = await _odoo.callKw(
@@ -225,7 +236,9 @@ class OrdersService {
           model: 'fsm.route',
           method: 'read',
           args: [routeIds],
-          kwargs: {'fields': ['state']},
+          kwargs: {
+            'fields': ['state']
+          },
         ) as List<dynamic>;
         for (var route in routeData) {
           final id = route['id'] as int;
@@ -242,7 +255,7 @@ class OrdersService {
     // Parse JSON -> Model Isar
     final orders = rawOrders.map((o) {
       final oMap = o as Map<String, dynamic>;
-      
+
       // Inject route_state
       final rData = oMap['route_id'];
       if (rData != null && rData is List && rData.isNotEmpty) {
@@ -277,11 +290,12 @@ class OrdersService {
 
       // Process location_ids và route_ids
       final locationIds = rawOrders
-          .where((e) => (e as Map)['location_id'] != null && e['location_id'] is List)
+          .where((e) =>
+              (e as Map)['location_id'] != null && e['location_id'] is List)
           .map((e) => ((e as Map)['location_id'] as List)[0] as int)
           .toSet()
           .toList();
-      
+
       Map<int, Map<String, dynamic>> locationCoordinates = {};
       if (locationIds.isNotEmpty) {
         final locData = await _odoo.callKw(
@@ -308,7 +322,9 @@ class OrdersService {
             model: 'fsm.route',
             method: 'read',
             args: [routeIds],
-            kwargs: {'fields': ['state']},
+            kwargs: {
+              'fields': ['state']
+            },
           ) as List<dynamic>;
           for (var route in routeData) {
             final id = route['id'] as int;
@@ -324,14 +340,15 @@ class OrdersService {
 
       final orders = rawOrders.map((o) {
         final oMap = o as Map<String, dynamic>;
-        
+
         final rData = oMap['route_id'];
         if (rData != null && rData is List && rData.isNotEmpty) {
           final rId = rData[0] as int;
           oMap['route_state'] = routeStates[rId];
         }
 
-        return FsmOrder.fromJson(oMap, locationCoordinates: locationCoordinates);
+        return FsmOrder.fromJson(oMap,
+            locationCoordinates: locationCoordinates);
       }).toList();
 
       await _isar.db.writeTxn(() async {
@@ -340,7 +357,8 @@ class OrdersService {
 
       return orders;
     } catch (e) {
-      logger.w('OrdersService._tryFetchOrders: Error fetching with domain', error: e);
+      logger.w('OrdersService._tryFetchOrders: Error fetching with domain',
+          error: e);
       return [];
     }
   }
@@ -354,11 +372,13 @@ class OrdersService {
   void _updateStageFields(FsmOrder local, int newStageId) {
     local.stageId = newStageId;
     final name = _stageNames[newStageId] ?? '';
-    
+
     if (name.contains('progress') || name.contains('thực hiện')) {
       local.stageName = 'In Progress';
       local.stage = FsmOrderStage.inProgress;
-    } else if (name.contains('completed') || name.contains('done') || name.contains('hoàn')) {
+    } else if (name.contains('completed') ||
+        name.contains('done') ||
+        name.contains('hoàn')) {
       local.stageName = 'Completed';
       local.stage = FsmOrderStage.done;
     } else if (name.contains('cancel') || name.contains('huỷ')) {
@@ -399,7 +419,8 @@ class OrdersService {
         });
       }
     } on OdooApiException catch (e) {
-      logger.w('OrdersService.updateStage: offline, queued local update', error: e);
+      logger.w('OrdersService.updateStage: offline, queued local update',
+          error: e);
       rethrow;
     }
   }
@@ -434,9 +455,11 @@ class OrdersService {
       await _odoo.callKw(
         model: _model,
         method: 'action_complete',
-        args: [[odooId]],
+        args: [
+          [odooId]
+        ],
       );
-      
+
       if (local != null) {
         await _isar.db.writeTxn(() async {
           local.isPendingSync = false;
@@ -444,7 +467,9 @@ class OrdersService {
         });
       }
     } on OdooApiException catch (e) {
-      logger.w('OrdersService.completeOrder: API call failed, saved local completion draft', error: e);
+      logger.w(
+          'OrdersService.completeOrder: API call failed, saved local completion draft',
+          error: e);
       rethrow;
     }
   }
@@ -488,7 +513,8 @@ class OrdersService {
         });
       }
     } on OdooApiException catch (e) {
-      logger.w('OrdersService.checkIn: offline, queued local check-in', error: e);
+      logger.w('OrdersService.checkIn: offline, queued local check-in',
+          error: e);
       rethrow;
     }
   }
@@ -524,7 +550,8 @@ class OrdersService {
         });
       }
     } on OdooApiException catch (e) {
-      logger.w('OrdersService.checkOut: offline, queued local check-out', error: e);
+      logger.w('OrdersService.checkOut: offline, queued local check-out',
+          error: e);
       rethrow;
     }
   }
@@ -533,10 +560,8 @@ class OrdersService {
   /// Đơn completed → gọi action_complete thay vì write stage_id raw.
   /// Đơn khác → write field data (stage_id, date_start, date_end) sang UTC.
   Future<void> syncPending() async {
-    final pending = await _isar.db.fsmOrders
-        .filter()
-        .isPendingSyncEqualTo(true)
-        .findAll();
+    final pending =
+        await _isar.db.fsmOrders.filter().isPendingSyncEqualTo(true).findAll();
 
     for (final order in pending) {
       try {
@@ -545,7 +570,9 @@ class OrdersService {
           await _odoo.callKw(
             model: _model,
             method: 'action_complete',
-            args: [[order.odooId]],
+            args: [
+              [order.odooId]
+            ],
           );
         } else {
           // Các stage khác → write raw
@@ -586,7 +613,8 @@ class OrdersService {
           await _isar.db.fsmOrders.put(order);
         });
       } catch (e) {
-        logger.w('OrdersService.syncPending: failed for order ${order.odooId}', error: e);
+        logger.w('OrdersService.syncPending: failed for order ${order.odooId}',
+            error: e);
       }
     }
   }

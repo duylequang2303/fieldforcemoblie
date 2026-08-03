@@ -7,7 +7,7 @@ import '../../orders/models/fsm_order.dart';
 
 class WorkOrderProvider extends ChangeNotifier {
   WorkOrderProvider({WorkOrderService? service})
-    : _service = service ?? WorkOrderService.instance;
+      : _service = service ?? WorkOrderService.instance;
 
   final WorkOrderService _service;
 
