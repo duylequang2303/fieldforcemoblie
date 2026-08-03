@@ -21,14 +21,22 @@ class _ScheduleTimesheetPageState extends State<ScheduleTimesheetPage> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: AppColors.schedulePrimary,
-        title: const Text('SAVE', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+        title: const Text('SAVE',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w600)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('EMPLOYEE(S)', style: TextStyle(fontSize: 13, color: AppColors.onSurfaceMuted, letterSpacing: 0.4)),
+            const Text('EMPLOYEE(S)',
+                style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.onSurfaceMuted,
+                    letterSpacing: 0.4)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 10,
@@ -49,11 +57,17 @@ class _ScheduleTimesheetPageState extends State<ScheduleTimesheetPage> {
             Row(
               children: [
                 Expanded(
-                  child: _TimeField(label: 'START TIME', value: _start.format(context), onTap: () {}),
+                  child: _TimeField(
+                      label: 'START TIME',
+                      value: _start.format(context),
+                      onTap: () {}),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _TimeField(label: 'END TIME', value: _end.format(context), onTap: () {}),
+                  child: _TimeField(
+                      label: 'END TIME',
+                      value: _end.format(context),
+                      onTap: () {}),
                 ),
               ],
             ),
@@ -67,7 +81,8 @@ class _ScheduleTimesheetPageState extends State<ScheduleTimesheetPage> {
                 hintText: 'Note (optional)',
                 hintStyle: TextStyle(color: AppColors.scheduleSecondaryText),
                 border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               ),
             ),
             const SizedBox(height: 32),
@@ -83,14 +98,19 @@ class _TimeField extends StatelessWidget {
   final String value;
   final VoidCallback onTap;
 
-  const _TimeField({required this.label, required this.value, required this.onTap});
+  const _TimeField(
+      {required this.label, required this.value, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, color: AppColors.onSurfaceMuted, letterSpacing: 0.4)),
+        Text(label,
+            style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.onSurfaceMuted,
+                letterSpacing: 0.4)),
         const SizedBox(height: 6),
         InkWell(
           onTap: onTap,
@@ -100,48 +120,58 @@ class _TimeField extends StatelessWidget {
               border: Border.all(color: AppColors.scheduleDivider),
               borderRadius: BorderRadius.circular(4),
             ),
-             child: Row(
-               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-               children: [
-                 Text(value, style: const TextStyle(fontSize: 16, color: AppColors.onSurface)),
-                 const Icon(Icons.arrow_drop_down, color: AppColors.onSurfaceMuted),
-               ],
-             ),
-           ),
-         ),
-       ],
-     );
-   }
- }
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(value,
+                    style: const TextStyle(
+                        fontSize: 16, color: AppColors.onSurface)),
+                const Icon(Icons.arrow_drop_down,
+                    color: AppColors.onSurfaceMuted),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
 
- class _DropdownField extends StatelessWidget {
-   final String label;
-   final String value;
+class _DropdownField extends StatelessWidget {
+  final String label;
+  final String value;
 
-   const _DropdownField({required this.label, required this.value});
+  const _DropdownField({required this.label, required this.value});
 
-   @override
-   Widget build(BuildContext context) {
-     return Column(
-       crossAxisAlignment: CrossAxisAlignment.start,
-       children: [
-         Text(label, style: const TextStyle(fontSize: 13, color: AppColors.onSurfaceMuted, letterSpacing: 0.4)),
-         const SizedBox(height: 6),
-         Container(
-           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-           decoration: BoxDecoration(
-             border: Border.all(color: AppColors.divider),
-             borderRadius: BorderRadius.circular(8),
-           ),
-           child: Row(
-             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-             children: [
-               Text(value, style: const TextStyle(fontSize: 16, color: AppColors.onSurface)),
-               const Icon(Icons.arrow_drop_down, color: AppColors.onSurfaceMuted),
-             ],
-           ),
-         ),
-       ],
-     );
-   }
- }
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.onSurfaceMuted,
+                letterSpacing: 0.4)),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.divider),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(value,
+                  style: const TextStyle(
+                      fontSize: 16, color: AppColors.onSurface)),
+              const Icon(Icons.arrow_drop_down,
+                  color: AppColors.onSurfaceMuted),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}

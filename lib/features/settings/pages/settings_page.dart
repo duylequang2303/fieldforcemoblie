@@ -96,7 +96,9 @@ class _SettingsPageState extends State<SettingsPage> {
         args: [
           [userId]
         ],
-        kwargs: {'fields': ['id']},
+        kwargs: {
+          'fields': ['id']
+        },
       );
       if (mounted) setState(() => _connStatus = _ConnStatus.valid);
     } on OdooConnectionException {
@@ -293,7 +295,8 @@ class _SettingsPageState extends State<SettingsPage> {
             width: 84,
             child: Text(
               label,
-              style: const TextStyle(fontSize: 13, color: SfTokens.onSurfaceWeak),
+              style:
+                  const TextStyle(fontSize: 13, color: SfTokens.onSurfaceWeak),
             ),
           ),
           Expanded(
@@ -370,14 +373,14 @@ class _SettingsPageState extends State<SettingsPage> {
           _row(
             icon: Icons.wifi,
             label: 'Sync on WiFi only',
-              trailing: Switch(
-                value: _wifiOnly,
-                activeThumbColor: SfTokens.primary,
-                onChanged: (v) {
-                  setState(() => _wifiOnly = v);
-                  SettingsRepository.instance.saveWifiOnly(v);
-                },
-              ),
+            trailing: Switch(
+              value: _wifiOnly,
+              activeThumbColor: SfTokens.primary,
+              onChanged: (v) {
+                setState(() => _wifiOnly = v);
+                SettingsRepository.instance.saveWifiOnly(v);
+              },
+            ),
           ),
           const Divider(height: 1, color: SfTokens.divider),
           _row(
@@ -399,7 +402,8 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           Row(
             children: [
-              const Icon(Icons.account_circle, color: SfTokens.primary, size: 32),
+              const Icon(Icons.account_circle,
+                  color: SfTokens.primary, size: 32),
               const SizedBox(width: SfTokens.spacingSm),
               Expanded(
                 child: Text(
@@ -419,7 +423,8 @@ class _SettingsPageState extends State<SettingsPage> {
             child: TextButton(
               onPressed: _onLogout,
               style: TextButton.styleFrom(foregroundColor: SfTokens.error),
-              child: const Text('Log out', style: TextStyle(fontWeight: FontWeight.w600)),
+              child: const Text('Log out',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -435,7 +440,10 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           const Text(
             'Fieldforce Mobile',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: SfTokens.onSurface),
+            style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: SfTokens.onSurface),
           ),
           const SizedBox(height: SfTokens.spacingXxs),
           Text(
@@ -466,7 +474,9 @@ class _SettingsPageState extends State<SettingsPage> {
       padding: const EdgeInsets.symmetric(vertical: SfTokens.spacingXs),
       child: Row(
         children: [
-          Icon(icon, color: iconColor ?? SfTokens.onSurfaceWeak, size: SfTokens.iconSm),
+          Icon(icon,
+              color: iconColor ?? SfTokens.onSurfaceWeak,
+              size: SfTokens.iconSm),
           const SizedBox(width: SfTokens.spacingSm),
           Expanded(
             child: Text(
@@ -479,7 +489,9 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           if (value != null)
-            Text(value, style: const TextStyle(fontSize: 13, color: SfTokens.onSurfaceWeak)),
+            Text(value,
+                style: const TextStyle(
+                    fontSize: 13, color: SfTokens.onSurfaceWeak)),
           if (trailing != null) trailing,
         ],
       ),

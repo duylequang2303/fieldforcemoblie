@@ -59,7 +59,9 @@ class OdooSessionManager {
           model: 'res.users',
           method: 'read',
           args: [session.userId],
-          kwargs: {'fields': ['lang']},
+          kwargs: {
+            'fields': ['lang']
+          },
         );
         if (userData is List && userData.isNotEmpty) {
           userLang = (userData.first['lang'] as String?) ?? 'vi_VN';
@@ -76,9 +78,14 @@ class OdooSessionManager {
           model: 'hr.employee',
           method: 'search_read',
           args: [
-            [['user_id', '=', session.userId]]
+            [
+              ['user_id', '=', session.userId]
+            ]
           ],
-          kwargs: {'fields': ['id'], 'limit': 1},
+          kwargs: {
+            'fields': ['id'],
+            'limit': 1
+          },
         );
         if (employeeData is List && employeeData.isNotEmpty) {
           employeeId = employeeData.first['id'] as int?;
@@ -88,7 +95,8 @@ class OdooSessionManager {
       }
 
       if (employeeId == null) {
-        throw const OdooAuthException('Tài khoản chưa được liên kết với Hồ sơ nhân sự (hr.employee). Vui lòng liên hệ Admin.');
+        throw const OdooAuthException(
+            'Tài khoản chưa được liên kết với Hồ sơ nhân sự (hr.employee). Vui lòng liên hệ Admin.');
       }
 
       _currentSession = OdooSessionData(
@@ -209,7 +217,8 @@ class OdooSessionManager {
       logger.w('Session expired, attempting silent re-authentication...');
       final renewed = await _tryReAuthenticate();
       if (!renewed) {
-        throw const OdooAuthException('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        throw const OdooAuthException(
+            'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
       }
       // Retry the original call with the new session
       return await OdooApiClient.instance.callKw(
@@ -232,7 +241,10 @@ class OdooSessionManager {
       final username = saved['username'];
       final password = saved['password'];
 
-      if (serverUrl == null || database == null || username == null || password == null) {
+      if (serverUrl == null ||
+          database == null ||
+          username == null ||
+          password == null) {
         logger.w('Cannot re-authenticate: missing stored credentials');
         return false;
       }

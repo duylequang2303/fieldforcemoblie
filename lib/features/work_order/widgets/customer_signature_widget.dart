@@ -91,7 +91,8 @@ class _CustomerSignatureWidgetState extends State<CustomerSignatureWidget> {
           const SizedBox(height: 8),
           Row(
             children: [
-              const Icon(Icons.check_circle, color: AppColors.success, size: 18),
+              const Icon(Icons.check_circle,
+                  color: AppColors.success, size: 18),
               const SizedBox(width: 6),
               Text(
                 'Đã ký: ${widget.existingCustomerName ?? 'Khách hàng'}',
@@ -140,14 +141,17 @@ class _CustomerSignatureWidgetState extends State<CustomerSignatureWidget> {
             onPressed: (_hasSigned && !_isSaving) ? _confirmSignature : null,
             icon: _isSaving
                 ? const SizedBox(
-                    width: 16, height: 16,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2))
                 : const Icon(Icons.check, size: 18),
             label: Text(_isSaving ? 'Đang lưu...' : 'Xác nhận chữ ký'),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.success,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
           ),
         ],

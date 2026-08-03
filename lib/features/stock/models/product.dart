@@ -11,11 +11,11 @@ class Product {
   late int odooId;
 
   late String name;
-  String? defaultCode;    // Mã sản phẩm nội bộ
-  String? barcode;        // Barcode (EAN/QR)
-  String? categoryName;   // product.category.name
-  String? uomName;        // Đơn vị tính (Unit of Measure)
-  double? standardPrice;  // Giá vốn
+  String? defaultCode; // Mã sản phẩm nội bộ
+  String? barcode; // Barcode (EAN/QR)
+  String? categoryName; // product.category.name
+  String? uomName; // Đơn vị tính (Unit of Measure)
+  double? standardPrice; // Giá vốn
   late DateTime lastSyncAt;
 
   Product();

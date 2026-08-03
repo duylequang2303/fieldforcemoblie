@@ -187,7 +187,8 @@ class _LoginPageState extends State<LoginPage> {
                             OutlinedButton.icon(
                               onPressed: auth.loginWithBiometric,
                               icon: const Icon(Icons.fingerprint),
-                              label: const Text('Đăng nhập bằng vân tay / Face ID'),
+                              label: const Text(
+                                  'Đăng nhập bằng vân tay / Face ID'),
                             ),
                           ],
                         ],

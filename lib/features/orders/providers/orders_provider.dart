@@ -6,9 +6,9 @@ import '../services/orders_service.dart';
 
 /// State management cho danh sách fsm.order.
 class OrdersProvider extends ChangeNotifier {
-  OrdersProvider({OrdersService? service, ConnectivityService? connectivity}) 
-    : _service = service ?? OrdersService.instance,
-      _connectivity = connectivity ?? ConnectivityService.instance {
+  OrdersProvider({OrdersService? service, ConnectivityService? connectivity})
+      : _service = service ?? OrdersService.instance,
+        _connectivity = connectivity ?? ConnectivityService.instance {
     _listenConnectivity();
   }
 
@@ -93,11 +93,13 @@ class OrdersProvider extends ChangeNotifier {
   Future<void> updateOrderToInProgress(int odooId) async {
     _isLoading = true;
     notifyListeners();
-    final stageId = await _service.getStageIdByKeywords(['progress', 'thực hiện']);
+    final stageId =
+        await _service.getStageIdByKeywords(['progress', 'thực hiện']);
     if (stageId != null) {
       await updateOrderStage(odooId, stageId);
     } else {
-      _errorMessage = 'Không tìm thấy trạng thái "Đang thực hiện" trên hệ thống.';
+      _errorMessage =
+          'Không tìm thấy trạng thái "Đang thực hiện" trên hệ thống.';
       _isLoading = false;
       notifyListeners();
     }
@@ -108,7 +110,7 @@ class OrdersProvider extends ChangeNotifier {
     _isLoading = true;
     _errorMessage = null; // Reset errorMessage trước khi gọi API nghiệp vụ
     notifyListeners();
-    
+
     try {
       await _service.completeOrder(odooId);
       _orders = await _service.loadCachedOrders();

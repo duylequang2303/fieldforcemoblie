@@ -152,9 +152,19 @@ class _ScannerOverlay extends StatelessWidget {
           children: [
             // Corner markers
             Positioned(top: 0, left: 0, child: _Corner()),
-            Positioned(top: 0, right: 0, child: Transform.scale(scaleX: -1, child: _Corner())),
-            Positioned(bottom: 0, left: 0, child: Transform.scale(scaleY: -1, child: _Corner())),
-            Positioned(bottom: 0, right: 0, child: Transform.scale(scaleX: -1, scaleY: -1, child: _Corner())),
+            Positioned(
+                top: 0,
+                right: 0,
+                child: Transform.scale(scaleX: -1, child: _Corner())),
+            Positioned(
+                bottom: 0,
+                left: 0,
+                child: Transform.scale(scaleY: -1, child: _Corner())),
+            Positioned(
+                bottom: 0,
+                right: 0,
+                child:
+                    Transform.scale(scaleX: -1, scaleY: -1, child: _Corner())),
           ],
         ),
       ),
@@ -195,7 +205,8 @@ class _WaitingPanel extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.qr_code_scanner, size: 48, color: AppColors.onSurfaceMuted),
+          Icon(Icons.qr_code_scanner,
+              size: 48, color: AppColors.onSurfaceMuted),
           SizedBox(height: 12),
           Text(
             'Hướng camera vào mã barcode / QR',
@@ -240,7 +251,8 @@ class _ProductFoundPanelState extends State<_ProductFoundPanel> {
         children: [
           Row(
             children: [
-              const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+              const Icon(Icons.check_circle,
+                  color: AppColors.success, size: 20),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -256,22 +268,26 @@ class _ProductFoundPanelState extends State<_ProductFoundPanel> {
           if (widget.product.defaultCode != null)
             Text(
               'Mã: ${widget.product.defaultCode}',
-              style: const TextStyle(color: AppColors.onSurfaceMuted, fontSize: 13),
+              style: const TextStyle(
+                  color: AppColors.onSurfaceMuted, fontSize: 13),
             ),
           const Spacer(),
           // Số lượng
           Row(
             children: [
-              const Text('Số lượng:', style: TextStyle(fontWeight: FontWeight.w600)),
+              const Text('Số lượng:',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(width: 12),
               SizedBox(
                 width: 80,
                 child: TextField(
                   controller: _qtyController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   ),
                 ),
               ),

@@ -52,10 +52,12 @@ class SyncManager {
       Duration(minutes: minutes),
       (_) => _autoTick(),
     );
-    debugPrint(
-      'SyncManager: auto-sync mỗi $minutes phút '
-      '(wifiOnly=${SettingsRepository.instance.wifiOnly})',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        'SyncManager: auto-sync mỗi $minutes phút '
+        '(wifiOnly=${SettingsRepository.instance.wifiOnly})',
+      );
+    }
   }
 
   Future<void> _autoTick() async {
@@ -63,10 +65,15 @@ class SyncManager {
     final isOnline = await _connectivity.isOnline;
     if (!isOnline) return;
     if (!await _allowedByNetworkPref()) {
-      debugPrint('SyncManager: bỏ qua auto-sync (wifi-only nhưng đang mobile data)');
+      if (kDebugMode) {
+        debugPrint(
+            'SyncManager: bỏ qua auto-sync (wifi-only nhưng đang mobile data)');
+      }
       return;
     }
-    debugPrint('SyncManager: auto-sync tick → syncPending()');
+    if (kDebugMode) {
+      debugPrint('SyncManager: auto-sync tick → syncPending()');
+    }
     await syncPending();
     // Ghi thời điểm để màn Settings phản ánh lần auto-sync (không chỉ sync tay).
     await SettingsRepository.instance.saveLastSyncedAt(DateTime.now());
@@ -94,7 +101,8 @@ class SyncManager {
   /// Gọi sau khi login/restore thành công: sync pending ngay, không đợi tick 15 phút.
   Future<void> syncAfterAuth() async {
     if (_isSyncing) return;
-    if (!await _connectivity.isOnline) return; // offline → đợi tick/connectivity sau
+    if (!await _connectivity.isOnline)
+      return; // offline → đợi tick/connectivity sau
     if (!await _allowedByNetworkPref()) return;
     await syncPending();
   }

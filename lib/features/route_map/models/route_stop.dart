@@ -5,10 +5,10 @@ part 'route_stop.g.dart';
 
 /// Trạng thái của một điểm dừng trong lộ trình.
 enum StopStatus {
-  pending,    // Chưa đến
-  current,    // Đang đến / đang làm
-  completed,  // Đã xong
-  skipped,    // Bỏ qua
+  pending, // Chưa đến
+  current, // Đang đến / đang làm
+  completed, // Đã xong
+  skipped, // Bỏ qua
 }
 
 /// Một điểm dừng trong lộ trình ngày của Worker.
@@ -21,9 +21,9 @@ class RouteStop {
   @Index(unique: true)
   late int orderOdooId;
 
-  late String orderName;      // Mã đơn, VD: "WO/2024/001"
-  String? partnerName;        // Tên khách hàng
-  String? locationName;       // Tên địa điểm
+  late String orderName; // Mã đơn, VD: "WO/2024/001"
+  String? partnerName; // Tên khách hàng
+  String? locationName; // Tên địa điểm
 
   // Tọa độ GPS của địa điểm
   double? latitude;

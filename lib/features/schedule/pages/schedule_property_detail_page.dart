@@ -60,11 +60,13 @@ class SchedulePropertyDetailPage extends StatelessWidget {
     }
     final label = Uri.encodeComponent(property.address);
     // Try Google Maps first, fallback to geo:
-    final gmap = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
+    final gmap =
+        Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng');
     if (await canLaunchUrl(gmap)) {
       await launchUrl(gmap, mode: LaunchMode.externalApplication);
     } else {
-      final geo = Uri(scheme: 'geo', path: '$lat,$lng', query: 'q=$lat,$lng($label)');
+      final geo =
+          Uri(scheme: 'geo', path: '$lat,$lng', query: 'q=$lat,$lng($label)');
       if (await canLaunchUrl(geo)) {
         await launchUrl(geo);
       } else {
@@ -112,7 +114,8 @@ class SchedulePropertyDetailPage extends StatelessWidget {
             Card(
               elevation: 0,
               color: cs.surfaceContainerHighest,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -120,25 +123,38 @@ class SchedulePropertyDetailPage extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.location_on_outlined, color: cs.primary, size: 20),
+                        Icon(Icons.location_on_outlined,
+                            color: cs.primary, size: 20),
                         const SizedBox(width: 8),
-                        Text('Location', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600, fontSize: 13)),
+                        Text('Location',
+                            style: TextStyle(
+                                color: cs.primary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13)),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text(p.address, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                    Text(p.address,
+                        style: theme.textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600)),
                     if (p.suburb.isNotEmpty) ...[
                       const SizedBox(height: 4),
-                      Text(p.suburb, style: theme.textTheme.bodyMedium?.copyWith(color: cs.onSurface.withValues(alpha: 0.6))),
+                      Text(p.suburb,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                              color: cs.onSurface.withValues(alpha: 0.6))),
                     ],
                     if (p.ownerName.isNotEmpty) ...[
                       const SizedBox(height: 4),
-                      Text('Owner: ${p.ownerName}', style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.5))),
+                      Text('Owner: ${p.ownerName}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                              color: cs.onSurface.withValues(alpha: 0.5))),
                     ],
                     if (p.lat != null && p.lng != null) ...[
                       const SizedBox(height: 4),
-                      Text('${p.lat!.toStringAsFixed(5)}, ${p.lng!.toStringAsFixed(5)}',
-                          style: theme.textTheme.bodySmall?.copyWith(color: cs.onSurface.withValues(alpha: 0.4))),
+                      Text(
+                          '${p.lat!.toStringAsFixed(5)}, ${p.lng!.toStringAsFixed(5)}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                              color: cs.onSurface.withValues(alpha: 0.4))),
                     ],
                   ],
                 ),
@@ -151,7 +167,8 @@ class SchedulePropertyDetailPage extends StatelessWidget {
               Card(
                 elevation: 0,
                 color: cs.surfaceContainerHighest,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -159,16 +176,23 @@ class SchedulePropertyDetailPage extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.contacts_outlined, color: cs.primary, size: 20),
+                          Icon(Icons.contacts_outlined,
+                              color: cs.primary, size: 20),
                           const SizedBox(width: 8),
-                          Text('Contact', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600, fontSize: 13)),
+                          Text('Contact',
+                              style: TextStyle(
+                                  color: cs.primary,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13)),
                         ],
                       ),
                       if (p.phone != null) ...[
                         const SizedBox(height: 10),
                         Row(
                           children: [
-                            Icon(Icons.phone_outlined, size: 16, color: cs.onSurface.withValues(alpha: 0.5)),
+                            Icon(Icons.phone_outlined,
+                                size: 16,
+                                color: cs.onSurface.withValues(alpha: 0.5)),
                             const SizedBox(width: 8),
                             Text(p.phone!, style: theme.textTheme.bodyMedium),
                           ],
@@ -178,9 +202,14 @@ class SchedulePropertyDetailPage extends StatelessWidget {
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            Icon(Icons.email_outlined, size: 16, color: cs.onSurface.withValues(alpha: 0.5)),
+                            Icon(Icons.email_outlined,
+                                size: 16,
+                                color: cs.onSurface.withValues(alpha: 0.5)),
                             const SizedBox(width: 8),
-                            Expanded(child: Text(p.email!, style: theme.textTheme.bodyMedium, overflow: TextOverflow.ellipsis)),
+                            Expanded(
+                                child: Text(p.email!,
+                                    style: theme.textTheme.bodyMedium,
+                                    overflow: TextOverflow.ellipsis)),
                           ],
                         ),
                       ],
@@ -256,7 +285,8 @@ class _ActionBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final effectiveColor = enabled ? color : cs.onSurface.withValues(alpha: 0.3);
+    final effectiveColor =
+        enabled ? color : cs.onSurface.withValues(alpha: 0.3);
 
     return Expanded(
       child: InkWell(
@@ -265,10 +295,14 @@ class _ActionBtn extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: enabled ? color.withValues(alpha: 0.1) : cs.onSurface.withValues(alpha: 0.05),
+            color: enabled
+                ? color.withValues(alpha: 0.1)
+                : cs.onSurface.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: enabled ? color.withValues(alpha: 0.3) : cs.onSurface.withValues(alpha: 0.1),
+              color: enabled
+                  ? color.withValues(alpha: 0.3)
+                  : cs.onSurface.withValues(alpha: 0.1),
             ),
           ),
           child: Column(

@@ -42,7 +42,8 @@ class ScheduleTopBar extends StatelessWidget {
         color: SfTokens.primary,
         boxShadow: [
           BoxShadow(
-            color: Color(0x14000000), // 8% black — shadow duy nhất, không phải màu brand
+            color: Color(
+                0x14000000), // 8% black — shadow duy nhất, không phải màu brand
             blurRadius: 8,
             offset: Offset(0, 2),
           ),
@@ -137,7 +138,8 @@ class ScheduleTopBar extends StatelessWidget {
       context: context,
       backgroundColor: SfTokens.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(SfTokens.radiusLg)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(SfTokens.radiusLg)),
       ),
       builder: (ctx) {
         return SafeArea(
@@ -147,7 +149,9 @@ class ScheduleTopBar extends StatelessWidget {
               final isActive = mode == viewMode;
               return ListTile(
                 leading: Icon(
-                  isActive ? Icons.radio_button_checked : Icons.radio_button_off,
+                  isActive
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_off,
                   color: isActive ? SfTokens.primary : SfTokens.onSurfaceWeak,
                 ),
                 title: Text(

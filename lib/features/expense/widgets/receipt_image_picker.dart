@@ -26,7 +26,9 @@ class ReceiptImagePicker extends StatelessWidget {
           color: AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: imagePath != null ? AppColors.primary : AppColors.onSurfaceMuted.withValues(alpha: 0.3),
+            color: imagePath != null
+                ? AppColors.primary
+                : AppColors.onSurfaceMuted.withValues(alpha: 0.3),
             width: imagePath != null ? 2 : 1,
             style: BorderStyle.solid,
           ),
@@ -55,7 +57,8 @@ class ReceiptImagePicker extends StatelessWidget {
                             color: Colors.black54,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close, color: Colors.white, size: 16),
+                          child: const Icon(Icons.close,
+                              color: Colors.white, size: 16),
                         ),
                       ),
                     ),
@@ -64,11 +67,13 @@ class ReceiptImagePicker extends StatelessWidget {
             : const Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.receipt_long_outlined, size: 36, color: AppColors.onSurfaceMuted),
+                  Icon(Icons.receipt_long_outlined,
+                      size: 36, color: AppColors.onSurfaceMuted),
                   SizedBox(height: 8),
                   Text(
                     'Chụp/Chọn ảnh hoá đơn',
-                    style: TextStyle(color: AppColors.onSurfaceMuted, fontSize: 13),
+                    style: TextStyle(
+                        color: AppColors.onSurfaceMuted, fontSize: 13),
                   ),
                 ],
               ),
@@ -84,7 +89,8 @@ class ReceiptImagePicker extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt_outlined, color: AppColors.primary),
+              leading: const Icon(Icons.camera_alt_outlined,
+                  color: AppColors.primary),
               title: const Text('Chụp ảnh'),
               onTap: () {
                 Navigator.pop(context);
@@ -92,7 +98,8 @@ class ReceiptImagePicker extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined, color: AppColors.primary),
+              leading: const Icon(Icons.photo_library_outlined,
+                  color: AppColors.primary),
               title: const Text('Chọn từ thư viện'),
               onTap: () {
                 Navigator.pop(context);

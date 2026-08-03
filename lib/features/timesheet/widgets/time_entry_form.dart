@@ -43,7 +43,8 @@ class _TimeEntryFormState extends State<TimeEntryForm> {
           // Ngày
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.calendar_today_outlined, color: AppColors.primary),
+            leading: const Icon(Icons.calendar_today_outlined,
+                color: AppColors.primary),
             title: const Text('Ngày làm việc'),
             subtitle: Text(
               '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
@@ -63,7 +64,8 @@ class _TimeEntryFormState extends State<TimeEntryForm> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(
               labelText: 'Số giờ công',
-              prefixIcon: Icon(Icons.access_time_outlined, color: AppColors.primary),
+              prefixIcon:
+                  Icon(Icons.access_time_outlined, color: AppColors.primary),
               border: OutlineInputBorder(),
               suffixText: 'giờ',
             ),

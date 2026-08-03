@@ -4,10 +4,10 @@ part 'fsm_order.g.dart';
 
 /// Trạng thái đơn dịch vụ — mapping với stage Odoo FSM.
 enum FsmOrderStage {
-  draft,      // Nháp / Mới
+  draft, // Nháp / Mới
   inProgress, // Đang thực hiện
-  done,       // Hoàn thành
-  cancelled,  // Đã huỷ
+  done, // Hoàn thành
+  cancelled, // Đã huỷ
 }
 
 /// Model Isar lưu offline cho fsm.order từ Odoo.
@@ -19,8 +19,8 @@ class FsmOrder {
   @Index(unique: true)
   late int odooId;
 
-  late String name;           // Tên đơn, VD: "WO/2024/001"
-  String? description;        // Mô tả công việc
+  late String name; // Tên đơn, VD: "WO/2024/001"
+  String? description; // Mô tả công việc
 
   // Stage
   late int stageId;
@@ -29,44 +29,44 @@ class FsmOrder {
   late FsmOrderStage stage;
 
   // Địa điểm & Khách hàng
-  String? locationName;       // fsm.location.name
-  String? locationAddress;    // Địa chỉ đầy đủ
-  double? locationLat;        // Vĩ độ GPS
-  double? locationLng;        // Kinh độ GPS
-  String? partnerName;        // Tên khách hàng
-  String? partnerPhone;       // SĐT khách hàng
-  int? partnerId;             // Từ fsm.location partner_id
+  String? locationName; // fsm.location.name
+  String? locationAddress; // Địa chỉ đầy đủ
+  double? locationLat; // Vĩ độ GPS
+  double? locationLng; // Kinh độ GPS
+  String? partnerName; // Tên khách hàng
+  String? partnerPhone; // SĐT khách hàng
+  int? partnerId; // Từ fsm.location partner_id
 
   // Kho hàng liên kết
-  int? warehouseId;           // Từ order warehouse_id
-  int? inventoryLocationId;   // Từ fsm.location inventory_location_id
+  int? warehouseId; // Từ order warehouse_id
+  int? inventoryLocationId; // Từ fsm.location inventory_location_id
 
   // Lịch hẹn
   DateTime? scheduledDateStart;
   DateTime? scheduledDateEnd;
-  DateTime? dateStart;        // Giờ bắt đầu thực tế
-  DateTime? dateEnd;          // Giờ kết thúc thực tế
-  int? routeSequence;         // Thứ tự lộ trình từ Odoo optimal route
-  int? routeId;               // ID của lộ trình fsm.route
-  String? routeState;         // state của lộ trình ('draft', 'planned', 'done')
+  DateTime? dateStart; // Giờ bắt đầu thực tế
+  DateTime? dateEnd; // Giờ kết thúc thực tế
+  int? routeSequence; // Thứ tự lộ trình từ Odoo optimal route
+  int? routeId; // ID của lộ trình fsm.route
+  String? routeState; // state của lộ trình ('draft', 'planned', 'done')
 
   // Worker
-  int? personId;              // fsm.person.id
+  int? personId; // fsm.person.id
   String? personName;
-  String? priority;           // '0' = Normal, '1' = High
-
+  String? priority; // '0' = Normal, '1' = High
 
   // Sync
-  late bool isPendingSync;    // true = có thay đổi chưa push lên Odoo
+  late bool isPendingSync; // true = có thay đổi chưa push lên Odoo
   late DateTime lastSyncAt;
-  
+
   // Rules
   bool requireSignature = false;
 
   FsmOrder();
 
   /// Tạo từ JSON trả về từ Odoo API.
-  factory FsmOrder.fromJson(Map<String, dynamic> json, {Map<int, Map<String, dynamic>>? locationCoordinates}) {
+  factory FsmOrder.fromJson(Map<String, dynamic> json,
+      {Map<int, Map<String, dynamic>>? locationCoordinates}) {
     final order = FsmOrder()
       ..odooId = (json['id'] as int)
       ..name = _strOrNull(json['name']) ?? ''
@@ -75,7 +75,8 @@ class FsmOrder {
       ..stageName = _nameFromMany(json['stage_id'])
       ..stage = _parseStage(json['stage_id'])
       ..locationName = _nameFromMany(json['location_id'])
-      ..locationAddress = _strOrNull(json['location_address']) ?? _nameFromMany(json['location_id'])
+      ..locationAddress = _strOrNull(json['location_address']) ??
+          _nameFromMany(json['location_id'])
       ..partnerPhone = _strOrNull(json['phone'])
       ..scheduledDateStart = _dateOrNull(json['scheduled_date_start'])
       ..scheduledDateEnd = _dateOrNull(json['scheduled_date_end'])
@@ -86,14 +87,16 @@ class FsmOrder {
       ..priority = _strOrNull(json['priority'])
       ..routeSequence = _intOrNull(json['route_sequence'])
       ..routeId = _idOrNull(json['route_id'])
-      ..routeState = _strOrNull(json['route_state']) // Sẽ được merge từ query riêng hoặc related field
+      ..routeState = _strOrNull(json[
+          'route_state']) // Sẽ được merge từ query riêng hoặc related field
       ..requireSignature = json['require_signature'] == true
       ..isPendingSync = false
       ..lastSyncAt = DateTime.now();
 
-    
     // Parse location coordinates & additional data if available
-    if (json['location_id'] != null && json['location_id'] is List && locationCoordinates != null) {
+    if (json['location_id'] != null &&
+        json['location_id'] is List &&
+        locationCoordinates != null) {
       final locationId = (json['location_id'] as List)[0] as int;
       final locationData = locationCoordinates[locationId];
       if (locationData != null) {
@@ -101,13 +104,14 @@ class FsmOrder {
         order.locationLng = _doubleOrNull(locationData['partner_longitude']);
         order.partnerId = _idOrNull(locationData['partner_id']);
         order.partnerName = _nameFromMany(locationData['partner_id']);
-        order.inventoryLocationId = _idOrNull(locationData['inventory_location_id']);
+        order.inventoryLocationId =
+            _idOrNull(locationData['inventory_location_id']);
       }
     }
-    
+
     // Parse warehouse
     order.warehouseId = _idOrNull(json['warehouse_id']);
-    
+
     return order;
   }
 

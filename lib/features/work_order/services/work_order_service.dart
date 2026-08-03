@@ -34,8 +34,8 @@ String _mimeFromExtension(String path) {
 
 class WorkOrderService {
   WorkOrderService._({OdooSessionManager? odoo, IsarService? isar})
-    : _odoo = odoo ?? OdooSessionManager.instance,
-      _isar = isar ?? IsarService.instance;
+      : _odoo = odoo ?? OdooSessionManager.instance,
+        _isar = isar ?? IsarService.instance;
   static final WorkOrderService instance = WorkOrderService._();
 
   final OdooSessionManager _odoo;
@@ -121,7 +121,9 @@ class WorkOrderService {
       }
 
       // 2. Submit chữ ký bằng Wizard chuẩn của Odoo nếu chưa sync
-      if (!report.isSignatureSynced && report.customerSignaturePath != null && report.customerName != null) {
+      if (!report.isSignatureSynced &&
+          report.customerSignaturePath != null &&
+          report.customerName != null) {
         final sigFile = File(report.customerSignaturePath!);
         if (sigFile.existsSync()) {
           final bytes = await sigFile.readAsBytes();
@@ -131,18 +133,22 @@ class WorkOrderService {
           final wizardId = await _odoo.callKw(
             model: 'fsm.order.sign.wizard',
             method: 'create',
-            args: [{
-              'order_id': report.orderOdooId,
-              'signed_by': report.customerName,
-              'signature': base64Sig,
-            }],
+            args: [
+              {
+                'order_id': report.orderOdooId,
+                'signed_by': report.customerName,
+                'signature': base64Sig,
+              }
+            ],
           ) as int;
 
           // Bước 2: Trigger action ký
           await _odoo.callKw(
             model: 'fsm.order.sign.wizard',
             method: 'action_sign',
-            args: [[wizardId]],
+            args: [
+              [wizardId]
+            ],
           );
 
           report.isSignatureSynced = true;
@@ -150,16 +156,19 @@ class WorkOrderService {
             await _isar.db.workReports.put(report);
           });
         } else {
-          logger.w('WorkOrderService.submitReport: Signature file not found at ${report.customerSignaturePath}, skipping upload');
+          logger.w(
+              'WorkOrderService.submitReport: Signature file not found at ${report.customerSignaturePath}, skipping upload');
         }
       }
-      
+
       // 3. Upload ảnh đính kèm
       await uploadPhotos(report);
-      
+
       // Kiểm tra xem tất cả các bước đã hoàn tất đồng bộ thực sự chưa
-      final allPhotosSynced = report.photoPaths.every((path) => report.syncedPhotoPaths.contains(path));
-      final needsSignature = report.customerSignaturePath != null && report.customerName != null;
+      final allPhotosSynced = report.photoPaths
+          .every((path) => report.syncedPhotoPaths.contains(path));
+      final needsSignature =
+          report.customerSignaturePath != null && report.customerName != null;
       final signatureOk = !needsSignature || report.isSignatureSynced;
 
       if (report.isResolutionSynced && signatureOk && allPhotosSynced) {
@@ -184,7 +193,9 @@ class WorkOrderService {
       try {
         await submitReport(report);
       } catch (e) {
-        logger.w('WorkOrderService.syncPending: failed for order ${report.orderOdooId}', error: e);
+        logger.w(
+            'WorkOrderService.syncPending: failed for order ${report.orderOdooId}',
+            error: e);
       }
     }
   }
@@ -202,7 +213,10 @@ class WorkOrderService {
       for (final entry in updatedEntries) {
         final parts = entry.split('|');
         if (parts.length == 2) {
-          attIdByPath[parts[0]] = int.tryParse(parts[1]);
+          final val = int.tryParse(parts[1]);
+          if (val != null) {
+            attIdByPath[parts[0]] = val;
+          }
         }
       }
 
@@ -220,7 +234,8 @@ class WorkOrderService {
         int attId;
         if (attIdByPath.containsKey(path) && attIdByPath[path] != null) {
           attId = attIdByPath[path]!;
-          logger.i('WorkOrderService.uploadPhotos: reusing persisted attachment $attId for $filename');
+          logger.i(
+              'WorkOrderService.uploadPhotos: reusing persisted attachment $attId for $filename');
         } else {
           // 1. Tạo attachment mới
           final base64String = await compute(_encodeBase64Isolate, path);
@@ -250,7 +265,9 @@ class WorkOrderService {
         await _odoo.callKw(
           model: 'fsm.order',
           method: 'message_post',
-          args: [[report.orderOdooId]],
+          args: [
+            [report.orderOdooId]
+          ],
           kwargs: {
             'body': 'Ảnh hiện trường: $filename',
             'message_type': 'comment',
@@ -267,9 +284,12 @@ class WorkOrderService {
         });
       }
     } on OdooApiException catch (e) {
-      logger.w('WorkOrderService.uploadPhotos: Lỗi Odoo API khi tải ảnh', error: e);
+      logger.w('WorkOrderService.uploadPhotos: Lỗi Odoo API khi tải ảnh',
+          error: e);
     } on IOException catch (e) {
-      logger.w('WorkOrderService.uploadPhotos: Lỗi đọc file hoặc mạng khi tải ảnh', error: e);
+      logger.w(
+          'WorkOrderService.uploadPhotos: Lỗi đọc file hoặc mạng khi tải ảnh',
+          error: e);
     }
   }
 
@@ -301,7 +321,9 @@ class WorkOrderService {
     await _odoo.callKw(
       model: 'fsm.order',
       method: 'message_post',
-      args: [[orderOdooId]],
+      args: [
+        [orderOdooId]
+      ],
       kwargs: {
         'body': 'Ảnh hiện trường: $filename',
         'message_type': 'comment',
@@ -317,4 +339,3 @@ class WorkOrderService {
     return base64Encode(bytes);
   }
 }
-

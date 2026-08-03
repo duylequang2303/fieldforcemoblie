@@ -46,7 +46,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           );
         }
 
-        final order = provider.orders.where((o) => o.odooId == widget.orderId).firstOrNull;
+        final order = provider.orders
+            .where((o) => o.odooId == widget.orderId)
+            .firstOrNull;
 
         if (order == null) {
           return Scaffold(
@@ -68,7 +70,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   SliverToBoxAdapter(
                     child: Column(
                       children: [
-                        if (provider.errorMessage != null && !provider.isOffline)
+                        if (provider.errorMessage != null &&
+                            !provider.isOffline)
                           ErrorView(
                             message: provider.errorMessage!,
                             onRetry: provider.clearError,
@@ -203,7 +206,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             icon: Icons.event_outlined,
             iconColor: AppColors.info,
           ),
-          if (order.dateStart != null) const Divider(height: 1, indent: 16, endIndent: 16),
+          if (order.dateStart != null)
+            const Divider(height: 1, indent: 16, endIndent: 16),
         ],
         if (order.dateStart != null)
           _DetailRow(
@@ -215,7 +219,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             trailing: order.isPendingSync
                 ? const Tooltip(
                     message: 'Đang chờ đồng bộ lên Odoo',
-                    child: Icon(Icons.sync_problem, color: AppColors.warning, size: 18),
+                    child: Icon(Icons.sync_problem,
+                        color: AppColors.warning, size: 18),
                   )
                 : null,
           ),
@@ -281,7 +286,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  Future<bool> _ensureRouteSequence(BuildContext context, OrdersProvider provider, FsmOrder order) async {
+  Future<bool> _ensureRouteSequence(
+      BuildContext context, OrdersProvider provider, FsmOrder order) async {
     final routeProvider = context.read<RouteProvider>();
     if (routeProvider.stops.isEmpty) {
       await routeProvider.buildRoute(provider.orders);
@@ -290,7 +296,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Bạn phải hoàn thành các điểm trước trong lộ trình trước.'),
+            content: Text(
+                'Bạn phải hoàn thành các điểm trước trong lộ trình trước.'),
             backgroundColor: AppColors.warning,
           ),
         );
@@ -317,7 +324,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         ),
         child: Row(
           children: [
-            if (order.stage == FsmOrderStage.done || order.stage == FsmOrderStage.cancelled)
+            if (order.stage == FsmOrderStage.done ||
+                order.stage == FsmOrderStage.cancelled)
               Expanded(
                 child: Container(
                   height: 56,
@@ -337,7 +345,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        order.stage == FsmOrderStage.done ? 'Đã hoàn thành' : 'Đã huỷ',
+                        order.stage == FsmOrderStage.done
+                            ? 'Đã hoàn thành'
+                            : 'Đã huỷ',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -358,11 +368,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   onPressed: provider.isLoading
                       ? null
                       : () async {
-                          if (!await _ensureRouteSequence(context, provider, order)) return;
-                          
+                          if (!await _ensureRouteSequence(
+                              context, provider, order)) return;
+
                           await provider.checkIn(order.odooId);
-                          await context.read<RouteProvider>().buildRoute(provider.orders);
-                          
+                          await context
+                              .read<RouteProvider>()
+                              .buildRoute(provider.orders);
+
                           if (context.mounted) {
                             if (provider.errorMessage == null) {
                               final statusText = provider.isOffline
@@ -416,9 +429,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   onPressed: provider.isLoading
                       ? null
                       : () async {
-                          if (!await _ensureRouteSequence(context, provider, order)) return;
+                          if (!await _ensureRouteSequence(
+                              context, provider, order)) return;
                           await provider.updateOrderToInProgress(order.odooId);
-                          await context.read<RouteProvider>().buildRoute(provider.orders);
+                          await context
+                              .read<RouteProvider>()
+                              .buildRoute(provider.orders);
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.info,
@@ -453,7 +469,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   onPressed: provider.isLoading
                       ? null
                       : () async {
-                          if (!await _ensureRouteSequence(context, provider, order)) return;
+                          if (!await _ensureRouteSequence(
+                              context, provider, order)) return;
                           _confirmComplete(context, provider, order);
                         },
                   style: ElevatedButton.styleFrom(
@@ -499,8 +516,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         await workOrderProvider.loadReport(order.odooId);
       }
 
-      final bool isSigned = workOrderProvider.report?.customerSignaturePath != null &&
-          workOrderProvider.report!.customerSignaturePath!.isNotEmpty;
+      final bool isSigned =
+          workOrderProvider.report?.customerSignaturePath != null &&
+              workOrderProvider.report!.customerSignaturePath!.isNotEmpty;
 
       if (!isSigned && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -705,8 +723,9 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor = color ?? (highlight ? AppColors.accent : AppColors.primary);
-    
+    final effectiveColor =
+        color ?? (highlight ? AppColors.accent : AppColors.primary);
+
     return InkWell(
       onTap: onTap,
       child: Padding(

@@ -46,19 +46,25 @@ class _StockMovesPageState extends State<StockMovesPage> {
                   padding: const EdgeInsets.only(right: 16),
                   child: Center(
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withOpacity(0.3)),
+                        border:
+                            Border.all(color: Colors.white.withOpacity(0.3)),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.inventory_2_outlined, size: 16, color: Colors.white.withOpacity(0.8)),
+                          Icon(Icons.inventory_2_outlined,
+                              size: 16, color: Colors.white.withOpacity(0.8)),
                           const SizedBox(width: 6),
                           Text(
                             '${provider.moves.length} dòng',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                            style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white),
                           ),
                         ],
                       ),
@@ -80,7 +86,8 @@ class _StockMovesPageState extends State<StockMovesPage> {
                   : provider.moves.isEmpty
                       ? _buildEmptyState()
                       : ListView.builder(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
                           itemCount: provider.moves.length,
                           itemBuilder: (context, i) =>
                               _MoveCard(move: provider.moves[i]),
@@ -92,7 +99,8 @@ class _StockMovesPageState extends State<StockMovesPage> {
             },
             backgroundColor: AppColors.accent,
             elevation: 4,
-            icon: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 22),
+            icon: const Icon(Icons.qr_code_scanner_rounded,
+                color: Colors.white, size: 22),
             label: const Text(
               'Quét vật tư',
               style: TextStyle(
@@ -152,7 +160,8 @@ class _MoveCard extends StatelessWidget {
   final StockMove move;
 
   // Color based on move type
-  Color get moveTypeColor => move.moveType == MoveType.out ? AppColors.error : AppColors.success;
+  Color get moveTypeColor =>
+      move.moveType == MoveType.out ? AppColors.error : AppColors.success;
   String get moveTypeLabel => move.moveType == MoveType.out ? 'Xuất' : 'Nhập';
 
   // Calculate progress ratio
@@ -200,7 +209,9 @@ class _MoveCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    move.moveType == MoveType.out ? Icons.arrow_upward : Icons.arrow_downward,
+                    move.moveType == MoveType.out
+                        ? Icons.arrow_upward
+                        : Icons.arrow_downward,
                     color: moveTypeColor,
                     size: 24,
                   ),
@@ -223,10 +234,12 @@ class _MoveCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       // Product code/barcode
-                      if (move.productCode != null && move.productCode!.isNotEmpty)
+                      if (move.productCode != null &&
+                          move.productCode!.isNotEmpty)
                         Row(
                           children: [
-                            Icon(Icons.qr_code_2, size: 14, color: AppColors.onSurfaceMuted),
+                            Icon(Icons.qr_code_2,
+                                size: 14, color: AppColors.onSurfaceMuted),
                             const SizedBox(width: 6),
                             Text(
                               move.productCode!,
@@ -244,7 +257,8 @@ class _MoveCard extends StatelessWidget {
                 const SizedBox(width: 12),
                 // Move type badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: moveTypeColor.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -376,7 +390,8 @@ class _MoveCard extends StatelessWidget {
               const SizedBox(height: 12),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
                 decoration: BoxDecoration(
                   color: AppColors.warningContainer,
                   borderRadius: BorderRadius.circular(8),
@@ -384,7 +399,8 @@ class _MoveCard extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.sync_problem, size: 16, color: AppColors.warning),
+                    Icon(Icons.sync_problem,
+                        size: 16, color: AppColors.warning),
                     const SizedBox(width: 8),
                     const Text(
                       'Chờ đồng bộ lên Odoo',

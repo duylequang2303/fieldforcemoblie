@@ -12,7 +12,8 @@ class OfflineStorageService {
     try {
       final dir = await getApplicationDocumentsDirectory();
       int total = 0;
-      await for (final entity in dir.list(recursive: true, followLinks: false)) {
+      await for (final entity
+          in dir.list(recursive: true, followLinks: false)) {
         if (entity is File) {
           try {
             total += await entity.length();

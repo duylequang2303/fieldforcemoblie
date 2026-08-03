@@ -8,8 +8,8 @@ import '../services/location_service.dart';
 
 /// State management cho bản đồ lộ trình.
 class RouteProvider extends ChangeNotifier {
-  RouteProvider({LocationService? locationService}) 
-    : _locationService = locationService ?? LocationService.instance;
+  RouteProvider({LocationService? locationService})
+      : _locationService = locationService ?? LocationService.instance;
 
   final LocationService _locationService;
 
@@ -33,8 +33,7 @@ class RouteProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final sorted = [...orders]
-        ..sort((a, b) {
+      final sorted = [...orders]..sort((a, b) {
           final seqA = a.routeSequence ?? 9999;
           final seqB = b.routeSequence ?? 9999;
           return seqA.compareTo(seqB);
@@ -112,8 +111,10 @@ class RouteProvider extends ChangeNotifier {
           curr.latitude != null &&
           curr.longitude != null) {
         curr.distanceFromPrev = _locationService.distanceBetween(
-          prev.latitude!, prev.longitude!,
-          curr.latitude!, curr.longitude!,
+          prev.latitude!,
+          prev.longitude!,
+          curr.latitude!,
+          curr.longitude!,
         );
       }
     }
@@ -126,7 +127,7 @@ class RouteProvider extends ChangeNotifier {
 
   /// Kiểm tra xem nhân viên có được phép check-in tại order này không
   /// dựa trên thứ tự ưu tiên Optimal Route, GPS location và deadline.
-  /// 
+  ///
   /// Logic:
   /// 1. Không có trong lộ trình -> Cho phép (true)
   /// 2. Route state = 'draft' -> Bỏ qua enforcement (true)
@@ -161,10 +162,12 @@ class RouteProvider extends ChangeNotifier {
         currentStop.latitude!,
         currentStop.longitude!,
       );
-      
+
       // Nếu cách xa hơn 500m -> Không cho phép check-in (strict enforcement)
-      if (distance > maxDistanceMeters / 1000) { // Convert km to meters
-        logger.w('RouteProvider.isAllowedToCheckIn: Worker quá xa location (${distance * 1000}m > ${maxDistanceMeters}m)');
+      if (distance > maxDistanceMeters / 1000) {
+        // Convert km to meters
+        logger.w(
+            'RouteProvider.isAllowedToCheckIn: Worker quá xa location (${distance * 1000}m > ${maxDistanceMeters}m)');
         return false;
       }
     }
@@ -174,8 +177,10 @@ class RouteProvider extends ChangeNotifier {
     final now = DateTime.now();
     if (currentStop.estimatedMinutes != null) {
       // Nếu có ước tính thời gian đến, có thể check xem đã đến giờ chưa
-      final estimatedArrival = now.add(Duration(minutes: currentStop.estimatedMinutes!));
-      logger.i('RouteProvider.isAllowedToCheckIn: Ước tính đến lúc ${estimatedArrival.toIso8601String()}');
+      final estimatedArrival =
+          now.add(Duration(minutes: currentStop.estimatedMinutes!));
+      logger.i(
+          'RouteProvider.isAllowedToCheckIn: Ước tính đến lúc ${estimatedArrival.toIso8601String()}');
     }
 
     // Sequential check: Phải hoàn thành các điểm trước trong route 'planned'/'done'
@@ -189,8 +194,10 @@ class RouteProvider extends ChangeNotifier {
     for (int i = 0; i < stopIdx; i++) {
       final prev = _stops[i];
       // Nếu có điểm trước nào chưa hoàn thành hoặc chưa bị bỏ qua -> Không cho phép check-in
-      if (prev.status != StopStatus.completed && prev.status != StopStatus.skipped) {
-        logger.w('RouteProvider.isAllowedToCheckIn: Điểm trước (${prev.orderName}) chưa hoàn thành');
+      if (prev.status != StopStatus.completed &&
+          prev.status != StopStatus.skipped) {
+        logger.w(
+            'RouteProvider.isAllowedToCheckIn: Điểm trước (${prev.orderName}) chưa hoàn thành');
         return false;
       }
     }

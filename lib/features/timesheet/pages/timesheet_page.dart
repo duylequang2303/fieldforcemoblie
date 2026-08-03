@@ -78,12 +78,16 @@ class _TimesheetPageState extends State<TimesheetPage> {
                           height: _showForm ? null : 0,
                           child: _showForm
                               ? Container(
-                                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                                  margin:
+                                      const EdgeInsets.fromLTRB(16, 0, 16, 12),
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: AppColors.accent.withOpacity(0.3), width: 2),
+                                    border: Border.all(
+                                        color:
+                                            AppColors.accent.withOpacity(0.3),
+                                        width: 2),
                                     boxShadow: [
                                       BoxShadow(
                                         color: Colors.black.withOpacity(0.08),
@@ -118,7 +122,8 @@ class _TimesheetPageState extends State<TimesheetPage> {
                           child: provider.entries.isEmpty && !_showForm
                               ? _buildEmptyState()
                               : ListView.builder(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
                                   itemCount: provider.entries.length,
                                   itemBuilder: (context, i) =>
                                       _EntryCard(entry: provider.entries[i]),
@@ -318,7 +323,9 @@ class _EntryCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: (entry.isPendingSync ? AppColors.warning : AppColors.accent)
+                    color: (entry.isPendingSync
+                            ? AppColors.warning
+                            : AppColors.accent)
                         .withOpacity(0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 3),
@@ -382,7 +389,8 @@ class _EntryCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  if (entry.employeeName != null && entry.employeeName!.isNotEmpty) ...[
+                  if (entry.employeeName != null &&
+                      entry.employeeName!.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -418,7 +426,8 @@ class _EntryCard extends StatelessWidget {
               ),
               child: Icon(
                 entry.isPendingSync ? Icons.sync_problem : Icons.cloud_done,
-                color: entry.isPendingSync ? AppColors.warning : AppColors.success,
+                color:
+                    entry.isPendingSync ? AppColors.warning : AppColors.success,
                 size: 20,
               ),
             ),

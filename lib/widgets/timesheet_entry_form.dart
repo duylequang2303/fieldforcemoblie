@@ -13,12 +13,12 @@ class TimesheetEntryForm extends StatefulWidget {
 class _TimesheetEntryFormState extends State<TimesheetEntryForm> {
   final List<String> _employeeOptions = ['Just Me', 'Crew'];
   final List<String> _selectedEmployees = ['Just Me'];
-  
+
   DateTime _selectedDate = DateTime.now();
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
   int _breakMinutes = 0;
-  
+
   final TextEditingController _noteController = TextEditingController();
 
   final List<Map<String, dynamic>> _breakOptions = [
@@ -30,17 +30,17 @@ class _TimesheetEntryFormState extends State<TimesheetEntryForm> {
 
   double get _calculatedHours {
     if (_startTime == null || _endTime == null) return 0.0;
-    
+
     final start = DateTime(2000, 1, 1, _startTime!.hour, _startTime!.minute);
     var end = DateTime(2000, 1, 1, _endTime!.hour, _endTime!.minute);
-    
+
     if (end.isBefore(start)) {
       end = end.add(const Duration(days: 1));
     }
-    
+
     final diffMinutes = end.difference(start).inMinutes;
     final totalMinutes = diffMinutes - _breakMinutes;
-    
+
     return totalMinutes > 0 ? totalMinutes / 60.0 : 0.0;
   }
 
@@ -76,7 +76,7 @@ class _TimesheetEntryFormState extends State<TimesheetEntryForm> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Container(
       color: theme.colorScheme.background,
       child: SafeArea(
@@ -117,7 +117,7 @@ class _TimesheetEntryFormState extends State<TimesheetEntryForm> {
                 ],
               ),
             ),
-            
+
             // Form Body
             Expanded(
               child: SingleChildScrollView(
@@ -145,13 +145,14 @@ class _TimesheetEntryFormState extends State<TimesheetEntryForm> {
                               }
                             });
                           },
-                          selectedColor: theme.colorScheme.primary.withOpacity(0.2),
+                          selectedColor:
+                              theme.colorScheme.primary.withOpacity(0.2),
                           checkmarkColor: theme.colorScheme.primary,
                         );
                       }).toList(),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // DATE
                     Text('DATE', style: _labelStyle(theme)),
                     const SizedBox(height: 8),
@@ -167,7 +168,8 @@ class _TimesheetEntryFormState extends State<TimesheetEntryForm> {
                         if (date != null) setState(() => _selectedDate = date);
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 16),
                         decoration: BoxDecoration(
                           border: Border.all(color: theme.dividerColor),
                           borderRadius: BorderRadius.circular(4),
@@ -176,14 +178,15 @@ class _TimesheetEntryFormState extends State<TimesheetEntryForm> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(DateFormat('dd MMM yyyy').format(_selectedDate)),
+                            Text(DateFormat('dd MMM yyyy')
+                                .format(_selectedDate)),
                             const Icon(Icons.calendar_today, size: 20),
                           ],
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // TIME ROWS
                     Row(
                       children: [
@@ -197,7 +200,8 @@ class _TimesheetEntryFormState extends State<TimesheetEntryForm> {
                                 key: const Key('btn_start_time'),
                                 theme: theme,
                                 time: _startTime,
-                                onChanged: (t) => setState(() => _startTime = t),
+                                onChanged: (t) =>
+                                    setState(() => _startTime = t),
                               ),
                             ],
                           ),
@@ -221,7 +225,7 @@ class _TimesheetEntryFormState extends State<TimesheetEntryForm> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // BREAK & HOURS
                     Row(
                       children: [
@@ -232,7 +236,8 @@ class _TimesheetEntryFormState extends State<TimesheetEntryForm> {
                               Text('BREAK', style: _labelStyle(theme)),
                               const SizedBox(height: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 4),
                                 decoration: BoxDecoration(
                                   border: Border.all(color: theme.dividerColor),
                                   borderRadius: BorderRadius.circular(4),
@@ -250,7 +255,8 @@ class _TimesheetEntryFormState extends State<TimesheetEntryForm> {
                                       );
                                     }).toList(),
                                     onChanged: (val) {
-                                      if (val != null) setState(() => _breakMinutes = val);
+                                      if (val != null)
+                                        setState(() => _breakMinutes = val);
                                     },
                                   ),
                                 ),
@@ -267,9 +273,12 @@ class _TimesheetEntryFormState extends State<TimesheetEntryForm> {
                               const SizedBox(height: 8),
                               Container(
                                 width: double.infinity,
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 16),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.surfaceVariant?.withOpacity(0.5) ?? Colors.grey[200],
+                                  color: theme
+                                      .colorScheme.surfaceContainerHighest
+                                      .withOpacity(0.5),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
@@ -286,7 +295,7 @@ class _TimesheetEntryFormState extends State<TimesheetEntryForm> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    
+
                     // NOTE
                     Text('NOTE', style: _labelStyle(theme)),
                     const SizedBox(height: 8),

@@ -55,7 +55,8 @@ class OrderCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.sync_problem, size: 13, color: AppColors.warning),
+                    const Icon(Icons.sync_problem,
+                        size: 13, color: AppColors.warning),
                     const SizedBox(width: 4),
                     Text(
                       'Chưa đồng bộ',
@@ -103,7 +104,8 @@ class OrderCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.phone_outlined, size: 14, color: AppColors.primary),
+                        const Icon(Icons.phone_outlined,
+                            size: 14, color: AppColors.primary),
                         const SizedBox(width: 4),
                         Text(
                           order.partnerPhone!,

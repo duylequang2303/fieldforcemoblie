@@ -55,7 +55,10 @@ class AuthService {
     final userIdStr = saved['userId'];
     final userId = userIdStr != null ? int.tryParse(userIdStr) : null;
 
-    if (serverUrl == null || sessionId == null || database == null || userId == null) {
+    if (serverUrl == null ||
+        sessionId == null ||
+        database == null ||
+        userId == null) {
       return false;
     }
 

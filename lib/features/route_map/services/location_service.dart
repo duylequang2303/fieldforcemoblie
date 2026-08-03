@@ -64,8 +64,10 @@ class LocationService {
 
   /// Tính khoảng cách (km) giữa 2 tọa độ theo công thức Haversine.
   double distanceBetween(
-    double lat1, double lng1,
-    double lat2, double lng2,
+    double lat1,
+    double lng1,
+    double lat2,
+    double lng2,
   ) {
     const r = 6371.0; // Bán kính Trái Đất (km)
     final dLat = _toRad(lat2 - lat1);

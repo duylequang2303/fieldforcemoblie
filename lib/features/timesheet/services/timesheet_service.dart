@@ -63,7 +63,8 @@ class TimesheetService {
         args: [
           {
             'name': description,
-            'date': '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
+            'date':
+                '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
             'unit_amount': hours,
             'employee_id': _odoo.currentSession?.employeeId,
             'fsm_order_id': orderOdooId,
@@ -92,7 +93,8 @@ class TimesheetService {
     for (final entry in pending) {
       final order = await _isar.db.fsmOrders.getByOdooId(entry.orderOdooId);
       if (order == null) {
-        logger.w('TimesheetService.syncPending: Thiếu order, bỏ qua entry ${entry.id}');
+        logger.w(
+            'TimesheetService.syncPending: Thiếu order, bỏ qua entry ${entry.id}');
         continue;
       }
 

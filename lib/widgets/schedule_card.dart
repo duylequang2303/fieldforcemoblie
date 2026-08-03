@@ -65,16 +65,19 @@ class ScheduleCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           // Duration badge (right side)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceVariant ?? Colors.grey[200],
+                              color: theme.colorScheme.surfaceContainerHighest,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              _calculateDurationBadge(order.scheduledDateStart, order.scheduledDateEnd),
+                              _calculateDurationBadge(order.scheduledDateStart,
+                                  order.scheduledDateEnd),
                               style: TextStyle(
                                 fontSize: 12,
-                                color: theme.colorScheme.onSurface.withOpacity(0.8),
+                                color: theme.colorScheme.onSurface
+                                    .withOpacity(0.8),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -101,14 +104,16 @@ class ScheduleCard extends StatelessWidget {
                               Icon(
                                 Icons.access_time,
                                 size: 14,
-                                color: theme.colorScheme.onSurface.withOpacity(0.5),
+                                color: theme.colorScheme.onSurface
+                                    .withOpacity(0.5),
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 '${_formatTime(order.scheduledDateStart)} - ${_formatTime(order.scheduledDateEnd)}',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: theme.colorScheme.onSurface.withOpacity(0.6),
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.6),
                                 ),
                               ),
                             ],
@@ -129,7 +134,8 @@ class ScheduleCard extends StatelessWidget {
                                 child: Icon(
                                   Icons.chat_bubble_outline,
                                   size: 20,
-                                  color: theme.colorScheme.onSurface.withOpacity(0.5),
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.5),
                                 ),
                               ),
                             ],

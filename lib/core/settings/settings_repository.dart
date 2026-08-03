@@ -33,7 +33,8 @@ class SettingsRepository {
       autoSyncMinutes = int.tryParse(autoVal ?? '15') ?? 15;
       final tsVal = await _storage.read(key: _kLastSyncedAt);
       final ts = int.tryParse(tsVal ?? '');
-      lastSyncedAt = ts == null ? null : DateTime.fromMillisecondsSinceEpoch(ts);
+      lastSyncedAt =
+          ts == null ? null : DateTime.fromMillisecondsSinceEpoch(ts);
 
       // Purge credentials cũ (ff_settings_*) còn sót từ bản 4/4.5.
       // Bản 5b không dùng chúng nữa; để trong két là rác bảo mật.

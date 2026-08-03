@@ -11,12 +11,13 @@ import '../../orders/models/fsm_order.dart';
 /// Service giao tiếp với Odoo API cho Stock.
 class StockService {
   StockService._({OdooSessionManager? odoo, IsarService? isar})
-    : _odoo = odoo ?? OdooSessionManager.instance,
-      _isar = isar ?? IsarService.instance;
+      : _odoo = odoo ?? OdooSessionManager.instance,
+        _isar = isar ?? IsarService.instance;
   static final StockService instance = StockService._();
 
   @visibleForTesting
-  factory StockService.testConstructor(OdooSessionManager odoo, IsarService isar) {
+  factory StockService.testConstructor(
+      OdooSessionManager odoo, IsarService isar) {
     return StockService._(odoo: odoo, isar: isar);
   }
 
@@ -30,10 +31,20 @@ class StockService {
         model: 'product.product',
         method: 'search_read',
         args: [
-          [['barcode', '=', barcode]],
+          [
+            ['barcode', '=', barcode]
+          ],
         ],
         kwargs: {
-          'fields': ['id', 'name', 'default_code', 'barcode', 'categ_id', 'uom_id', 'standard_price'],
+          'fields': [
+            'id',
+            'name',
+            'default_code',
+            'barcode',
+            'categ_id',
+            'uom_id',
+            'standard_price'
+          ],
           'limit': 1,
         },
       ) as List<dynamic>;
@@ -62,14 +73,28 @@ class StockService {
         model: 'product.product',
         method: 'search_read',
         args: [
-          ['|', ['name', 'ilike', q], ['default_code', 'ilike', q]],
+          [
+            '|',
+            ['name', 'ilike', q],
+            ['default_code', 'ilike', q]
+          ],
         ],
         kwargs: {
-          'fields': ['id', 'name', 'default_code', 'barcode', 'categ_id', 'uom_id', 'standard_price'],
+          'fields': [
+            'id',
+            'name',
+            'default_code',
+            'barcode',
+            'categ_id',
+            'uom_id',
+            'standard_price'
+          ],
           'limit': limit,
         },
       ) as List<dynamic>;
-      return result.map((e) => Product.fromJson(e as Map<String, dynamic>)).toList();
+      return result
+          .map((e) => Product.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (e) {
       logger.e('StockService.searchProducts', error: e);
       return const <Product>[];
@@ -121,7 +146,8 @@ class StockService {
 
     final order = await _isar.db.fsmOrders.getByOdooId(orderOdooId);
     if (order == null) {
-      logger.w('StockService.recordStockOut: Không tìm thấy order $orderOdooId local.');
+      logger.w(
+          'StockService.recordStockOut: Không tìm thấy order $orderOdooId local.');
       return;
     }
 
@@ -129,20 +155,21 @@ class StockService {
     try {
       await _syncStockMoveToOdoo(move, order);
     } on StockPartialAssignException catch (e) {
-      logger.w('StockService.recordStockOut: Lỗi thiếu kho (Business Error)', error: e);
+      logger.w('StockService.recordStockOut: Lỗi thiếu kho (Business Error)',
+          error: e);
       rethrow; // Quăng lên cho UI
     } on OdooApiException catch (e) {
-      logger.w('StockService.recordStockOut: offline/lỗi mạng, xếp hàng đợi sync', error: e);
+      logger.w(
+          'StockService.recordStockOut: offline/lỗi mạng, xếp hàng đợi sync',
+          error: e);
       // Giữ isPendingSync = true
     }
   }
 
   /// Sync các stock move pending (resume).
   Future<void> syncPending() async {
-    final pending = await _isar.db.stockMoves
-        .filter()
-        .isPendingSyncEqualTo(true)
-        .findAll();
+    final pending =
+        await _isar.db.stockMoves.filter().isPendingSyncEqualTo(true).findAll();
 
     for (final move in pending) {
       final order = await _isar.db.fsmOrders.getByOdooId(move.orderOdooId);
@@ -151,7 +178,9 @@ class StockService {
       try {
         await _syncStockMoveToOdoo(move, order);
       } on StockPartialAssignException catch (e) {
-        logger.w('StockService.syncPending: Bỏ qua do thiếu tồn kho (${move.id})', error: e);
+        logger.w(
+            'StockService.syncPending: Bỏ qua do thiếu tồn kho (${move.id})',
+            error: e);
         // Cần user xử lý, không lặp lại vô ích
       } on OdooApiException catch (e) {
         logger.w('StockService.syncPending: Lỗi mạng (${move.id})', error: e);
@@ -176,7 +205,8 @@ class StockService {
     // Bước 1: Khởi tạo Picking và Move nếu chưa có
     if (move.pickingOdooId == null) {
       if (order.warehouseId == null || order.inventoryLocationId == null) {
-        throw const OdooBusinessException('Đơn hàng thiếu thông tin Kho (warehouse_id) hoặc Địa điểm (inventory_location_id).');
+        throw const OdooBusinessException(
+            'Đơn hàng thiếu thông tin Kho (warehouse_id) hoặc Địa điểm (inventory_location_id).');
       }
 
       // 1a. Search picking type
@@ -184,13 +214,20 @@ class StockService {
         model: 'stock.picking.type',
         method: 'search_read',
         args: [
-          [['warehouse_id', '=', order.warehouseId], ['code', '=', 'outgoing']]
+          [
+            ['warehouse_id', '=', order.warehouseId],
+            ['code', '=', 'outgoing']
+          ]
         ],
-        kwargs: {'limit': 1, 'fields': ['id']},
+        kwargs: {
+          'limit': 1,
+          'fields': ['id']
+        },
       ) as List<dynamic>;
 
       if (pTypes.isEmpty) {
-        throw const OdooBusinessException('Không tìm thấy Operation Type xuất kho (outgoing) cho kho này.');
+        throw const OdooBusinessException(
+            'Không tìm thấy Operation Type xuất kho (outgoing) cho kho này.');
       }
       final pickingTypeId = pTypes.first['id'] as int;
 
@@ -198,12 +235,17 @@ class StockService {
       final warehouses = await _odoo.callKw(
         model: 'stock.warehouse',
         method: 'read',
-        args: [[order.warehouseId]],
-        kwargs: {'fields': ['lot_stock_id']},
+        args: [
+          [order.warehouseId]
+        ],
+        kwargs: {
+          'fields': ['lot_stock_id']
+        },
       ) as List<dynamic>;
 
       if (warehouses.isEmpty || warehouses.first['lot_stock_id'] == null) {
-        throw const OdooBusinessException('Cấu hình Kho trên Odoo bị lỗi: thiếu lot_stock_id.');
+        throw const OdooBusinessException(
+            'Cấu hình Kho trên Odoo bị lỗi: thiếu lot_stock_id.');
       }
       final lotStockId = (warehouses.first['lot_stock_id'] as List)[0] as int;
 
@@ -211,13 +253,15 @@ class StockService {
       final pickingId = await _odoo.callKw(
         model: 'stock.picking',
         method: 'create',
-        args: [{
-          'fsm_order_id': order.odooId,
-          if (order.partnerId != null) 'partner_id': order.partnerId,
-          'picking_type_id': pickingTypeId,
-          'location_id': lotStockId,
-          'location_dest_id': order.inventoryLocationId,
-        }],
+        args: [
+          {
+            'fsm_order_id': order.odooId,
+            if (order.partnerId != null) 'partner_id': order.partnerId,
+            'picking_type_id': pickingTypeId,
+            'location_id': lotStockId,
+            'location_dest_id': order.inventoryLocationId,
+          }
+        ],
       ) as int;
 
       await _isar.db.writeTxn(() async {
@@ -229,15 +273,17 @@ class StockService {
       final moveId = await _odoo.callKw(
         model: 'stock.move',
         method: 'create',
-        args: [{
-          'picking_id': pickingId,
-          'fsm_order_id': order.odooId,
-          'name': move.productName,
-          'product_id': move.productId,
-          'product_uom_qty': move.demandQty,
-          'location_id': lotStockId,
-          'location_dest_id': order.inventoryLocationId,
-        }],
+        args: [
+          {
+            'picking_id': pickingId,
+            'fsm_order_id': order.odooId,
+            'name': move.productName,
+            'product_id': move.productId,
+            'product_uom_qty': move.demandQty,
+            'location_id': lotStockId,
+            'location_dest_id': order.inventoryLocationId,
+          }
+        ],
       ) as int;
 
       await _isar.db.writeTxn(() async {
@@ -255,7 +301,9 @@ class StockService {
       await _odoo.callKw(
         model: 'stock.picking',
         method: 'action_confirm',
-        args: [[pickingId]],
+        args: [
+          [pickingId]
+        ],
       );
       state = 'confirmed';
       await _isar.db.writeTxn(() async {
@@ -269,20 +317,27 @@ class StockService {
       await _odoo.callKw(
         model: 'stock.picking',
         method: 'action_assign',
-        args: [[pickingId]],
+        args: [
+          [pickingId]
+        ],
       );
 
       // Đọc lại state trên server vì action_assign không ném lỗi nếu hụt kho
       final pickingCheck = await _odoo.callKw(
         model: 'stock.picking',
         method: 'read',
-        args: [[pickingId]],
-        kwargs: {'fields': ['state']},
+        args: [
+          [pickingId]
+        ],
+        kwargs: {
+          'fields': ['state']
+        },
       ) as List<dynamic>;
 
       final serverState = pickingCheck.first['state'] as String;
       if (serverState != 'assigned') {
-        throw StockPartialAssignException('Thiếu tồn kho. Trạng thái phiếu hiện tại: $serverState. Vui lòng kiểm tra lại Odoo.');
+        throw StockPartialAssignException(
+            'Thiếu tồn kho. Trạng thái phiếu hiện tại: $serverState. Vui lòng kiểm tra lại Odoo.');
       }
 
       state = 'assigned';
@@ -308,7 +363,9 @@ class StockService {
       await _odoo.callKw(
         model: 'stock.picking',
         method: 'button_validate',
-        args: [[pickingId]],
+        args: [
+          [pickingId]
+        ],
       );
 
       state = 'done';

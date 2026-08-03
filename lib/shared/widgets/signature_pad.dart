@@ -75,7 +75,7 @@ class _SignaturePadState extends State<SignaturePad> {
               icon: const Icon(Icons.refresh),
               label: const Text('Xoá'),
             ),
-            if (widget.onSigned != null) ...[  
+            if (widget.onSigned != null) ...[
               const SizedBox(width: 8),
               ElevatedButton.icon(
                 onPressed: () async {

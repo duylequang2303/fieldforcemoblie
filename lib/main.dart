@@ -59,17 +59,24 @@ Future<void> main() async {
         WorkReportSchema,
       ]);
       // Đăng ký các sync handlers cho offline sync sau khi Isar khởi tạo thành công
-      SyncManager.instance.registerSyncHandler(OrdersService.instance.syncPending);
-      SyncManager.instance.registerSyncHandler(TimesheetService.instance.syncPending);
-      SyncManager.instance.registerSyncHandler(ExpenseService.instance.syncPending);
-      SyncManager.instance.registerSyncHandler(StockService.instance.syncPending);
-      SyncManager.instance.registerSyncHandler(WorkOrderService.instance.syncPending);
+      SyncManager.instance
+          .registerSyncHandler(OrdersService.instance.syncPending);
+      SyncManager.instance
+          .registerSyncHandler(TimesheetService.instance.syncPending);
+      SyncManager.instance
+          .registerSyncHandler(ExpenseService.instance.syncPending);
+      SyncManager.instance
+          .registerSyncHandler(StockService.instance.syncPending);
+      SyncManager.instance
+          .registerSyncHandler(WorkOrderService.instance.syncPending);
 
       // Bắt đầu lắng nghe trạng thái mạng để tự động sync
       SyncManager.instance.startListening();
       await SyncManager.instance.startAutoSync();
     } catch (e) {
-      debugPrint('Init Isar Error: $e');
+      if (kDebugMode) {
+        debugPrint('Init Isar Error: $e');
+      }
     }
   }
 

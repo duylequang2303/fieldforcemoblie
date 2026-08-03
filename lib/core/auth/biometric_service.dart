@@ -36,7 +36,7 @@ class BiometricService {
         localizedReason: 'Xác thực để đăng nhập Fieldforce Worker',
         options: const AuthenticationOptions(
           biometricOnly: false, // Cho phép dùng PIN nếu biometric fail
-          stickyAuth: true,     // Giữ auth dialog khi app chuyển nền
+          stickyAuth: true, // Giữ auth dialog khi app chuyển nền
         ),
       );
     } catch (_) {

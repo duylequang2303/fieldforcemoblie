@@ -24,7 +24,7 @@ class AppTheme {
         onSurface: textPrimary,
       ),
       scaffoldBackgroundColor: background,
-      
+
       // AppBar Theme: background primary green, title trắng, elevation 2
       appBarTheme: const AppBarTheme(
         backgroundColor: primary,
@@ -36,7 +36,8 @@ class AppTheme {
           color: surface,
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          fontStyle: FontStyle.normal, // Hallmark: Typography purity (no italics)
+          fontStyle:
+              FontStyle.normal, // Hallmark: Typography purity (no italics)
         ),
       ),
 

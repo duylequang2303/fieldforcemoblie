@@ -4,8 +4,8 @@ part 'stock_move.g.dart';
 
 /// Loại thao tác stock move.
 enum MoveType {
-  out,  // Xuất kho (dùng cho đơn)
-  in_,  // Nhập lại (hoàn trả)
+  out, // Xuất kho (dùng cho đơn)
+  in_, // Nhập lại (hoàn trả)
 }
 
 /// Một dòng xuất/nhập kho gắn với fsm.order.
@@ -14,21 +14,22 @@ class StockMove {
   Id id = Isar.autoIncrement;
 
   @Index()
-  late int orderOdooId;   // ID của fsm.order
+  late int orderOdooId; // ID của fsm.order
 
-  late int productId;     // product.product.id
+  late int productId; // product.product.id
   late String productName;
   String? productCode;
   String? productBarcode;
   String? uomName;
 
-  late double demandQty;   // Số lượng yêu cầu
-  late double doneQty;     // Số lượng đã thực hiện
+  late double demandQty; // Số lượng yêu cầu
+  late double doneQty; // Số lượng đã thực hiện
 
   // Checkpoints cho State Machine khi sync Odoo
   int? pickingOdooId;
   int? moveOdooId;
-  String? pickingState; // 'created', 'confirmed', 'assigned', 'partially_available', 'done'
+  String?
+      pickingState; // 'created', 'confirmed', 'assigned', 'partially_available', 'done'
 
   @Enumerated(EnumType.name)
   late MoveType moveType;

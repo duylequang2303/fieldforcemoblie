@@ -78,7 +78,8 @@ class _RouteMapPageState extends State<RouteMapPage>
               child: Container(
                 decoration: BoxDecoration(
                   border: Border(
-                    top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
+                    top: BorderSide(
+                        color: Colors.white.withOpacity(0.1), width: 1),
                   ),
                 ),
                 child: TabBar(
@@ -87,7 +88,8 @@ class _RouteMapPageState extends State<RouteMapPage>
                   indicatorWeight: 3,
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.white.withOpacity(0.6),
-                  labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                  labelStyle: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 14),
                   tabs: [
                     Tab(
                       text: 'Lộ trình (${provider.stops.length})',
@@ -180,7 +182,7 @@ class _RouteMapPageState extends State<RouteMapPage>
 
   Widget _buildLocationTab(RouteProvider provider) {
     final pos = provider.currentPosition;
-    
+
     if (pos == null) {
       return Center(
         child: Column(
@@ -221,7 +223,8 @@ class _RouteMapPageState extends State<RouteMapPage>
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -231,7 +234,7 @@ class _RouteMapPageState extends State<RouteMapPage>
         ),
       );
     }
-    
+
     // Show map with worker's location
     return FlutterMap(
       options: MapOptions(
@@ -340,11 +343,14 @@ class _RouteMapPageState extends State<RouteMapPage>
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
                           color: _getStatusColor(stop.status).withOpacity(0.15),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: _getStatusColor(stop.status).withOpacity(0.3)),
+                          border: Border.all(
+                              color: _getStatusColor(stop.status)
+                                  .withOpacity(0.3)),
                         ),
                         child: Text(
                           _getStatusLabel(stop.status),
@@ -361,7 +367,8 @@ class _RouteMapPageState extends State<RouteMapPage>
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        Icon(Icons.location_on_outlined, size: 16, color: AppColors.accent),
+                        Icon(Icons.location_on_outlined,
+                            size: 16, color: AppColors.accent),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -379,7 +386,8 @@ class _RouteMapPageState extends State<RouteMapPage>
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.schedule_outlined, size: 16, color: AppColors.info),
+                        Icon(Icons.schedule_outlined,
+                            size: 16, color: AppColors.info),
                         const SizedBox(width: 8),
                         Text(
                           'ETA: ${stop.estimatedMinutes} phút',
@@ -431,7 +439,8 @@ class _RouteMapPageState extends State<RouteMapPage>
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            disabledBackgroundColor: AppColors.onSurfaceWeak.withOpacity(0.3),
+                            disabledBackgroundColor:
+                                AppColors.onSurfaceWeak.withOpacity(0.3),
                           ),
                         ),
                       ),
@@ -625,7 +634,8 @@ class _RouteStopCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   // Status badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: _getStatusColor(stop.status).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),

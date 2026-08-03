@@ -9,10 +9,12 @@ class SchedulePropertiesListPage extends StatefulWidget {
   const SchedulePropertiesListPage({super.key});
 
   @override
-  State<SchedulePropertiesListPage> createState() => _SchedulePropertiesListPageState();
+  State<SchedulePropertiesListPage> createState() =>
+      _SchedulePropertiesListPageState();
 }
 
-class _SchedulePropertiesListPageState extends State<SchedulePropertiesListPage> {
+class _SchedulePropertiesListPageState
+    extends State<SchedulePropertiesListPage> {
   final TextEditingController _search = TextEditingController();
   List<ScheduleProperty> _all = [];
   List<ScheduleProperty> _filtered = [];
@@ -101,7 +103,10 @@ class _SchedulePropertiesListPageState extends State<SchedulePropertiesListPage>
         backgroundColor: theme.colorScheme.primary,
         title: Text(
           'Properties',
-          style: TextStyle(color: theme.colorScheme.onPrimary, fontSize: 20, fontWeight: FontWeight.w600),
+          style: TextStyle(
+              color: theme.colorScheme.onPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.w600),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(56),
@@ -125,7 +130,9 @@ class _SchedulePropertiesListPageState extends State<SchedulePropertiesListPage>
                 ),
                 filled: true,
                 fillColor: theme.colorScheme.surface,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none),
               ),
             ),
           ),
@@ -176,7 +183,8 @@ class _SchedulePropertiesListPageState extends State<SchedulePropertiesListPage>
       );
     }
     if (_filtered.isEmpty) {
-      return Center(child: Text('No properties found', style: TextStyle(color: muted)));
+      return Center(
+          child: Text('No properties found', style: TextStyle(color: muted)));
     }
     return RefreshIndicator(
       onRefresh: _load,
@@ -184,21 +192,29 @@ class _SchedulePropertiesListPageState extends State<SchedulePropertiesListPage>
         padding: const EdgeInsets.symmetric(vertical: 8),
         physics: const AlwaysScrollableScrollPhysics(),
         itemCount: _filtered.length,
-        separatorBuilder: (_, __) => Divider(height: 1, color: theme.dividerColor, indent: 16, endIndent: 16),
+        separatorBuilder: (_, __) => Divider(
+            height: 1, color: theme.dividerColor, indent: 16, endIndent: 16),
         itemBuilder: (context, index) {
           final p = _filtered[index];
           return ListTile(
             title: Text(
               p.address,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: theme.colorScheme.onSurface),
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurface),
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (p.suburb.isNotEmpty) Text(p.suburb, style: TextStyle(fontSize: 14, color: muted)),
-                  if (p.ownerName.isNotEmpty) Text(p.ownerName, style: TextStyle(fontSize: 14, color: muted)),
+                  if (p.suburb.isNotEmpty)
+                    Text(p.suburb,
+                        style: TextStyle(fontSize: 14, color: muted)),
+                  if (p.ownerName.isNotEmpty)
+                    Text(p.ownerName,
+                        style: TextStyle(fontSize: 14, color: muted)),
                 ],
               ),
             ),

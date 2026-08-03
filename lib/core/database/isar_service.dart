@@ -50,7 +50,9 @@ class IsarService {
         inspector: false,
       );
     } catch (e, stackTrace) {
-      debugPrint('Lỗi khởi tạo Isar DB: $e\n$stackTrace');
+      if (kDebugMode) {
+        debugPrint('Lỗi khởi tạo Isar DB: $e\n$stackTrace');
+      }
     }
   }
 

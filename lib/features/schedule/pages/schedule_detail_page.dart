@@ -20,11 +20,14 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: AppColors.schedulePrimary,
-        title: const Text('EDIT', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        title: const Text('EDIT',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         actions: [
           TextButton(
             onPressed: () {},
-            child: const Text('SAVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            child: const Text('SAVE',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -40,12 +43,28 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(visit.dueDate.replaceAll('due ', ''), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w400, height: 1.3)),
+                  Text(visit.dueDate.replaceAll('due ', ''),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w400,
+                          height: 1.3)),
                   const SizedBox(height: 4),
-                  Text(visit.address, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w400, height: 1.3)),
-                  Text('${visit.suburb} NSW', style: const TextStyle(color: Colors.white70, fontSize: 16, height: 1.3)),
+                  Text(visit.address,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w400,
+                          height: 1.3)),
+                  Text('${visit.suburb} NSW',
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 16, height: 1.3)),
                   const SizedBox(height: 8),
-                  Text(visit.customerName, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500)),
+                  Text(visit.customerName,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500)),
                 ],
               ),
             ),
@@ -75,24 +94,35 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.calendar_today_outlined, size: 18, color: AppColors.scheduleSecondaryText),
+                      const Icon(Icons.calendar_today_outlined,
+                          size: 18, color: AppColors.scheduleSecondaryText),
                       const SizedBox(width: 12),
-                      Expanded(child: Text(visit.dueDate, style: const TextStyle(fontSize: 15, color: AppColors.scheduleText))),
+                      Expanded(
+                          child: Text(visit.dueDate,
+                              style: const TextStyle(
+                                  fontSize: 15,
+                                  color: AppColors.scheduleText))),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Icon(Icons.access_time, size: 18, color: AppColors.scheduleSecondaryText),
+                      const Icon(Icons.access_time,
+                          size: 18, color: AppColors.scheduleSecondaryText),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Row(
                           children: [
-                            Text('${visit.hours} hr', style: const TextStyle(fontSize: 15, color: AppColors.scheduleText)),
+                            Text('${visit.hours} hr',
+                                style: const TextStyle(
+                                    fontSize: 15,
+                                    color: AppColors.scheduleText)),
                           ],
                         ),
                       ),
-                      Text('\$${visit.price.toStringAsFixed(0)}', style: const TextStyle(fontSize: 15, color: AppColors.scheduleText)),
+                      Text('\$${visit.price.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                              fontSize: 15, color: AppColors.scheduleText)),
                     ],
                   ),
                 ],
@@ -111,9 +141,11 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
                         backgroundColor: AppColors.schedulePrimary,
                         foregroundColor: Colors.white,
                         minimumSize: const Size.fromHeight(44),
-                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                        shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero),
                       ),
-                      child: const Text('Mark complete', style: TextStyle(fontSize: 16)),
+                      child: const Text('Mark complete',
+                          style: TextStyle(fontSize: 16)),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -122,9 +154,11 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
                       onPressed: () {},
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.scheduleText,
-                        side: const BorderSide(color: AppColors.scheduleDivider),
+                        side:
+                            const BorderSide(color: AppColors.scheduleDivider),
                         minimumSize: const Size.fromHeight(44),
-                        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+                        shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero),
                       ),
                       child: const Text('Skip', style: TextStyle(fontSize: 16)),
                     ),
@@ -138,7 +172,10 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'GENERAL INSTRUCTIONS',
-                style: TextStyle(fontSize: 12, color: AppColors.scheduleSecondaryText, letterSpacing: 0.5),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.scheduleSecondaryText,
+                    letterSpacing: 0.5),
               ),
             ),
             const SizedBox(height: 8),
@@ -146,7 +183,8 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 visit.note ?? '',
-                style: const TextStyle(fontSize: 15, color: AppColors.scheduleText, height: 1.4),
+                style: const TextStyle(
+                    fontSize: 15, color: AppColors.scheduleText, height: 1.4),
               ),
             ),
             const SizedBox(height: 24),
@@ -155,7 +193,10 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'WORK REQUIRED',
-                style: TextStyle(fontSize: 12, color: AppColors.scheduleSecondaryText, letterSpacing: 0.5),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.scheduleSecondaryText,
+                    letterSpacing: 0.5),
               ),
             ),
             const SizedBox(height: 8),
@@ -163,7 +204,10 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'Remove weeds and general waste as required',
-                style: TextStyle(fontSize: 15, color: AppColors.scheduleText, fontWeight: FontWeight.w600),
+                style: TextStyle(
+                    fontSize: 15,
+                    color: AppColors.scheduleText,
+                    fontWeight: FontWeight.w600),
               ),
             ),
             const SizedBox(height: 24),
@@ -172,7 +216,10 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'ATTACHMENTS',
-                style: TextStyle(fontSize: 12, color: AppColors.scheduleSecondaryText, letterSpacing: 0.5),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.scheduleSecondaryText,
+                    letterSpacing: 0.5),
               ),
             ),
             const SizedBox(height: 12),
@@ -194,7 +241,10 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'Upcoming Work',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.scheduleText),
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.scheduleText),
               ),
             ),
             const SizedBox(height: 8),
@@ -202,7 +252,10 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'REPEATING VISITS',
-                style: TextStyle(fontSize: 12, color: AppColors.scheduleSecondaryText, letterSpacing: 0.5),
+                style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.scheduleSecondaryText,
+                    letterSpacing: 0.5),
               ),
             ),
             const SizedBox(height: 8),
@@ -213,13 +266,25 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
                   Expanded(
                     child: RichText(
                       text: TextSpan(
-                        style: const TextStyle(fontSize: 14, color: AppColors.scheduleText, height: 1.3),
+                        style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.scheduleText,
+                            height: 1.3),
                         children: [
                           const TextSpan(text: '4.0 hrs (\$150.00) '),
-                          const WidgetSpan(child: Icon(Icons.sync_alt, size: 14, color: AppColors.scheduleSecondaryText)),
+                          const WidgetSpan(
+                              child: Icon(Icons.sync_alt,
+                                  size: 14,
+                                  color: AppColors.scheduleSecondaryText)),
                           const TextSpan(text: ' 2 wk on Mon '),
-                          const WidgetSpan(child: Icon(Icons.edit, size: 14, color: AppColors.scheduleSecondaryText)),
-                          const WidgetSpan(child: Icon(Icons.delete_outline, size: 14, color: AppColors.scheduleSecondaryText)),
+                          const WidgetSpan(
+                              child: Icon(Icons.edit,
+                                  size: 14,
+                                  color: AppColors.scheduleSecondaryText)),
+                          const WidgetSpan(
+                              child: Icon(Icons.delete_outline,
+                                  size: 14,
+                                  color: AppColors.scheduleSecondaryText)),
                         ],
                       ),
                     ),
@@ -229,7 +294,9 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(visit.customerName, style: const TextStyle(fontSize: 14, color: AppColors.scheduleText)),
+              child: Text(visit.customerName,
+                  style: const TextStyle(
+                      fontSize: 14, color: AppColors.scheduleText)),
             ),
             const SizedBox(height: 32),
           ],
@@ -262,7 +329,9 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
         border: Border.all(color: AppColors.divider, width: 1),
         color: AppColors.surfaceAlt,
       ),
-      child: const Center(child: Icon(Icons.add_box_outlined, size: 36, color: AppColors.onSurfaceMuted)),
+      child: const Center(
+          child: Icon(Icons.add_box_outlined,
+              size: 36, color: AppColors.onSurfaceMuted)),
     );
   }
 }
