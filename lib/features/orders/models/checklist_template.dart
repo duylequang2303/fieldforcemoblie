@@ -28,14 +28,25 @@ class ChecklistTemplate {
       return list
           .map((e) => ChecklistItem.fromJson(e as Map<String, dynamic>))
           .toList();
+    } on FormatException catch (e) {
+      throw ChecklistParseException('Invalid JSON format: ${e.message}');
+    } on TypeError catch (e) {
+      throw ChecklistParseException('Type error parsing checklist item: $e');
     } catch (e) {
-      return [];
+      throw ChecklistParseException('Failed to parse checklist items: $e');
     }
   }
 
   set items(List<ChecklistItem> value) {
     itemsJson = jsonEncode(value.map((e) => e.toJson()).toList());
   }
+}
+
+class ChecklistParseException implements Exception {
+  final String message;
+  const ChecklistParseException(this.message);
+  @override
+  String toString() => 'ChecklistParseException: $message';
 }
 
 /// Item câu hỏi trong checklist (không phải Isar collection).

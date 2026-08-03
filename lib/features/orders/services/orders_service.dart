@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:async';
+import 'dart:io';
 import 'package:isar_community/isar.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/api/odoo_session_manager.dart';
@@ -677,9 +679,10 @@ class OrdersService {
 
   /// Fetch checklist template theo service_type (cache 24h).
   Future<ChecklistTemplate?> fetchChecklistTemplate(String serviceType) async {
+    ChecklistTemplate? cached;
     try {
       // 1. Check cache
-      final cached = await _isar.db.checklistTemplates
+      cached = await _isar.db.checklistTemplates
           .filter()
           .serviceTypeEqualTo(serviceType)
           .findFirst();
@@ -705,7 +708,10 @@ class OrdersService {
       if (rawTemplates.isEmpty) return null;
 
       final templateData = rawTemplates.first;
-      final templateId = templateData['id'] as int;
+      final templateId = templateData['id'];
+      if (templateId is! int) {
+        throw OdooBusinessException('Invalid template ID type: ${templateId.runtimeType}');
+      }
 
       // 3. Fetch items
       final rawItems = await _odoo.callKw(
@@ -730,10 +736,16 @@ class OrdersService {
           .odooIdEqualTo(templateId)
           .findFirst();
 
+      final templateName = templateData['name'];
+      final templateServiceType = templateData['service_type'];
+      if (templateName is! String || templateServiceType is! String) {
+        throw OdooBusinessException('Invalid template data types: name=$templateName, serviceType=$templateServiceType');
+      }
+
       final template = ChecklistTemplate()
         ..odooId = templateId
-        ..name = templateData['name'] as String
-        ..serviceType = templateData['service_type'] as String
+        ..name = templateName
+        ..serviceType = templateServiceType
         ..active = true
         ..lastSyncAt = DateTime.now()
         ..isPendingSync = false
@@ -748,10 +760,30 @@ class OrdersService {
         await _isar.db.checklistTemplates.put(template);
       });
 
-      return template;
+      // Reload from Isar to get actual persisted state
+      final persisted = await _isar.db.checklistTemplates.get(template.id);
+      if (persisted == null) {
+        throw OdooBusinessException('Failed to reload template after save');
+      }
+      return persisted;
+    } on OdooApiException catch (e) {
+      logger.e('Odoo error fetching checklist template', error: e);
+      rethrow;
+    } on SocketException catch (e) {
+      logger.w('Network error fetching template, using cached version', error: e);
+      if (cached != null) {
+        return cached;
+      }
+      throw OdooConnectionException('Network error and no cached template: ${e.message}');
+    } on TimeoutException catch (e) {
+      logger.w('Timeout fetching template, using cached version', error: e);
+      if (cached != null) {
+        return cached;
+      }
+      throw OdooConnectionException('Timeout and no cached template: ${e.message}');
     } catch (e) {
-      logger.e('Failed to fetch checklist template', error: e);
-      return null;
+      logger.e('Unexpected error fetching checklist template', error: e);
+      throw OdooUnknownException('Unexpected error fetching template: $e');
     }
   }
 

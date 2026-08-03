@@ -168,17 +168,22 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
   List<ChecklistItem> _getMissingRequiredItems() {
     if (_checklistTemplate == null) return [];
     
-    return _checklistTemplate!.items.where((item) {
-      if (!item.required) return false;
-      
-      final answer = _checklistAnswers[item.id.toString()];
-      if (answer == null) return true;
-      
-      if (answer is String && answer.trim().isEmpty) return true;
-      if (answer is bool && !answer) return false;
-      
-      return false;
-    }).toList();
+    try {
+      return _checklistTemplate!.items.where((item) {
+        if (!item.required) return false;
+        
+        final answer = _checklistAnswers[item.id.toString()];
+        if (answer == null) return true;
+        
+        if (answer is String && answer.trim().isEmpty) return true;
+        if (answer is bool && !answer) return false;
+        
+        return false;
+      }).toList();
+    } on ChecklistParseException catch (e) {
+      _showSnackBar('Checklist data corrupted: ${e.message}');
+      return _checklistTemplate!.items.where((item) => item.required).toList();
+    }
   }
 
   Widget _buildChecklistSection() {
