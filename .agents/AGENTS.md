@@ -56,14 +56,18 @@
 - ❌ Không import `dart:io` trong code business logic — chỉ trong service.
 
 ## 10. Odoo Backend Server
-- **Server URL:** https://demo002.crmhub.vn/
-- **Web Admin Credentials:** `admin` / `REDACTED_PASSWORD`
-- **SSH Target:** `ssh REDACTED`
-- **Odoo Config File:** `/etc/odoo19/odoo.conf`
-- **Restart Command:** `systemctl restart odoo19`
-- **SSH Public Key:**
-  ```text
-  REDACTED
+> ⚠️ **Bảo mật:** Toàn bộ thông tin nhạy cảm (URL, credentials, SSH key...) **KHÔNG được viết trực tiếp trong file này**. Chỉ đọc từ file `.env` (không đẩy lên git, đã có trong `.gitignore`). Nếu thiếu biến, yêu cầu User cung cấp hoặc kiểm tra `.env`.
+
+- **Tất cả thông tin kết nối** đọc từ `.env`:
+  - `ODOO_URL` → Server URL
+  - `ODOO_ADMIN_USER` / `ODOO_ADMIN_PASSWORD` → Web Admin Credentials
+  - `ODOO_SSH_TARGET` → SSH Target
+  - `ODOO_SSH_PUBLIC_KEY` → SSH Public Key
+  - `ODOO_CONFIG_FILE` → Odoo Config File
+  - `ODOO_RESTART_CMD` → Restart Command
+- Command mẫu (sau khi load `.env`):
+  ```bash
+  ssh "$ODOO_SSH_TARGET" "$ODOO_RESTART_CMD"
   ```
 
 ## 11. Quy tắc Cấu trúc dữ liệu Thợ & Thao tác Database
