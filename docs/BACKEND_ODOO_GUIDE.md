@@ -93,8 +93,8 @@ for field in model._fields.values():
 # Cách 3: Dựa vào file Python (source code)
 # Tìm file định nghĩa model
 find /opt/odoo19/odoo -name "*.py" -exec grep -l "class FsmOrder" {} \;
-# Hoặc
-grep -r "class FsmOrder" /opt/odoo19/odoo/addons/
+# Hoặc tìm trong tất cả thư mục addons (mặc định và custom)
+grep -r "class FsmOrder" /opt/odoo19/odoo/addons/ /home/ubuntu/odoo/custom/addons/
 ```
 
 ### 3.3 Kiểm tra xem model có custom field không
@@ -179,10 +179,10 @@ grep -A 20 "ValueError" /var/log/odoo/odoo.log
 
 ### 5.2 Test API trực tiếp bằng curl
 ```bash
-# Login lấy session
+# Login lấy session (Sử dụng placeholder bảo mật, hãy thay bằng tài khoản thực tế)
 curl -X POST https://demo002.crmhub.vn/web/session/authenticate \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"call","params":{"db":"fieldforce","login":"admin","password":"admin"}}'
+  -d '{"jsonrpc":"2.0","method":"call","params":{"db":"fieldforce","login":"your_username","password":"your_password"}}'
 
 # Gọi search_read
 curl -X POST https://demo002.crmhub.vn/web/dataset/call_kw \
@@ -207,8 +207,8 @@ Khi Flutter báo `Invalid field 'X' on model 'Y'`:
 model = env['fsm.order']
 print('service_type' in model._fields)  # True/False
 
-# Nếu không có, tìm module custom định nghĩa
-grep -r "service_type" /opt/odoo19/odoo/addons/*/models/
+# Nếu không có, tìm module custom định nghĩa trong tất cả addons
+grep -r "service_type" /opt/odoo19/odoo/addons/ /home/ubuntu/odoo/custom/addons/
 ```
 
 ---
@@ -216,7 +216,7 @@ grep -r "service_type" /opt/odoo19/odoo/addons/*/models/
 ## 6. Tùy chỉnh Module Odoo
 
 ### 6.1 Cấu trúc module
-```
+```text
 odoo-modules/
 └── fieldforce_reports/
     ├── __init__.py

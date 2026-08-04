@@ -99,6 +99,19 @@
         ```
       - Nếu thực hiện thao tác trên server Staging thông qua SSH, bắt buộc phải bật xác thực Host Key (không dùng tùy chọn bỏ qua kiểm tra an toàn) và sử dụng Odoo Python Shell của Odoo thay vì thao tác SQL trực tiếp vào DB:
         ```bash
-        ssh root@demo002.crmhub.vn "odoo-bin shell -d demo002.crmhub.vn --command=\"self.env['fsm.order'].create({'name': 'Đơn FSM Test SSH', 'person_id': 4, 'location_id': 18})\""
+        ssh root@demo002.crmhub.vn "sudo -u odoo19 /opt/odoo19/venv/bin/python3 /opt/odoo19/odoo/odoo-bin shell -c /etc/odoo19/odoo.conf -d demo002.crmhub.vn --no-http" << 'EOF'
+        self.env['fsm.order'].create({
+            'name': 'Đơn FSM Test SSH',
+            'person_id': 4,
+            'location_id': 18,
+            'stage_id': 1,
+            'fsm_recurring_id': 1,  # ID của mẫu định kỳ (ví dụ: 1) để hiện lên trang Định Kỳ
+            'scheduled_date_start': fields.Datetime.now().replace(hour=8, minute=0, second=0),
+            'scheduled_date_end': fields.Datetime.now().replace(hour=18, minute=0, second=0),
+            'team_id': 1,
+            'warehouse_id': 1,
+        })
+        self.env.cr.commit()
+        EOF
         ```
 - ⚠️ **Hạn chế hỏi quyền tối đa**: Tránh chạy các lệnh shell thăm dò hoặc truy vấn rời rạc làm phiền User phê duyệt quyền nhiều lần. Nếu cần thông tin hoặc tạo dữ liệu test, hãy hỏi trực tiếp User hoặc gom các lệnh SQL/CLI cần thiết vào duy nhất một lần thực thi.

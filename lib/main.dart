@@ -6,6 +6,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'core/database/isar_service.dart';
 import 'core/locale/locale_service.dart';
 import 'core/database/sync_manager.dart';
+import 'core/utils/logger.dart';
 // Isar schemas — import generated .g.dart files
 import 'features/auth/models/user_session.dart';
 import 'features/orders/models/fsm_order.dart';
@@ -85,15 +86,11 @@ Future<void> main() async {
         final cachedOrders = await OrdersService.instance.loadCachedOrders();
         await RecurringNotificationService.instance
             .initializeAndScheduleDaily(cachedOrders);
-      } catch (e) {
-        if (kDebugMode) {
-          debugPrint('Init Recurring Notification Error: $e');
-        }
+      } catch (e, stack) {
+        logger.e('Init Recurring Notification Error', error: e, stackTrace: stack);
       }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('Init Isar Error: $e');
-      }
+    } catch (e, stack) {
+      logger.e('Init Isar Error', error: e, stackTrace: stack);
     }
   }
 

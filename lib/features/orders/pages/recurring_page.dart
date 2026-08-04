@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider';
+import 'package:provider/provider.dart';
 import '../../../core/api/api_exception.dart';
 import '../models/fsm_order.dart';
 import '../providers/recurring_provider.dart';
 import '../services/orders_service.dart';
 import '../services/recurring_notification_service.dart';
 import '../services/recurring_service.dart';
+import '../../../ui/theme/sf_tokens.dart';
 
 /// Tab "ĐỊNH KỲ" — danh sách đơn định kỳ đến hạn trong 7 ngày.
 class RecurringPage extends StatefulWidget {
@@ -32,7 +33,6 @@ class _RecurringPageState extends State<RecurringPage> {
           SnackBar(content: Text('Lỗi khởi động: $e')),
         );
       }
-      rethrow;
     }
   }
 
@@ -50,17 +50,25 @@ class _RecurringPageState extends State<RecurringPage> {
   }
 
   Future<void> _onTestNotify() async {
-    final cachedOrders = await OrdersService.instance.loadCachedOrders();
-    final content = RecurringService.buildNotificationContent(
-      RecurringService.filterDueToday(
-        RecurringService.fromFsmOrders(cachedOrders),
-        DateTime.now(),
-      ),
-    );
-    await RecurringNotificationService.instance.showTestNotification(
-      title: content.title,
-      body: content.body,
-    );
+    try {
+      final cachedOrders = await OrdersService.instance.loadCachedOrders();
+      final content = RecurringService.buildNotificationContent(
+        RecurringService.filterDueToday(
+          RecurringService.fromFsmOrders(cachedOrders),
+          DateTime.now(),
+        ),
+      );
+      await RecurringNotificationService.instance.showTestNotification(
+        title: content.title,
+        body: content.body,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi gửi thông báo thử: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _onComplete(RecurringDueOrder order) async {
@@ -104,20 +112,28 @@ class _RecurringPageState extends State<RecurringPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
+      backgroundColor: SfTokens.background,
       appBar: AppBar(
-        title: const Text('ĐỊNH KỲ'),
-        backgroundColor: theme.colorScheme.surface,
+        backgroundColor: SfTokens.primary,
+        foregroundColor: SfTokens.surface,
+        centerTitle: true,
+        title: const Text(
+          'ĐỊNH KỲ',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         actions: [
           Consumer<RecurringProvider>(
             builder: (context, provider, child) {
               return TextButton.icon(
                 onPressed: provider.busy ? null : _onTestNotify,
-                icon: Icon(Icons.notifications_active, color: theme.colorScheme.primary),
-                label: Text(
-                  'Test Notify',
-                  style: TextStyle(color: theme.colorScheme.primary),
+                style: TextButton.styleFrom(
+                  foregroundColor: SfTokens.surface,
                 ),
+                icon: const Icon(Icons.notifications_active),
+                label: const Text('Test Notify'),
               );
             },
           ),

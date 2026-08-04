@@ -60,8 +60,7 @@ class OrdersService {
     // LƯU Ý: KHÔNG request 'service_type' — backend fsm.order hiện tại không có
     // field này (xác nhận qua SSH: chỉ có fsm_recurring_id là custom). Nếu để,
     // Odoo trả ValueError "Invalid field 'service_type'" làm fetchMyOrders fail.
-    'checklist_template_id',
-    'checklist_answers',
+    // Tương tự cho 'checklist_template_id' và 'checklist_answers' - hiện chưa được cài đặt ở backend này.
   ];
 
   static const _locationFields = [

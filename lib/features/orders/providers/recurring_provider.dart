@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/database/isar_service.dart';
+import '../../../core/utils/logger.dart';
 import '../models/fsm_order.dart';
 import '../services/orders_service.dart';
 import '../services/recurring_service.dart';
@@ -15,11 +16,13 @@ class RecurringProvider extends ChangeNotifier {
   List<RecurringDueOrder> _dueOrders = [];
   String? _error;
   bool _busy = false;
+  bool _cacheLoaded = false;
 
   bool get isLoading => _isLoading;
   List<RecurringDueOrder> get dueOrders => _dueOrders;
   String? get error => _error;
   bool get busy => _busy;
+  bool get cacheLoaded => _cacheLoaded;
 
   void _applyOrders(List<FsmOrder> orders) {
     final recurring = RecurringService.fromFsmOrders(orders);
@@ -32,8 +35,10 @@ class RecurringProvider extends ChangeNotifier {
     List<FsmOrder> cached = [];
     try {
       cached = await _ordersService.loadCachedOrders();
-    } catch (_) {
-      // Swallowed for cache load as in original code
+      _cacheLoaded = true;
+    } catch (e, stack) {
+      logger.e('Failed to load cached orders', error: e, stackTrace: stack);
+      rethrow;
     }
     _applyOrders(cached);
     notifyListeners();
@@ -43,7 +48,7 @@ class RecurringProvider extends ChangeNotifier {
     } catch (e) {
       if (e is OdooConnectionException) {
         // Suppress connection errors during initial load to degrade gracefully to cache.
-        _error = 'Không thể tải dữ liệu. Hiển thị cache.';
+        _error = _cacheLoaded ? 'Không thể tải dữ liệu. Hiển thị cache.' : 'Không thể kết nối mạng và không tải được cache.';
         notifyListeners();
       } else {
         // Rethrow other errors (auth, validation, etc.) so callers/UI must handle them
@@ -65,7 +70,7 @@ class RecurringProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       if (e is OdooConnectionException) {
-        _error = 'Không thể tải dữ liệu. Hiển thị cache.';
+        _error = _cacheLoaded ? 'Không thể tải dữ liệu. Hiển thị cache.' : 'Không thể kết nối mạng và không tải được cache.';
       } else if (e is OdooApiException) {
         _error = e.message;
       } else {
@@ -94,7 +99,21 @@ class RecurringProvider extends ChangeNotifier {
       }
 
       // 2. Complete order. CompleteOrder function does local Isar write, then Odoo write.
-      await _ordersService.completeOrder(order.odooId);
+      try {
+        await _ordersService.completeOrder(order.odooId);
+      } catch (e) {
+        // If Odoo write fails, the local stage change to DONE is still saved in Isar.
+        // Re-read local cache to make sure UI reflects this immediately!
+        try {
+          final cached = await _ordersService.loadCachedOrders();
+          _applyOrders(cached);
+          _cacheLoaded = true;
+        } catch (_) {
+          // Fallback: manually filter out this completed order from local due list in memory
+          _dueOrders = _dueOrders.where((o) => o.odooId != order.odooId).toList();
+        }
+        rethrow;
+      }
 
       // 3. Sync page state with fresh local/Odoo data
       try {
