@@ -8,6 +8,7 @@ import '../../features/auth/pages/login_page.dart';
 // Orders pages (Phase 7)
 import '../../features/orders/pages/orders_list_page.dart';
 import '../../features/orders/pages/order_detail_page.dart';
+import '../../features/orders/pages/recurring_page.dart';
 import '../../features/orders/models/fsm_order.dart';
 // Route Map page (Phase 8)
 import '../../features/route_map/pages/route_map_page.dart';
@@ -81,7 +82,19 @@ final GoRouter appRouter = GoRouter(
             ),
           ],
         ),
-        // Branch 2: Settings - placeholder
+        // Branch 2: ĐỊNH KỲ — công việc định kỳ đến hạn
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: RouteNames.shellRecurring,
+              name: 'shellRecurring',
+              pageBuilder: (context, state) {
+                return const NoTransitionPage(child: RecurringPage());
+              },
+            ),
+          ],
+        ),
+        // Branch 3: Settings - placeholder
         StatefulShellBranch(
           routes: [
             GoRoute(

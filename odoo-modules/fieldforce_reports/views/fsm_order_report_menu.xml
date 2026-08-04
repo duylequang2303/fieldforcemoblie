@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <!-- Menu: Revenue Report under Field Service > Reporting -->
+    <menuitem
+        id="menu_fsm_revenue_report"
+        name="Revenue Report"
+        action="action_fsm_order_revenue_report"
+        parent="fieldservice.reporting"
+        sequence="10"
+        groups="fieldservice.group_fsm_manager"
+    />
+
+    <!-- Menu: Revenue by Worker under Field Service > Reporting -->
+    <menuitem
+        id="menu_fsm_revenue_by_worker"
+        name="Revenue by Worker"
+        action="action_fsm_order_revenue_by_worker"
+        parent="fieldservice.reporting"
+        sequence="20"
+        groups="fieldservice.group_fsm_manager"
+    />
+</odoo>

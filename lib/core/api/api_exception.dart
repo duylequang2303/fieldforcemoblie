@@ -13,6 +13,13 @@ final class OdooAuthException extends OdooApiException {
   const OdooAuthException(super.message);
 }
 
+/// Lỗi thiếu credentials khi cố tự động đăng nhập lại ngầm (silent re-auth).
+/// Khác với [OdooAuthException] — không phải do session hết hạn mà do không
+/// có password được lưu để lấy lại session mới.
+final class OdooMissingCredentialsException extends OdooAuthException {
+  const OdooMissingCredentialsException(super.message);
+}
+
 /// Lỗi không kết nối được tới server (server down, sai URL).
 final class OdooConnectionException extends OdooApiException {
   const OdooConnectionException(super.message);

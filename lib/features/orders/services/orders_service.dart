@@ -48,6 +48,7 @@ class OrdersService {
     'person_ids',
     'scheduled_duration',
     'date_end',
+    'fsm_recurring_id',
     'resolution',
     'inventory_location_id',
     'color',
@@ -56,7 +57,9 @@ class OrdersService {
     'material_note',
     'collected_amount',
     'payment_method',
-    'service_type',
+    // LƯU Ý: KHÔNG request 'service_type' — backend fsm.order hiện tại không có
+    // field này (xác nhận qua SSH: chỉ có fsm_recurring_id là custom). Nếu để,
+    // Odoo trả ValueError "Invalid field 'service_type'" làm fetchMyOrders fail.
     'checklist_template_id',
     'checklist_answers',
   ];

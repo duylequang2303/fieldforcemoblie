@@ -42,6 +42,11 @@ class _AppShellState extends State<AppShell> {
             label: 'Properties',
           ),
           NavigationDestination(
+            icon: Icon(Icons.event_repeat_outlined),
+            selectedIcon: Icon(Icons.event_repeat, color: SfTokens.primary),
+            label: 'Định kỳ',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings, color: SfTokens.primary),
             label: 'Settings',

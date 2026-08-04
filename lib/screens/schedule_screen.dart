@@ -214,22 +214,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 color: theme.colorScheme.onSurface,
               ),
             ),
-            OutlinedButton.icon(
-              onPressed: () {
-                // TODO: Tạo công việc mới
-              },
-              icon: Icon(Icons.add, color: theme.colorScheme.primary),
-              label: Text(
-                'Add Visit',
-                style: TextStyle(color: theme.colorScheme.primary),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: theme.colorScheme.primary),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
           ],
         ),
       ),

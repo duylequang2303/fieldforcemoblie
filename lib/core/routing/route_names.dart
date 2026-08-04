@@ -33,5 +33,6 @@ abstract final class RouteNames {
   // Shell navigation routes
   static const String shellSchedule = '/shell/schedule';
   static const String shellProperties = '/shell/properties';
+  static const String shellRecurring = '/shell/recurring';
   static const String shellSettings = '/shell/settings';
 }

@@ -55,6 +55,9 @@ class FsmOrder {
   String? personName;
   String? priority; // '0' = Normal, '1' = High
 
+  // Đơn định kỳ (fsm.recurring)
+  int? fsmRecurringId; // fsm.recurring.id nếu là đơn định kỳ
+
   // Sync
   late bool isPendingSync; // true = có thay đổi chưa push lên Odoo
   late DateTime lastSyncAt;
@@ -95,6 +98,7 @@ class FsmOrder {
       ..personId = _idOrNull(json['person_id'])
       ..personName = _nameFromMany(json['person_id'])
       ..priority = _strOrNull(json['priority'])
+      ..fsmRecurringId = _intOrNull(json['fsm_recurring_id'])
       ..routeSequence = _intOrNull(json['route_sequence'])
       ..routeId = _idOrNull(json['route_id'])
       ..routeState = _strOrNull(json[

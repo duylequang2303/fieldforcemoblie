@@ -17,6 +17,7 @@ import 'features/timesheet/models/timesheet_entry.dart';
 import 'features/expense/models/expense.dart';
 import 'features/work_order/models/work_report.dart';
 import 'features/orders/services/orders_service.dart';
+import 'features/orders/services/recurring_notification_service.dart';
 import 'features/timesheet/services/timesheet_service.dart';
 import 'features/expense/services/expense_service.dart';
 import 'features/stock/services/stock_service.dart';
@@ -63,6 +64,8 @@ Future<void> main() async {
       // Đăng ký các sync handlers cho offline sync sau khi Isar khởi tạo thành công
       SyncManager.instance
           .registerSyncHandler(OrdersService.instance.syncPending);
+      // Lưu ý: cờ "đã thực hiện kỳ" (completeOrder) được push qua OrdersService.syncPending
+      // nên KHÔNG cần đăng ký sync handler riêng cho recurring.
       SyncManager.instance
           .registerSyncHandler(TimesheetService.instance.syncPending);
       SyncManager.instance
@@ -75,6 +78,18 @@ Future<void> main() async {
       // Bắt đầu lắng nghe trạng thái mạng để tự động sync
       SyncManager.instance.startListening();
       await SyncManager.instance.startAutoSync();
+
+      // Khởi tạo + schedule local notification 8h sáng hằng ngày
+      // (dữ liệu đơn định kỳ hôm nay được tính trong service, KHÔNG chứa logic ở UI)
+      try {
+        final cachedOrders = await OrdersService.instance.loadCachedOrders();
+        await RecurringNotificationService.instance
+            .initializeAndScheduleDaily(cachedOrders);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('Init Recurring Notification Error: $e');
+        }
+      }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('Init Isar Error: $e');
