@@ -64,7 +64,7 @@ class _RecurringPageState extends State<RecurringPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi gửi thông báo thử: $e')),
+          SnackBar(content: Text('Lỗi gửi thông báo thử: $e'), behavior: SnackBarBehavior.floating),
         );
       }
     }
@@ -77,7 +77,7 @@ class _RecurringPageState extends State<RecurringPage> {
       await provider.completeDueOrder(order);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Đã hoàn thành kỳ: ${order.name}')),
+          SnackBar(content: Text('Đã hoàn thành kỳ: ${order.name}'), behavior: SnackBarBehavior.floating),
         );
       }
     } on OdooConnectionException catch (e) {
@@ -89,7 +89,7 @@ class _RecurringPageState extends State<RecurringPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e')),
+          SnackBar(content: Text('Lỗi: $e'), behavior: SnackBarBehavior.floating),
         );
       }
     }

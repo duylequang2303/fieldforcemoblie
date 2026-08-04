@@ -60,7 +60,7 @@ class RecurringService {
 
   static String? _sanitizeText(String? text) {
     if (text == null) return null;
-    final cleaned = text.replaceAll(RegExp(r'<[^>]*>|&nbsp;'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+    final cleaned = text.replaceAll(RegExp(r'<[^>]*>|&nbsp;|<|>'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
     return cleaned;
   }
 
