@@ -8,6 +8,8 @@ import '../../../core/database/isar_service.dart';
 import '../../../core/utils/logger.dart';
 import '../models/fsm_order.dart';
 import '../models/checklist_template.dart';
+import '../../../core/auth/secure_storage.dart';
+import 'recurring_notification_service.dart';
 
 /// Service giao tiếp với Odoo API cho fsm.order.
 /// Tất cả Odoo call đi qua đây, không gọi trực tiếp từ Provider hay Widget.
@@ -113,6 +115,15 @@ class OrdersService {
   Future<int?> getCompletedStageId() async {
     if (_completedStageId != null) return _completedStageId;
 
+    // Load from SecureStorage first in case we are offline
+    try {
+      final saved = await SecureStorageService.instance.loadCompletedStageId();
+      if (saved != null) {
+        _completedStageId = saved;
+        return _completedStageId;
+      }
+    } catch (_) {}
+
     // Cách 1: Gọi method an toàn từ module fieldforce_payment
     try {
       final result = await _odoo.callKw(
@@ -124,6 +135,7 @@ class OrdersService {
       if (result is Map && result['completed'] is int) {
         _completedStageId = result['completed'] as int;
         logger.i('Resolved fsm_stage_completed => ${_completedStageId}');
+        await SecureStorageService.instance.saveCompletedStageId(_completedStageId!);
         return _completedStageId;
       }
       logger.w('get_fsm_stage_ids returned no completed stage: $result');
@@ -149,6 +161,7 @@ class OrdersService {
       ) as List<dynamic>;
       if (result.isNotEmpty) {
         _completedStageId = result.first['res_id'] as int;
+        await SecureStorageService.instance.saveCompletedStageId(_completedStageId!);
       }
     } catch (e) {
       logger.e('Failed to resolve fsm_stage_completed XML ID (fallback)', error: e);
@@ -286,7 +299,8 @@ class OrdersService {
     }
 
     // Parse JSON -> Model Isar
-    final orders = rawOrders.map((o) {
+    final orders = <FsmOrder>[];
+    for (var o in rawOrders) {
       final oMap = o as Map<String, dynamic>;
 
       // Inject route_state
@@ -296,13 +310,36 @@ class OrdersService {
         oMap['route_state'] = routeStates[rId];
       }
 
-      return FsmOrder.fromJson(oMap, locationCoordinates: locationCoordinates);
-    }).toList();
+      final parsed = FsmOrder.fromJson(oMap, locationCoordinates: locationCoordinates);
+      final local = await _isar.db.fsmOrders.getByOdooId(parsed.odooId);
+      if (local != null && local.isPendingSync) {
+        orders.add(local);
+      } else {
+        orders.add(parsed);
+      }
+    }
 
-    // Lưu vào Isar để dùng offline
+    // Lưu vào Isar để dùng offline (tránh đè lên đơn pending sync)
     await _isar.db.writeTxn(() async {
-      await _isar.db.fsmOrders.putAllByOdooId(orders);
+      final listToPut = <FsmOrder>[];
+      for (final order in orders) {
+        final local = await _isar.db.fsmOrders.getByOdooId(order.odooId);
+        if (local != null && local.isPendingSync) {
+          continue;
+        }
+        listToPut.add(order);
+      }
+      if (listToPut.isNotEmpty) {
+        await _isar.db.fsmOrders.putAllByOdooId(listToPut);
+      }
     });
+
+    // Tự động cập nhật lịch thông báo hằng ngày dựa trên dữ liệu mới nhất
+    try {
+      await RecurringNotificationService.instance.initializeAndScheduleDaily(orders);
+    } catch (e, stack) {
+      logger.e('Failed to reschedule notifications after fetchMyOrders', error: e, stackTrace: stack);
+    }
 
     return orders;
   }
@@ -371,7 +408,8 @@ class OrdersService {
         }
       }
 
-      final orders = rawOrders.map((o) {
+      final orders = <FsmOrder>[];
+      for (var o in rawOrders) {
         final oMap = o as Map<String, dynamic>;
 
         final rData = oMap['route_id'];
@@ -380,12 +418,27 @@ class OrdersService {
           oMap['route_state'] = routeStates[rId];
         }
 
-        return FsmOrder.fromJson(oMap,
-            locationCoordinates: locationCoordinates);
-      }).toList();
+        final parsed = FsmOrder.fromJson(oMap, locationCoordinates: locationCoordinates);
+        final local = await _isar.db.fsmOrders.getByOdooId(parsed.odooId);
+        if (local != null && local.isPendingSync) {
+          orders.add(local);
+        } else {
+          orders.add(parsed);
+        }
+      }
 
       await _isar.db.writeTxn(() async {
-        await _isar.db.fsmOrders.putAllByOdooId(orders);
+        final listToPut = <FsmOrder>[];
+        for (final order in orders) {
+          final local = await _isar.db.fsmOrders.getByOdooId(order.odooId);
+          if (local != null && local.isPendingSync) {
+            continue;
+          }
+          listToPut.add(order);
+        }
+        if (listToPut.isNotEmpty) {
+          await _isar.db.fsmOrders.putAllByOdooId(listToPut);
+        }
       });
 
       return orders;
@@ -536,6 +589,13 @@ class OrdersService {
           'OrdersService.completeOrder: API call failed, saved local completion draft',
           error: e);
       rethrow;
+    } finally {
+      try {
+        final latest = await loadCachedOrders();
+        await RecurringNotificationService.instance.initializeAndScheduleDaily(latest);
+      } catch (err, stack) {
+        logger.e('Failed to reschedule notifications after completeOrder', error: err, stackTrace: stack);
+      }
     }
   }
 
@@ -676,6 +736,14 @@ class OrdersService {
         logger.w('OrdersService.syncPending: failed for order ${order.odooId}',
             error: e);
       }
+    }
+
+    // Reschedule notifications after all pending syncs are processed
+    try {
+      final latest = await loadCachedOrders();
+      await RecurringNotificationService.instance.initializeAndScheduleDaily(latest);
+    } catch (e, stack) {
+      logger.e('Failed to reschedule notifications after syncPending', error: e, stackTrace: stack);
     }
   }
 

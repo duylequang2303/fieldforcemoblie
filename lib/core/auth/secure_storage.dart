@@ -20,6 +20,7 @@ class SecureStorageService {
   static const _keyPassword = 'odoo_password';
   static const _keyEmployeeId = 'odoo_employee_id';
   static const _keyBiometricEnabled = 'biometric_enabled';
+  static const _keyCompletedStageId = 'odoo_completed_stage_id';
 
   Future<void> saveSession({
     required String serverUrl,
@@ -116,5 +117,14 @@ class SecureStorageService {
   Future<bool> get isBiometricEnabled async {
     final val = await _storage.read(key: _keyBiometricEnabled);
     return val == 'true';
+  }
+
+  Future<void> saveCompletedStageId(int stageId) async {
+    await _storage.write(key: _keyCompletedStageId, value: stageId.toString());
+  }
+
+  Future<int?> loadCompletedStageId() async {
+    final val = await _storage.read(key: _keyCompletedStageId);
+    return val != null ? int.tryParse(val) : null;
   }
 }

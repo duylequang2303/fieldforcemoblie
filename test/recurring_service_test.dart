@@ -244,6 +244,22 @@ void main() {
         expect(content.title, contains('1'));
         expect(content.body, contains('WO/99'));
       });
+
+      test('should sanitize HTML tags from serviceName and body', () {
+        final list = [
+          RecurringDueOrder(
+            odooId: 1,
+            name: 'WO/1',
+            partnerName: 'Nguyễn Văn A',
+            serviceName: '<p>Bảo trì <b>máy lạnh</b></p>&nbsp;ac',
+            dueDate: monday(),
+          ),
+        ];
+        final content = RecurringService.buildNotificationContent(list);
+        expect(content.body, isNot(contains('<p>')));
+        expect(content.body, isNot(contains('&nbsp;')));
+        expect(content.body, contains('Bảo trì máy lạnh ac'));
+      });
     });
   });
 }

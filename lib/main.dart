@@ -50,6 +50,7 @@ Future<void> main() async {
   // Tạm bỏ qua Khởi tạo Isar DB trên web (Isar 3.x không hỗ trợ web).
   // Chạy init IsarService.instance.init chỉ trên mobile/desktop.
   if (!kIsWeb) {
+    // 1. Khởi tạo Isar DB
     try {
       await IsarService.instance.init([
         UserSessionSchema,
@@ -62,11 +63,17 @@ Future<void> main() async {
         ExpenseSchema,
         WorkReportSchema,
       ]);
+    } catch (e, stack) {
+      logger.e('Init Isar Error', error: e, stackTrace: stack);
+    }
+
+    // 2. Khởi tạo các Service phụ thuộc Isar và cấu hình đồng bộ
+    try {
+      await LocaleService.instance.init();
+
       // Đăng ký các sync handlers cho offline sync sau khi Isar khởi tạo thành công
       SyncManager.instance
           .registerSyncHandler(OrdersService.instance.syncPending);
-      // Lưu ý: cờ "đã thực hiện kỳ" (completeOrder) được push qua OrdersService.syncPending
-      // nên KHÔNG cần đăng ký sync handler riêng cho recurring.
       SyncManager.instance
           .registerSyncHandler(TimesheetService.instance.syncPending);
       SyncManager.instance
@@ -80,17 +87,23 @@ Future<void> main() async {
       SyncManager.instance.startListening();
       await SyncManager.instance.startAutoSync();
 
-      // Khởi tạo + schedule local notification 8h sáng hằng ngày
-      // (dữ liệu đơn định kỳ hôm nay được tính trong service, KHÔNG chứa logic ở UI)
+      // Chạy đồng bộ ngay lập tức trước khi tải dữ liệu online
       try {
-        final cachedOrders = await OrdersService.instance.loadCachedOrders();
-        await RecurringNotificationService.instance
-            .initializeAndScheduleDaily(cachedOrders);
+        await SyncManager.instance.syncPending();
       } catch (e, stack) {
-        logger.e('Init Recurring Notification Error', error: e, stackTrace: stack);
+        logger.e('Initial syncPending failed', error: e, stackTrace: stack);
       }
     } catch (e, stack) {
-      logger.e('Init Isar Error', error: e, stackTrace: stack);
+      logger.e('Init Services/Sync Error', error: e, stackTrace: stack);
+    }
+
+    // 3. Khởi tạo + schedule local notification 8h sáng hằng ngày độc lập
+    try {
+      final cachedOrders = await OrdersService.instance.loadCachedOrders();
+      await RecurringNotificationService.instance
+          .initializeAndScheduleDaily(cachedOrders);
+    } catch (e, stack) {
+      logger.e('Init Recurring Notification Error', error: e, stackTrace: stack);
     }
   }
 

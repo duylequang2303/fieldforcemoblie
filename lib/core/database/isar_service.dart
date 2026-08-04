@@ -53,6 +53,7 @@ class IsarService {
       if (kDebugMode) {
         debugPrint('Lỗi khởi tạo Isar DB: $e\n$stackTrace');
       }
+      rethrow;
     }
   }
 

@@ -6,7 +6,6 @@ import '../providers/recurring_provider.dart';
 import '../services/orders_service.dart';
 import '../services/recurring_notification_service.dart';
 import '../services/recurring_service.dart';
-import '../../../ui/theme/sf_tokens.dart';
 
 /// Tab "ĐỊNH KỲ" — danh sách đơn định kỳ đến hạn trong 7 ngày.
 class RecurringPage extends StatefulWidget {
@@ -112,10 +111,10 @@ class _RecurringPageState extends State<RecurringPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: SfTokens.background,
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: SfTokens.primary,
-        foregroundColor: SfTokens.surface,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
         centerTitle: true,
         title: const Text(
           'ĐỊNH KỲ',
@@ -130,7 +129,7 @@ class _RecurringPageState extends State<RecurringPage> {
               return TextButton.icon(
                 onPressed: provider.busy ? null : _onTestNotify,
                 style: TextButton.styleFrom(
-                  foregroundColor: SfTokens.surface,
+                  foregroundColor: theme.colorScheme.onPrimary,
                 ),
                 icon: const Icon(Icons.notifications_active),
                 label: const Text('Test Notify'),

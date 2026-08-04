@@ -58,6 +58,12 @@ class RecurringService {
   static DateTime? _dateOrNull(dynamic v) =>
       (v == null || v == false) ? null : DateTime.tryParse(v as String);
 
+  static String? _sanitizeText(String? text) {
+    if (text == null) return null;
+    final cleaned = text.replaceAll(RegExp(r'<[^>]*>|&nbsp;'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+    return cleaned;
+  }
+
   static int? _manyToOneId(dynamic v) {
     if (v == null || v == false) return null;
     if (v is int) return v;
@@ -96,8 +102,8 @@ class RecurringService {
         partnerName: _nameFromManyOrDirect(json['partner_id']) == ''
             ? _nameFromManyOrDirect(json['location_id'])
             : _nameFromManyOrDirect(json['partner_id']),
-        serviceName: _strOrNull(json['service_type']) ??
-            _nameFromManyOrDirect(json['stage_id']),
+        serviceName: _sanitizeText(_strOrNull(json['service_type']) ??
+            _nameFromManyOrDirect(json['stage_id'])),
         dueDate: _dateOrNull(json['scheduled_date_start']),
         stageName: _nameFromManyOrDirect(json['stage_id']),
       ));
@@ -116,7 +122,7 @@ class RecurringService {
         odooId: order.odooId,
         name: order.name,
         partnerName: order.partnerName,
-        serviceName: order.serviceType ?? order.description,
+        serviceName: _sanitizeText(order.serviceType ?? order.description),
         dueDate: order.scheduledDateStart,
         stageName: order.stageName,
       ));
@@ -184,7 +190,7 @@ class RecurringService {
       return (
         count: 1,
         title: '1 công việc định kỳ hôm nay',
-        body: 'Đến hạn: $who${o.serviceName == null ? '' : ' — ${o.serviceName}.'}',
+        body: _sanitizeText('Đến hạn: $who${o.serviceName == null ? '' : ' — ${o.serviceName}.'}') ?? '',
       );
     }
     final list = dueOrders
@@ -195,7 +201,7 @@ class RecurringService {
     return (
       count: count,
       title: '$count công việc định kỳ hôm nay',
-      body: list,
+      body: _sanitizeText(list) ?? '',
     );
   }
 }
