@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../features/auth/providers/auth_provider.dart';
-import '../features/orders/providers/orders_provider.dart';
-import '../features/route_map/providers/route_provider.dart';
-import '../features/stock/providers/stock_provider.dart';
-import '../features/timesheet/providers/timesheet_provider.dart';
-import '../features/expense/providers/expense_provider.dart';
-import '../features/work_order/providers/work_order_provider.dart';
+import 'package:fieldforce_mobile/features/auth/providers/auth_provider.dart';
+import 'package:fieldforce_mobile/features/orders/providers/orders_provider.dart';
+import 'package:fieldforce_mobile/features/orders/providers/recurring_provider.dart';
+import 'package:fieldforce_mobile/features/route_map/providers/route_provider.dart';
+import 'package:fieldforce_mobile/features/stock/providers/stock_provider.dart';
+import 'package:fieldforce_mobile/features/timesheet/providers/timesheet_provider.dart';
+import 'package:fieldforce_mobile/features/expense/providers/expense_provider.dart';
+import 'package:fieldforce_mobile/features/work_order/providers/work_order_provider.dart';
 
 /// Đăng ký toàn bộ Provider cho app.
 /// Thêm provider mới vào đây khi tạo feature mới.
@@ -23,6 +24,7 @@ class AppProviders extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         // Phase 7: Orders ✅
         ChangeNotifierProvider(create: (_) => OrdersProvider()),
+        ChangeNotifierProvider(create: (_) => RecurringProvider()),
         // Phase 8: Route Map ✅
         ChangeNotifierProvider(create: (_) => RouteProvider()),
         // Phase 9: Stock ✅

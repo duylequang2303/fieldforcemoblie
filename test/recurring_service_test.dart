@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fieldforce_mobile/features/orders/services/recurring_service.dart';
+import 'package:fieldforce_mobile/features/orders/models/fsm_order.dart';
 
 /// Test logic thuần trong RecurringService:
 /// parse (JSON chuẩn + Odoo trả false/null), filterDueOrders (hôm nay / 7 ngày /
@@ -12,7 +13,7 @@ void main() {
           {
             'id': 101,
             'name': 'WO/2024/001',
-            'fsm_recurring_id': 5,
+            'fsm_recurring_id': [5, 'Weekly Service'],
             'partner_id': [10, 'Nguyễn Văn A'],
             'service_type': 'ac',
             'scheduled_date_start': '2026-04-08 08:00:00',
@@ -38,7 +39,7 @@ void main() {
           {
             'id': 2,
             'name': 'WO/2',
-            'fsm_recurring_id': 9,
+            'fsm_recurring_id': [9, 'Every 2 Weeks'],
             'partner_id': [1, 'B'],
           },
         ];
@@ -53,7 +54,7 @@ void main() {
           {
             'id': 202,
             'name': 'WO/2024/002',
-            'fsm_recurring_id': 7,
+            'fsm_recurring_id': [7, 'Monthly'],
             'partner_id': false, // Odoo trả false cho many2one rỗng
             'service_type': false,
             'scheduled_date_start': false, // rỗng
@@ -72,12 +73,12 @@ void main() {
         expect(order.stageName, isEmpty);
       });
 
-      test('should not crash when partner_id is a plain string (not list)', () {
+      test('should not crash when partner_id is plain string (not list)', () {
         const json = [
           {
             'id': 303,
             'name': 'WO/303',
-            'fsm_recurring_id': 3,
+            'fsm_recurring_id': [3, 'Weekly'],
             'partner_id': 'Khách lẻ',
             'scheduled_date_start': '2026-04-08 08:00:00',
           },
@@ -86,6 +87,40 @@ void main() {
         final result = RecurringService.parseRecurringOrders(json);
         expect(result, hasLength(1));
         expect(result.first.partnerName, 'Khách lẻ');
+      });
+
+      test('should parse fsm_recurring_id in FsmOrder.fromJson supporting list, int, null, false', () {
+        final order1 = FsmOrder.fromJson({
+          'id': 1001,
+          'name': 'Order 1',
+          'fsm_recurring_id': [42, 'Every Month'],
+          'stage_id': [1, 'Draft'],
+        });
+        expect(order1.fsmRecurringId, 42);
+
+        final order2 = FsmOrder.fromJson({
+          'id': 1002,
+          'name': 'Order 2',
+          'fsm_recurring_id': 99,
+          'stage_id': [1, 'Draft'],
+        });
+        expect(order2.fsmRecurringId, 99);
+
+        final order3 = FsmOrder.fromJson({
+          'id': 1003,
+          'name': 'Order 3',
+          'fsm_recurring_id': false,
+          'stage_id': [1, 'Draft'],
+        });
+        expect(order3.fsmRecurringId, isNull);
+
+        final order4 = FsmOrder.fromJson({
+          'id': 1004,
+          'name': 'Order 4',
+          'fsm_recurring_id': null,
+          'stage_id': [1, 'Draft'],
+        });
+        expect(order4.fsmRecurringId, isNull);
       });
     });
 
@@ -111,7 +146,7 @@ void main() {
         expect(result, hasLength(1));
       });
 
-      test('should include orders within the next 7 days and exclude beyond', () {
+      test('should include orders within next 7 days and exclude beyond', () {
         final list = [
           order(DateTime(2026, 4, 8)), // hôm nay
           order(DateTime(2026, 4, 10)), // trong 7 ngày
@@ -181,8 +216,7 @@ void main() {
             dueDate: monday(),
           ),
         ];
-        final content =
-            RecurringService.buildNotificationContent(list);
+        final content = RecurringService.buildNotificationContent(list);
         expect(content.count, 1);
         expect(content.title, contains('1'));
         expect(content.body, contains('Nguyễn Văn A'));

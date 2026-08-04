@@ -259,6 +259,7 @@ def _compute_recurring_count(self):
 ```python
 def write(self, vals):
     # Custom logic trước khi write
+    done_stage = self.env.ref('fieldservice.stage_completed').id
     if vals.get('stage_id') == done_stage:
         vals['x_completed_at'] = fields.Datetime.now()
     return super().write(vals)
@@ -267,9 +268,8 @@ def write(self, vals):
 ### 6.5 Restart Odoo sau khi sửa
 ```bash
 sudo systemctl restart odoo19
-# Hoặc reload module (nếu chỉ đổi views/data)
-sudo -u postgres psql -c "UPDATE ir_module_module SET state='to install' WHERE name='fieldforce_reports';"
-sudo -u postgres psql -c "UPDATE ir_module_module SET state='installed' WHERE name='fieldforce_reports';"
+# Hoặc nâng cấp module bằng lệnh CLI chính thức của Odoo (để load XML/CSV data và chạy các module hooks):
+sudo -u odoo19 odoo19 -d fieldforce -u fieldforce_reports --stop-after-init
 ```
 
 ---
@@ -370,9 +370,10 @@ print("Created:", new_recurring.id)
    ```
 
 3. **Hoặc dùng Odoo shell Python**
+   *Lưu ý: Để kiểm tra dữ liệu read-only, chạy shell trực tiếp dưới tài khoản dịch vụ odoo19 mà không cần dừng dịch vụ đang chạy. Chỉ dừng dịch vụ odoo19 khi thực sự cần thiết và phải nằm trong một maintenance window có tài liệu được phê duyệt.*
    ```bash
-   sudo systemctl stop odoo19
-   sudo -u postgres odoo19 shell -d fieldforce --no-http
+   sudo -u odoo19 odoo19 shell -d fieldforce --no-http
+   # Trong shell:
    >>> env['fsm.recurring'].fields_get().keys()
    ```
 

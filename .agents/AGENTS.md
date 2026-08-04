@@ -72,20 +72,33 @@
   - **Tài khoản đăng nhập (App)**: `worker1@gmail.com` (User ID: `5`, Partner ID: `11` - tên "Kỹ thuật viên 1").
   - **Kỹ thuật viên phân công (Odoo)**: `James` (Person ID: `4`, Partner ID: `18`).
   - **Cơ chế lọc đơn hàng**: App di động của tài khoản `worker1@gmail.com` lọc đơn hàng thông qua người thực hiện dịch vụ là `James` (`person_id = 4`). Tất cả các đơn hàng kiểm thử cho thợ này bắt buộc phải gán `person_id = 4`.
-- 📋 **Quy định tạo đơn hàng test chuẩn trên Odoo (phải đủ các trường bắt buộc để hiện lên Lịch trình)**:
-  - **Tên Database Postgres chính xác**: `demo002.crmhub.vn` (Bắt buộc chỉ định `-d "demo002.crmhub.vn"`, không dùng `demo002` vì database đó trống).
-  - **Các trường bắt buộc**:
-    - `name`: Tên đơn hàng.
-    - `person_id`: Gán cứng là `4` (James) để map với thợ `worker1@gmail.com` trên App.
-    - `location_id`: Gán mặc định là `18` (Oakview Residence - đã tồn tại trên DB).
-    - `stage_id`: Gán là `1` (New) hoặc `4` (In Progress).
-    - `company_id`: Mặc định là `1`.
-    - `team_id`: Mặc định là `1` (Bắt buộc NOT NULL).
-    - `warehouse_id`: Mặc định là `1` (Bắt buộc NOT NULL).
-    - `scheduled_date_start`: Phải cùng ngày hiện tại (ví dụ: `CURRENT_DATE + TIME '08:00:00'`).
-    - `scheduled_date_end`: Phải cùng ngày hiện tại (ví dụ: `CURRENT_DATE + TIME '18:00:00'`).
-  - **Lệnh tạo nhanh đơn hàng test qua SSH**:
-    ```bash
-    ssh -o StrictHostKeyChecking=no root@demo002.crmhub.vn "su - postgres -c \"psql -d \\\"demo002.crmhub.vn\\\" -c \\\"INSERT INTO fsm_order (name, person_id, location_id, stage_id, company_id, team_id, warehouse_id, scheduled_date_start, scheduled_date_end, scheduled_duration, create_date, write_date, create_uid, write_uid) VALUES ('Đơn FSM Test - ' || TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS'), 4, 18, 1, 1, 1, 1, CURRENT_DATE + TIME '08:00:00', CURRENT_DATE + TIME '18:00:00', 10.0, NOW(), NOW(), 2, 2);\\\"\""
-    ```
+  - 📋 **Quy định tạo đơn hàng test chuẩn trên Odoo (phải đủ các trường bắt buộc để hiện lên Lịch trình)**:
+    - **Các trường dữ liệu test bắt buộc**:
+      - `name`: Tên đơn hàng (ví dụ: 'Đơn FSM Test').
+      - `person_id`: James (ID: `4`) để ánh xạ với Kỹ thuật viên `worker1@gmail.com` trên App.
+      - `location_id`: Oakview Residence (ID: `18`).
+      - `stage_id`: New (ID: `1`) hoặc In Progress (ID: `4`).
+      - `scheduled_date_start`: Ngày hiện hại lúc 08:00:00.
+      - `scheduled_date_end`: Ngày hiện tại lúc 18:00:00.
+      - `company_id`: Mặc định `1`.
+      - `team_id`: Mặc định `1` (NOT NULL).
+      - `warehouse_id`: Mặc định `1` (NOT NULL).
+    - **Quy trình tạo đơn test trên môi trường Staging**:
+      - Tạo trực tiếp qua giao diện Web Admin Odoo bằng cách truy cập `Field Service` -> `Work Orders` -> click `New` và điền đầy đủ các thông tin bắt buộc với giá trị tương ứng ở trên.
+      - Hoặc chạy script/python-shell tạo đơn qua Odoo XML-RPC API sử dụng model `fsm.order` với phương thức `create` tiêu chuẩn:
+        ```python
+        # Sử dụng Odoo RPC client tạo record hợp lệ trên database demo002.crmhub.vn
+        odoo.env['fsm.order'].create({
+            'name': 'Đơn FSM Test - XMLRPC',
+            'person_id': 4,
+            'location_id': 18,
+            'stage_id': 1,
+            'scheduled_date_start': fields.Datetime.now().replace(hour=8, minute=0, second=0),
+            'scheduled_date_end': fields.Datetime.now().replace(hour=18, minute=0, second=0),
+        })
+        ```
+      - Nếu thực hiện thao tác trên server Staging thông qua SSH, bắt buộc phải bật xác thực Host Key (không dùng tùy chọn bỏ qua kiểm tra an toàn) và sử dụng Odoo Python Shell của Odoo thay vì thao tác SQL trực tiếp vào DB:
+        ```bash
+        ssh root@demo002.crmhub.vn "odoo-bin shell -d demo002.crmhub.vn --command=\"self.env['fsm.order'].create({'name': 'Đơn FSM Test SSH', 'person_id': 4, 'location_id': 18})\""
+        ```
 - ⚠️ **Hạn chế hỏi quyền tối đa**: Tránh chạy các lệnh shell thăm dò hoặc truy vấn rời rạc làm phiền User phê duyệt quyền nhiều lần. Nếu cần thông tin hoặc tạo dữ liệu test, hãy hỏi trực tiếp User hoặc gom các lệnh SQL/CLI cần thiết vào duy nhất một lần thực thi.

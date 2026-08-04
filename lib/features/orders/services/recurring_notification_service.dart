@@ -50,76 +50,67 @@ class RecurringNotificationService {
         ?.requestNotificationsPermission();
   }
 
-  /// Khởi tạo + xin quyền + schedule notification 8h sáng hằng ngày.
-  /// Dữ liệu đơn kỳ hôm nay được tính qua [RecurringService] từ danh sách orders.
-  /// main() chỉ gọi hàm này 1 lần — KHÔNG chứa logic trong widget.
+  /// Khởi tạo + xin quyền + schedule notification 8h sáng hằng ngày cho 7 ngày tới.
+  /// Dữ liệu đơn kỳ các ngày được tính qua [RecurringService] từ danh sách orders.
   Future<void> initializeAndScheduleDaily(List<FsmOrder> orders) async {
     await init();
     await requestPermissions();
 
     final recurring = RecurringService.fromFsmOrders(orders);
-    final dueToday = RecurringService.filterDueToday(recurring, DateTime.now());
-    final content = RecurringService.buildNotificationContent(dueToday);
 
-    await scheduleDaily8am(
-      count: content.count,
-      title: content.title,
-      body: content.body,
-    );
-  }
-
-  /// Schedule notification lặp lại 8h sáng hằng ngày.
-  /// Nội dung hiển thị là tổng đơn định kỳ hôm nay (đã được tính trước).
-  Future<void> scheduleDaily8am({
-    required int count,
-    required String title,
-    required String body,
-  }) async {
-    if (!_initialized) {
-      logger.w('RecurringNotificationService: not initialized, skip schedule');
-      return;
+    // Cancel dynamic scheduled daily notifications for the next 7 days
+    for (int i = 0; i < 7; i++) {
+      await _plugin.cancel(_recurringDailyId + i);
     }
 
-    // Xây thời điểm 08:00 hôm nay theo local tz.
     final now = DateTime.now();
-    var next8am = tz.TZDateTime(
-      tz.local,
-      now.year,
-      now.month,
-      now.day,
-      8,
-      0,
-      0,
-    );
     final nowTz = tz.TZDateTime.from(now, tz.local);
-    // Nếu đã qua 8h hôm nay → dời sang 8h ngày mai.
-    if (next8am.isBefore(nowTz)) {
-      next8am = next8am.add(const Duration(days: 1));
+
+    for (int i = 0; i < 7; i++) {
+      final date = now.add(Duration(days: i));
+      final scheduleAt = tz.TZDateTime(
+        tz.local,
+        date.year,
+        date.month,
+        date.day,
+        8,
+        0,
+        0,
+      );
+
+      // Nếu lịch hẹn ở quá khứ (ví dụ: ngày hôm nay i=0 nhưng đã quá 8h sáng), skip
+      if (scheduleAt.isBefore(nowTz)) {
+        continue;
+      }
+
+      final dueOnDate = RecurringService.filterDueToday(recurring, date);
+      // Chỉ schedule nếu có công việc cần nhắc nhở
+      if (dueOnDate.isNotEmpty) {
+        final content = RecurringService.buildNotificationContent(dueOnDate);
+        
+        const androidDetails = AndroidNotificationDetails(
+          'recurring_daily',
+          'Công việc định kỳ',
+          channelDescription: 'Nhắc nhở 8h sáng công việc định kỳ đến hạn',
+          importance: Importance.high,
+          priority: Priority.high,
+        );
+        const iosDetails = DarwinNotificationDetails();
+        const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
+
+        await _plugin.zonedSchedule(
+          _recurringDailyId + i,
+          content.title,
+          content.body,
+          scheduleAt,
+          details,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+        logger.i('Scheduled daily 8:00 notification for $date (dayOffset=$i, count=${content.count})');
+      }
     }
-    final scheduleAt = next8am;
-
-    const androidDetails = AndroidNotificationDetails(
-      'recurring_daily',
-      'Công việc định kỳ',
-      channelDescription: 'Nhắc nhở 8h sáng công việc định kỳ đến hạn',
-      importance: Importance.high,
-      priority: Priority.high,
-    );
-    const iosDetails = DarwinNotificationDetails();
-    const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
-
-    await _plugin.zonedSchedule(
-      _recurringDailyId,
-      title,
-      body,
-      scheduleAt,
-      details,
-      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time, // lặp lại hằng ngày
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-    );
-    logger.i('Scheduled daily 8:00 notification (count=$count)');
   }
 
   /// Hiển thị ngay 1 notification để test nhanh (nút "Test Notify").

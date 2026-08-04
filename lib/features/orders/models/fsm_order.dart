@@ -98,7 +98,7 @@ class FsmOrder {
       ..personId = _idOrNull(json['person_id'])
       ..personName = _nameFromMany(json['person_id'])
       ..priority = _strOrNull(json['priority'])
-      ..fsmRecurringId = _intOrNull(json['fsm_recurring_id'])
+      ..fsmRecurringId = _manyToOneId(json['fsm_recurring_id'])
       ..routeSequence = _intOrNull(json['route_sequence'])
       ..routeId = _idOrNull(json['route_id'])
       ..routeState = _strOrNull(json[
@@ -142,6 +142,15 @@ class FsmOrder {
 
   static int? _intOrNull(dynamic v) =>
       (v == null || v == false) ? null : v as int;
+
+  static int? _manyToOneId(dynamic v) {
+    if (v == null || v == false) return null;
+    if (v is int) return v;
+    if (v is List && v.isNotEmpty && v[0] is int) {
+      return v[0] as int;
+    }
+    return null;
+  }
 
   static double? _doubleOrNull(dynamic v) =>
       (v == null || v == false) ? null : (v as num).toDouble();

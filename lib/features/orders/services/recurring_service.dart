@@ -58,6 +58,15 @@ class RecurringService {
   static DateTime? _dateOrNull(dynamic v) =>
       (v == null || v == false) ? null : DateTime.tryParse(v as String);
 
+  static int? _manyToOneId(dynamic v) {
+    if (v == null || v == false) return null;
+    if (v is int) return v;
+    if (v is List && v.isNotEmpty && v[0] is int) {
+      return v[0] as int;
+    }
+    return null;
+  }
+
   /// Lấy chuỗi display của field many2one do Odoo trả dạng `[id, name]` hoặc `false/null`.
   /// Với một số field Odoo trả thẳng tên (không phải list) → fallback cast String.
   static String _nameFromManyOrDirect(dynamic v) {
@@ -75,7 +84,7 @@ class RecurringService {
   ) {
     final result = <RecurringDueOrder>[];
     for (final json in jsonList) {
-      final recurringId = _intOrNull(json['fsm_recurring_id']);
+      final recurringId = _manyToOneId(json['fsm_recurring_id']);
       if (recurringId == null) continue; // Không phải đơn định kỳ → bỏ qua
 
       final odooId = _intOrNull(json['id']);

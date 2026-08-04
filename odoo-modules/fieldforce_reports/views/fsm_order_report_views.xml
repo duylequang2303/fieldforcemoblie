@@ -1,26 +1,27 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
     <!-- Action: FSM Order Revenue Report (Completed only) -->
-    <record id="action_fsm_order_revenue_report" model="ir.actions.act_window">
-        <field name="name">Revenue Report</field>
-        <field name="res_model">fsm.order</field>
-        <field name="view_mode">pivot,graph</field>
-        <field name="domain">[('stage_id.is_closed', '=', True)]</field>
-        <field name="context">{}</field>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                No completed orders found
-            </p>
-            <p>This report shows revenue from completed field service orders.</p>
-        </field>
-    </record>
+  <record id="action_fsm_order_revenue_report" model="ir.actions.act_window">
+    <field name="name">Revenue Report</field>
+    <field name="res_model">fsm.order</field>
+    <field name="view_mode">pivot,graph</field>
+    <field name="domain">[('stage_id.is_closed', '=', True)]</field>
+    <field name="context">{}</field>
+    <field name="groups_id" eval="[(4, ref('fieldservice.group_fsm_manager'))]"/>
+    <field name="help" type="html">
+      <p class="o_view_nocontent_smiling_face">
+        No completed orders found
+      </p>
+      <p>This report shows revenue from completed field service orders.</p>
+    </field>
+  </record>
 
-    <!-- Pivot View: Revenue by Service Type, Worker, and Date -->
-    <record id="fsm_order_revenue_pivot_view" model="ir.ui.view">
-        <field name="name">fsm.order.revenue.pivot</field>
-        <field name="model">fsm.order</field>
-        <field name="arch" type="xml">
-            <pivot string="Revenue Report" sample="1">
+  <!-- Pivot View: Revenue by Service Type, Worker, and Date -->
+  <record id="fsm_order_revenue_pivot_view" model="ir.ui.view">
+    <field name="name">fsm.order.revenue.pivot</field>
+    <field name="model">fsm.order</field>
+    <field name="arch" type="xml">
+      <pivot string="Revenue Report">
                 <field name="type" type="row" />
                 <field name="person_id" type="row" />
                 <field name="date_start" type="col" interval="month" />
@@ -29,12 +30,12 @@
         </field>
     </record>
 
-    <!-- Graph View: Revenue Line Chart by Month, grouped by Service Type -->
-    <record id="fsm_order_revenue_graph_view" model="ir.ui.view">
-        <field name="name">fsm.order.revenue.graph</field>
-        <field name="model">fsm.order</field>
-        <field name="arch" type="xml">
-            <graph string="Revenue by Month" type="line" sample="1">
+  <!-- Graph View: Revenue Line Chart by Month, grouped by Service Type -->
+  <record id="fsm_order_revenue_graph_view" model="ir.ui.view">
+    <field name="name">fsm.order.revenue.graph</field>
+    <field name="model">fsm.order</field>
+    <field name="arch" type="xml">
+      <graph string="Revenue by Month" type="line">
                 <field name="date_start" type="row" interval="month" />
                 <field name="collected_amount" type="measure" />
                 <field name="type" type="col" />
@@ -42,12 +43,12 @@
         </field>
     </record>
 
-    <!-- Graph View: Revenue Bar Chart by Worker -->
-    <record id="fsm_order_revenue_bar_graph_view" model="ir.ui.view">
-        <field name="name">fsm.order.revenue.bar.graph</field>
-        <field name="model">fsm.order</field>
-        <field name="arch" type="xml">
-            <graph string="Revenue by Worker" type="bar" sample="1">
+  <!-- Graph View: Revenue Bar Chart by Worker -->
+  <record id="fsm_order_revenue_bar_graph_view" model="ir.ui.view">
+    <field name="name">fsm.order.revenue.bar.graph</field>
+    <field name="model">fsm.order</field>
+    <field name="arch" type="xml">
+      <graph string="Revenue by Worker" type="bar">
                 <field name="person_id" type="row" />
                 <field name="collected_amount" type="measure" />
                 <field name="type" type="col" />
@@ -55,12 +56,43 @@
         </field>
     </record>
 
-    <!-- Action: Revenue by Worker (for top 5 workers analysis) -->
-    <record id="action_fsm_order_revenue_by_worker" model="ir.actions.act_window">
-        <field name="name">Revenue by Worker</field>
-        <field name="res_model">fsm.order</field>
-        <field name="view_mode">graph,pivot</field>
-        <field name="domain">[('stage_id.is_closed', '=', True)]</field>
-        <field name="context">{}</field>
-    </record>
+  <!-- Action: Revenue by Worker (for top 5 workers analysis) -->
+  <record id="action_fsm_order_revenue_by_worker" model="ir.actions.act_window">
+    <field name="name">Revenue by Worker</field>
+    <field name="res_model">fsm.order</field>
+    <field name="view_mode">graph,pivot</field>
+    <field name="domain">[('stage_id.is_closed', '=', True)]</field>
+    <field name="context">{}</field>
+    <field name="groups_id" eval="[(4, ref('fieldservice.group_fsm_manager'))]"/>
+  </record>
+
+  <!-- Explicit ir.actions.act_window.view records for Revenue Report -->
+  <record id="act_fsm_order_revenue_pivot" model="ir.actions.act_window.view">
+    <field name="sequence" eval="1"/>
+    <field name="view_mode">pivot</field>
+    <field name="view_id" ref="fsm_order_revenue_pivot_view"/>
+    <field name="act_window_id" ref="action_fsm_order_revenue_report"/>
+  </record>
+
+  <record id="act_fsm_order_revenue_graph" model="ir.actions.act_window.view">
+    <field name="sequence" eval="2"/>
+    <field name="view_mode">graph</field>
+    <field name="view_id" ref="fsm_order_revenue_graph_view"/>
+    <field name="act_window_id" ref="action_fsm_order_revenue_report"/>
+  </record>
+
+  <!-- Explicit ir.actions.act_window.view records for Revenue by Worker -->
+  <record id="act_fsm_order_revenue_by_worker_graph" model="ir.actions.act_window.view">
+    <field name="sequence" eval="1"/>
+    <field name="view_mode">graph</field>
+    <field name="view_id" ref="fsm_order_revenue_bar_graph_view"/>
+    <field name="act_window_id" ref="action_fsm_order_revenue_by_worker"/>
+  </record>
+
+  <record id="act_fsm_order_revenue_by_worker_pivot" model="ir.actions.act_window.view">
+    <field name="sequence" eval="2"/>
+    <field name="view_mode">pivot</field>
+    <field name="view_id" ref="fsm_order_revenue_pivot_view"/>
+    <field name="act_window_id" ref="action_fsm_order_revenue_by_worker"/>
+  </record>
 </odoo>
