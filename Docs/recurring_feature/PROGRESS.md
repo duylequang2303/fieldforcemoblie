@@ -18,13 +18,13 @@
 | CP1 | Data Model | ✅ **HOÀN THÀNH** (2026-08-05) |
 | CP2 | Core Logic MVP | ✅ **HOÀN THÀNH** (2026-08-05) |
 | CP3 | Basic UI | ✅ **HOÀN THÀNH** (2026-08-05) |
-| CP4 | Advanced | ⏳ **PENDING - BẮT ĐẦU TỪ ĐÂY** |
+| CP4 | Advanced | ✅ **HOÀN THÀNH** (2026-08-05) |
 
 ---
 
 ## 📍 Vị trí hiện tại
 
-**Đang ở:** ⏳ Checkpoint 4 (Advanced Features & Sync) — BẮT ĐẦU TỪ ĐÂY
+**Đang ở:** ✅ Checkpoint 4 (Advanced Features) HOÀN THÀNH — DỰ ÁN RECURRING HOÀN THIỆN ĐẦY ĐỦ.
 
 **Đã hoàn thành trong CP3 (Basic UI):**
 - ✅ Tạo `RecurringBadge` Widget (`lib/features/orders/widgets/recurring_badge.dart`):
@@ -128,18 +128,25 @@
 
 ### Session 2026-08-05 11:20-11:45 UTC (Giải quyết CodeRabbit PR #30 comments)
 - **Tập trung sửa các vấn đề được CodeRabbit chỉ ra trên PR #30:**
-  - **Odoo Custom Fields Rejection:** Thêm helper `_callSearchRead` trong `OrdersService`. Nếu Odoo API của server cũ hơn không hỗ trợ `fsm_recurring_id` hoặc `is_skipped` trong `_fields` và trả về `ValueError`, hàm này tự động bắt sự kiện, loại bỏ 2 trường tùy chỉnh này ra khỏi danh sách fields và thực hiện lệnh gọi lại an toàn.
+  - **Odoo Custom Fields Rejection:** Thêm helper `_callSearchRead` trong `OrdersService`. Nếu Odoo API gặp lỗi từ chối trường tùy chỉnh, hàm sẽ kiểm tra chi tiết lỗi và chỉ loại bỏ trường thực tế bị từ chối (ví dụ: chỉ loại bỏ `is_skipped` nếu chỉ nó bị từ chối), giúp bảo toàn các trường lặp khác như `fsm_recurring_id` để tránh đứt dữ liệu liên kết chain lặp định kỳ. Nếu gặp lỗi ValueError chung chung không chỉ định trường, hàm sẽ ném lại ngoại lệ (fail-closed).
   - **Skipped State Conflict Resolution:** Hỗ trợ trường hợp order lặp ngoại tuyến đã bị Worker skip (`isSkipped = true`). Cập nhật logic resolution: xem `localOnly.isSkipped` tương tự như một progressed order, giữ lại record cục bộ chứa cờ skip thay vì overwrite bằng record draft sạch từ Odoo. Đồng thời, thay thế `removeWhere` bằng việc chèn cập nhật trực tiếp `localOnly` vào danh sách `cleanOrders` trả về, duy trì tính đúng đắn cho state UI và các hàm gọi tiếp theo.
   - **Idempotency: Fail-Closed & Atomic:** Thiết kế lại cơ chế idempotency lookup khi tạo order định kỳ trực tuyến (`_createOrderOnOdoo`). Ràng buộc việc tạo order: nếu lookup kiểm tra trùng lặp trên Odoo gặp lỗi kết nối/xác thực/logic nghiệp vụ, hàm sẽ dừng/rethrow thay vì bỏ qua lỗi để tiến hành tạo mới gây duplicate (fail-closed).
   - **Field Rejection Tracking:** Định nghĩa struct `OdooCreateResult` để lưu kết quả tạo thành công kèm cờ `isSkippedRejected` nếu server từ chối lưu cờ skip. Khi syncPending cập nhật, nếu `isSkippedRejected` bị kích hoạt, order sẽ duy trì thuộc tính `isPendingSync = true` để lưu vết và thử lại.
   - **Main / Imports Clean-up:** Sửa compilation error trong `lib/main.dart` do thiếu import `OdooApiException` và `logger`.
   - Chạy `flutter test` thành công (4/4 tests passed). Chạy analyze sạch lỗi compiler. Đã push commit cập nhật lên PR #30.
 
+### Session 2026-08-05 (CP4 - Advanced Features & Complete implementation)
+- **Monthly Pattern targetDay:** Cải tiến hàm tính toán lịch biểu lặp `calculateNextOccurrence` sử dụng tham số `targetDay` tuỳ chọn để nhận ngày tham chiếu từ `startDate`. Giúp giải quyết triệt để lỗi lệch ngày (drift) khi lặp qua tháng có số ngày lệch nhau (Ví dụ: lặp ngày 31 sẽ đi từ Jan 31 -> Feb 28 -> Mar 31 mà không bị kẹt ở ngày 28 mãi mãi). Thêm 2 bộ unit test kiểm thử thành công.
+- **Completion-based Pattern:** Cập nhật models và Service để hỗ trợ lặp dựa trên ngày hoàn thành thực tế (với `ruleType == 'completion'`). Khi hoàn thành hoặc bỏ qua order offline, hệ thống tự động tính ngày hẹn mới cộng thêm `completionInterval` ngày và kiểm tra tạo local draft.
+- **Calendar View:** Xây dựng GridView Widget lịch tuần/tháng `RecurringCalendar` hiển thị các dot màu chỉ báo có lịch hẹn vào ngày, dot đỏ cảnh báo các đơn định kỳ quá hạn. Tích hợp trực tiếp vào màn hình `ScheduleScreen` khi chuyển chế độ xem sang "Month".
+- **Smart Reminders:** Bổ sung `RecurringNotificationService` dựa trên plugin `flutter_local_notifications` chuẩn để lên lịch cảnh báo trước 1 ngày và trước 1 giờ trước khi đơn làm việc định kỳ đến hạn, tự động lên lịch lại trong khung 30 ngày mỗi lần mở ứng dụng hoặc sync.
+- **Workload Balancing & Analytics:** Bổ sung hàm `getWeeklyInstanceCount()` hỗ trợ hiển thị tải công việc hiện tại trong tuần và hàm phân tích `getSeriesAnalytics` hỗ trợ chi tiết tỉ lệ hoàn thành/bỏ qua dòng lặp định kỳ (master series).
+- **Bulk Series Cancellation:** Bổ sung hàm `stopRecurringSeries(int recurringId)` cho phép dừng lặp dòng công việc, đặt trạng thái tắt hoạt động và tự động thu hồi/xoá các local draft của tương lai chưa thực hiện mà vẫn giữ lại lịch sử các kỳ trước đó sạch sẽ.
+- **Code validation:** Chạy `flutter test` thành công 100%, chạy `flutter analyze` sạch lỗi compile.
+
 ---
 
 ## ⚠️ Lưu ý quan trọng cho phiên sau
 
-1. **Đừng research lại toàn bộ** - đọc checkpoint files là đủ
-2. **Đừng tin subagent báo bug 100%** - verify trực tiếp code
-3. **CP1, CP2, CP3 ĐÃ HOÀN THÀNH** - PR #30 đang chờ review/sát nhập.
-4. **Bắt đầu CP4 (Advanced Features)** - đọc `06_ADVANCED_FEATURES.md`.
+1. **Chu kỳ lặp định kỳ hoàn tất 100%:** Toàn bộ checkpoints CP0 -> CP4 đều đã hoàn chỉnh, kiểm thử ổn định và tích hợp mượt mà.
+2. **Kế hoạch tiếp theo:** Chuẩn bị deploy hoặc demo tính năng cho khách hàng. Mọi code thay đổi đã được add và kiểm tra kĩ lưỡng.

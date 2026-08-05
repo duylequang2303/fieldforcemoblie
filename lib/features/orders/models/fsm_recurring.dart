@@ -36,6 +36,18 @@ class FsmRecurring {
   /// Có active hay không (user có thể pause recurring).
   bool isActive = true;
 
+  /// Loại rule: 'date' (theo lịch cố định) hoặc 'completion' (kể từ khi hoàn thành đơn trước).
+  late String ruleType;
+
+  /// Số ngày để tạo kỳ tiếp theo nếu ruleType là 'completion'.
+  int completionInterval = 0;
+
+  /// Số lần đã hoàn thành thành công
+  int completedCount = 0;
+
+  /// Số lần bị bỏ qua (skipped)
+  int skippedCount = 0;
+
   // Sync
   late bool isPendingSync;
   late DateTime lastSyncAt;
@@ -55,6 +67,10 @@ class FsmRecurring {
       ..nextDate = _parseDate(json['next_date'])
       ..generatedCount = (json['generated_count'] as int?) ?? 0
       ..isActive = json['active'] != false // Odoo default true nếu không có
+      ..ruleType = _strOrNull(json['rule_type']) ?? 'date'
+      ..completionInterval = (json['completion_interval'] as int?) ?? 0
+      ..completedCount = (json['completed_count'] as int?) ?? 0
+      ..skippedCount = (json['skipped_count'] as int?) ?? 0
       ..isPendingSync = false
       ..lastSyncAt = DateTime.now();
   }
@@ -71,6 +87,10 @@ class FsmRecurring {
       'next_date': nextDate?.toIso8601String().split('T')[0],
       'generated_count': generatedCount,
       'active': isActive,
+      'rule_type': ruleType,
+      'completion_interval': completionInterval,
+      'completed_count': completedCount,
+      'skipped_count': skippedCount,
     };
   }
 

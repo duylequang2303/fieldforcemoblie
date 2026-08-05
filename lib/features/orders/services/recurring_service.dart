@@ -138,7 +138,7 @@ class RecurringService {
         if (existInstance != null) {
           // Đã có instance cho hôm đó -> update nextDate để tính kỳ sau
           await _isar.db.writeTxn(() async {
-            rule.nextDate = calculateNextOccurrence(rule.nextDate!, freqSet);
+            rule.nextDate = calculateNextOccurrence(rule.nextDate!, freqSet, targetDay: rule.startDate.day);
             await _isar.db.fsmRecurrings.put(rule);
           });
           continue;
@@ -258,10 +258,15 @@ class RecurringService {
 
         // Lọc ngày nextDate và update
         rule.generatedCount++;
-        rule.nextDate = calculateNextOccurrence(scheduledStart, freqSet);
-        if (rule.endDate != null && rule.nextDate!.isAfter(rule.endDate!)) {
-          rule.isActive = false;
+        if (rule.ruleType == 'completion') {
+          // Completion-based: set nextDate to null (will be set upon completion/skip of this order)
           rule.nextDate = null;
+        } else {
+          rule.nextDate = calculateNextOccurrence(scheduledStart, freqSet, targetDay: rule.startDate.day);
+          if (rule.endDate != null && rule.nextDate!.isAfter(rule.endDate!)) {
+            rule.isActive = false;
+            rule.nextDate = null;
+          }
         }
         await _isar.db.fsmRecurrings.put(rule);
       });
@@ -273,7 +278,7 @@ class RecurringService {
   }
 
   /// Tính ngày lặp kế tiếp dựa trên interval_type và interval
-  DateTime calculateNextOccurrence(DateTime from, FsmFrequencySet freqSet) {
+  DateTime calculateNextOccurrence(DateTime from, FsmFrequencySet freqSet, {int? targetDay}) {
     final interval = freqSet.interval > 0 ? freqSet.interval : 1;
     switch (freqSet.intervalType) {
       case FrequencyIntervalType.daily:
@@ -289,14 +294,14 @@ class RecurringService {
           year += 1;
         }
         // Handle ngày cuối tháng (VD: 31/01 -> 31/02 không tồn tại, lùi về 28/02)
-        var day = from.day;
+        var day = targetDay ?? from.day;
         var maxDays = _daysInMonth(year, month);
         if (day > maxDays) {
           day = maxDays;
         }
         return DateTime(year, month, day, from.hour, from.minute, from.second);
       case FrequencyIntervalType.yearly:
-        return DateTime(from.year + interval, from.month, from.day, from.hour, from.minute, from.second);
+        return DateTime(from.year + interval, from.month, targetDay ?? from.day, from.hour, from.minute, from.second);
     }
   }
 
@@ -316,22 +321,30 @@ class RecurringService {
 
     if (rule == null || !rule.isActive) return;
 
-    // Lấy frequency set
-    final freqSet = await _isar.db.fsmFrequencySets
-        .filter()
-        .odooIdEqualTo(rule.frequencySetId)
-        .findFirst();
+    await _isar.db.writeTxn(() async {
+      rule.completedCount++;
+      await _isar.db.fsmRecurrings.put(rule);
+    });
 
-    if (freqSet == null) return;
+    if (rule.ruleType == 'completion' && rule.completionInterval > 0) {
+      final today = DateTime.now();
+      final completionDate = completed.dateEnd ?? today;
+      final nextDate = DateTime(
+        completionDate.year,
+        completionDate.month,
+        completionDate.day + rule.completionInterval,
+        completed.scheduledDateStart?.hour ?? 9,
+        completed.scheduledDateStart?.minute ?? 0,
+      );
 
-    // Note: Ở Odoo, nếu là date-based, next_date được tính cố định dựa vào calendar (đã tự update lúc generate).
-    // Nếu ruleType là completion-based (ví dụ: X ngày sau khi xong lần trước), thì nextDate phải được cập nhật
-    // dựa trên ngày hoàn thành thực tế (completed.dateEnd).
-    // Tuy nhiên fsm_recurring trên Odoo mặc định hầu hết là date-based (lịch cố định).
-    // Nếu có hoàn thành dựa trên completion:
-    // nextDate = completed.dateEnd + duration.
-    // Dưới đây là support fallback completion-based nếu Odoo cho phép, hoặc cứ cập nhật nextDate bình thường.
-    // Ta tạm thời cập nhật rule: nextDate = today + interval nếu đến hạn, đảm bảo không bị dính lịch cũ quá hạn.
+      await _isar.db.writeTxn(() async {
+        rule.nextDate = nextDate;
+        await _isar.db.fsmRecurrings.put(rule);
+      });
+
+      logger.i('Completion recurrence rule target met: Scheduled next instance on $nextDate');
+      await generateOfflineInstances();
+    }
   }
 
   /// Skip một occurrence
@@ -347,5 +360,108 @@ class RecurringService {
     });
 
     logger.i('Skipped occurrence for order ${order.odooId}');
+
+    // Cập nhật stats
+    final rule = await _isar.db.fsmRecurrings
+        .filter()
+        .odooIdEqualTo(order.recurringId!)
+        .findFirst();
+
+    if (rule != null && rule.isActive) {
+      await _isar.db.writeTxn(() async {
+        rule.skippedCount++;
+        await _isar.db.fsmRecurrings.put(rule);
+      });
+
+      // Nếu ruleType là completion-based, một khi skip ta cũng phải schedule occurrence tiếp theo
+      if (rule.ruleType == 'completion' && rule.completionInterval > 0) {
+        final today = DateTime.now();
+        final nextDate = DateTime(
+          today.year,
+          today.month,
+          today.day + rule.completionInterval,
+          order.scheduledDateStart?.hour ?? 9,
+          order.scheduledDateStart?.minute ?? 0,
+        );
+
+        await _isar.db.writeTxn(() async {
+          rule.nextDate = nextDate;
+          await _isar.db.fsmRecurrings.put(rule);
+        });
+
+        logger.i('Skipped completion-based occurrence. Scheduled next on $nextDate');
+        await generateOfflineInstances();
+      }
+    }
+  }
+
+  /// Dừng chuỗi lặp: đặt isActive = false và xoá/huỷ các draft local-only instances tương lai.
+  Future<void> stopRecurringSeries(int recurringId) async {
+    final rule = await _isar.db.fsmRecurrings
+        .filter()
+        .odooIdEqualTo(recurringId)
+        .findFirst();
+        
+    if (rule == null) return;
+    
+    await _isar.db.writeTxn(() async {
+      rule.isActive = false;
+      rule.nextDate = null;
+      await _isar.db.fsmRecurrings.put(rule);
+      
+      // Xoá hoặc huỷ các draft local-only instances tương lai chưa bắt đầu
+      final futureDrafts = await _isar.db.fsmOrders
+          .filter()
+          .recurringIdEqualTo(recurringId)
+          .odooIdLessThan(0) // Local draft
+          .stageEqualTo(FsmOrderStage.draft)
+          .findAll();
+          
+      for (final draft in futureDrafts) {
+        await _isar.db.fsmOrders.delete(draft.id);
+      }
+    });
+    
+    logger.i('Stopped recurring series $recurringId and cleared future local drafts.');
+  }
+
+  /// Lấy số lượng recurring instances trong tuần hiện tại (thứ 2 đến chủ nhật)
+  Future<int> getWeeklyInstanceCount() async {
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final endOfWeek = startOfWeek.add(const Duration(days: 7));
+    return await _isar.db.fsmOrders
+        .filter()
+        .isRecurringInstanceEqualTo(true)
+        .scheduledDateStartGreaterThan(startOfWeek)
+        .scheduledDateStartLessThan(endOfWeek)
+        .count();
+  }
+
+  /// Lấy thống kê cho dòng lặp định kỳ (Master Series)
+  Future<Map<String, dynamic>> getSeriesAnalytics(int recurringId) async {
+    final rule = await _isar.db.fsmRecurrings
+        .filter()
+        .odooIdEqualTo(recurringId)
+        .findFirst();
+
+    if (rule == null) {
+      return {
+        'generated': 0,
+        'completed': 0,
+        'skipped': 0,
+        'rate': 0.0,
+      };
+    }
+
+    final total = rule.completedCount + rule.skippedCount;
+    final rate = total > 0 ? (rule.completedCount / total) * 100.0 : 0.0;
+
+    return {
+      'generated': rule.generatedCount,
+      'completed': rule.completedCount,
+      'skipped': rule.skippedCount,
+      'rate': rate,
+    };
   }
 }

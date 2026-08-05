@@ -71,6 +71,16 @@ void main() {
       final from3 = DateTime(2025, 11, 15, 8, 0, 0);
       final next4 = service.calculateNextOccurrence(from3, freqSet1..interval = 3);
       expect(next4, DateTime(2026, 2, 15, 8, 0, 0));
+
+      // Target day test: 31st Jan -> Feb 28 -> March 31 (using targetDay: 31)
+      final freqSetMonthly = FsmFrequencySet()
+        ..interval = 1
+        ..intervalType = FrequencyIntervalType.monthly;
+      final nextFeb = service.calculateNextOccurrence(DateTime(2026, 1, 31), freqSetMonthly, targetDay: 31);
+      expect(nextFeb, DateTime(2026, 2, 28));
+
+      final nextMarch = service.calculateNextOccurrence(nextFeb, freqSetMonthly, targetDay: 31);
+      expect(nextMarch, DateTime(2026, 3, 31));
     });
 
     test('Yearly interval validation', () {

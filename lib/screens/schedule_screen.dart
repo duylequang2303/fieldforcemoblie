@@ -7,6 +7,7 @@ import '../widgets/filter_bottom_sheet.dart';
 import '../widgets/schedule_card.dart';
 import '../features/orders/models/fsm_order.dart';
 import '../features/orders/services/orders_service.dart';
+import '../features/orders/widgets/recurring_calendar.dart';
 import '../ui/theme/sf_tokens.dart';
 import 'package:go_router/go_router.dart';
 import '../core/routing/route_names.dart';
@@ -289,7 +290,25 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             },
           ),
           Expanded(
-            child: _buildJobList(),
+            child: _viewMode == 'Month'
+                ? Column(
+                    children: [
+                      RecurringCalendar(
+                        selectedDate: _selectedDate,
+                        orders: _orders,
+                        onDateSelected: (date) {
+                          setState(() {
+                            _selectedDate = date;
+                          });
+                        },
+                      ),
+                      const Divider(height: 1),
+                      Expanded(
+                        child: _buildJobList(),
+                      ),
+                    ],
+                  )
+                : _buildJobList(),
           ),
           _buildBottomSummaryBar(),
         ],

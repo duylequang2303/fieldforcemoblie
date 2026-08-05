@@ -4,6 +4,7 @@ import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/database/isar_service.dart';
 import '../../../core/utils/logger.dart';
 import '../models/fsm_order.dart';
+import 'recurring_service.dart';
 
 class OdooCreateResult {
   final int id;
@@ -476,6 +477,11 @@ class OrdersService {
         local.isPendingSync = true;
         await _isar.db.fsmOrders.put(local);
       });
+      try {
+        await RecurringService.instance.onOccurrenceCompleted(local);
+      } catch (e) {
+        logger.w('Error updating recurring occurrence logic on completion', error: e);
+      }
     }
 
     // 2. Cố gắng ghi nhận lên Odoo
