@@ -378,36 +378,41 @@ class RecurringService {
       return;
     }
     
-    // Đọc recurring rule
-    final rule = await _isar.db.fsmRecurrings
-        .filter()
-        .odooIdEqualTo(completed.recurringId!)
-        .findFirst();
-
-    if (rule == null || !rule.isActive) return;
-    
     final now = DateTime.now();
+    FsmRecurring? updatedRule;
 
     try {
       await _isar.db.writeTxn(() async {
+        final freshCompleted = await _isar.db.fsmOrders.get(completed.id);
+        if (freshCompleted == null || freshCompleted.isRecurringProcessed) return;
+
+        // Đọc recurring rule inside transaction
+        final rule = await _isar.db.fsmRecurrings
+            .filter()
+            .odooIdEqualTo(completed.recurringId!)
+            .findFirst();
+
+        if (rule == null || !rule.isActive) return;
+
         // Đánh dấu order đã được xử lý để tránh double-count khi retry
-        completed.isRecurringProcessed = true;
-        await _isar.db.fsmOrders.put(completed);
+        freshCompleted.isRecurringProcessed = true;
+        await _isar.db.fsmOrders.put(freshCompleted);
 
         rule.completedCount++;
         
         if (rule.ruleType == 'completion' && rule.completionInterval > 0) {
-          final completionDate = completed.dateEnd ?? now;
+          final completionDate = freshCompleted.dateEnd ?? now;
           final nextDate = DateTime(
             completionDate.year,
             completionDate.month,
             completionDate.day + rule.completionInterval,
-            completed.scheduledDateStart?.hour ?? 9,
-            completed.scheduledDateStart?.minute ?? 0,
+            freshCompleted.scheduledDateStart?.hour ?? 9,
+            freshCompleted.scheduledDateStart?.minute ?? 0,
           );
           rule.nextDate = nextDate;
         }
         await _isar.db.fsmRecurrings.put(rule);
+        updatedRule = rule;
       });
     } on IsarError catch (e, stackTrace) {
       logger.e('RecurringService.onOccurrenceCompleted: Isar error', error: e, stackTrace: stackTrace);
@@ -417,8 +422,8 @@ class RecurringService {
       return;
     }
 
-    if (rule.ruleType == 'completion' && rule.completionInterval > 0) {
-      logger.i('Completion recurrence rule target met: Scheduled next instance on ${rule.nextDate}');
+    if (updatedRule != null && updatedRule!.ruleType == 'completion' && updatedRule!.completionInterval > 0) {
+      logger.i('Completion recurrence rule target met: Scheduled next instance on ${updatedRule!.nextDate}');
       // Gọi generate offline sau khi transaction đã committed thành công
       await generateOfflineInstances();
     }
@@ -434,22 +439,27 @@ class RecurringService {
       return;
     }
 
-    // Đọc và check rule trước
-    final rule = await _isar.db.fsmRecurrings
-        .filter()
-        .odooIdEqualTo(order.recurringId!)
-        .findFirst();
-
-    if (rule == null || !rule.isActive) return;
+    FsmRecurring? updatedRule;
 
     try {
       await _isar.db.writeTxn(() async {
-        order.isSkipped = true;
-        order.isRecurringProcessed = true;
-        order.stage = FsmOrderStage.cancelled;
-        order.stageName = 'Cancelled';
-        order.isPendingSync = true;
-        await _isar.db.fsmOrders.put(order);
+        final freshOrder = await _isar.db.fsmOrders.get(order.id);
+        if (freshOrder == null || freshOrder.isRecurringProcessed || freshOrder.isSkipped) return;
+
+        // Đọc recurring rule inside transaction
+        final rule = await _isar.db.fsmRecurrings
+            .filter()
+            .odooIdEqualTo(order.recurringId!)
+            .findFirst();
+
+        if (rule == null || !rule.isActive) return;
+
+        freshOrder.isSkipped = true;
+        freshOrder.isRecurringProcessed = true;
+        freshOrder.stage = FsmOrderStage.cancelled;
+        freshOrder.stageName = 'Cancelled';
+        freshOrder.isPendingSync = true;
+        await _isar.db.fsmOrders.put(freshOrder);
 
         rule.skippedCount++;
 
@@ -459,12 +469,13 @@ class RecurringService {
             today.year,
             today.month,
             today.day + rule.completionInterval,
-            order.scheduledDateStart?.hour ?? 9,
-            order.scheduledDateStart?.minute ?? 0,
+            freshOrder.scheduledDateStart?.hour ?? 9,
+            freshOrder.scheduledDateStart?.minute ?? 0,
           );
           rule.nextDate = nextDate;
         }
         await _isar.db.fsmRecurrings.put(rule);
+        updatedRule = rule;
       });
     } on IsarError catch (e, stackTrace) {
       logger.e('RecurringService.skipOccurrence: Isar error', error: e, stackTrace: stackTrace);
@@ -476,8 +487,8 @@ class RecurringService {
 
     logger.i('Skipped occurrence for order ${order.odooId}');
 
-    if (rule.ruleType == 'completion' && rule.completionInterval > 0) {
-      logger.i('Skipped completion-based occurrence. Scheduled next on ${rule.nextDate}');
+    if (updatedRule != null && updatedRule!.ruleType == 'completion' && updatedRule!.completionInterval > 0) {
+      logger.i('Skipped completion-based occurrence. Scheduled next on ${updatedRule!.nextDate}');
       // Gọi generate offline sau khi transaction đã committed thành công
       await generateOfflineInstances();
     }
@@ -526,13 +537,14 @@ class RecurringService {
   /// Lấy số lượng recurring instances trong tuần hiện tại (thứ 2 đến chủ nhật)
   Future<int> weeklyInstanceCount() async {
     final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    // Normalize to midnight before calculating week start (Monday)
+    final todayMidnight = DateTime(now.year, now.month, now.day);
+    final startOfWeek = todayMidnight.subtract(Duration(days: todayMidnight.weekday - 1));
     final endOfWeek = startOfWeek.add(const Duration(days: 7));
     return await _isar.db.fsmOrders
         .filter()
         .isRecurringInstanceEqualTo(true)
-        .scheduledDateStartGreaterThan(startOfWeek)
-        .scheduledDateStartLessThan(endOfWeek)
+        .scheduledDateStartBetween(startOfWeek, endOfWeek, includeLower: true, includeUpper: false)
         .count();
   }
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../ui/theme/sf_tokens.dart';
-import '../models/fsm_order.dart';
+import 'package:fieldforce_mobile/features/orders/models/fsm_order.dart';
 
 class RecurringCalendar extends StatefulWidget {
   final DateTime selectedDate;
@@ -56,8 +55,11 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
     final monthName = _monthNameVi(_currentMonth.month);
     final year = _currentMonth.year;
 
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Container(
-      color: Colors.white,
+      color: colorScheme.surface,
       padding: const EdgeInsets.all(12),
       child: Column(
         children: [
@@ -66,7 +68,7 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                icon: const Icon(Icons.chevron_left, color: SfTokens.primary),
+                icon: Icon(Icons.chevron_left, color: colorScheme.primary),
                 onPressed: () {
                   setState(() {
                     _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1, 1);
@@ -75,14 +77,13 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
               ),
               Text(
                 '$monthName - $year',
-                style: const TextStyle(
-                  fontSize: 16,
+                style: textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: SfTokens.primaryDark,
+                  color: colorScheme.onSurface,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.chevron_right, color: SfTokens.primary),
+                icon: Icon(Icons.chevron_right, color: colorScheme.primary),
                 onPressed: () {
                   setState(() {
                     _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 1);
@@ -106,7 +107,7 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
               _DayHeader(label: 'CN'),
             ],
           ),
-          const Divider(height: 12),
+          Divider(height: 12, color: colorScheme.outlineVariant),
 
           // Calendar Grid
           GridView.builder(
@@ -141,7 +142,8 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
                     o.scheduledDateStart!.isBefore(DateTime.now());
                 final incomplete = o.stage != FsmOrderStage.done &&
                     o.stage != FsmOrderStage.cancelled;
-                return isPast && incomplete;
+                final notSkipped = !o.isSkipped;
+                return isPast && incomplete && notSkipped;
               });
               return GestureDetector(
                 onTap: () => widget.onDateSelected(dayDate),
@@ -149,11 +151,11 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? SfTokens.primary
+                        ? colorScheme.primary
                         : Colors.transparent,
                     shape: BoxShape.circle,
                     border: hasOverdue
-                        ? Border.all(color: Colors.red, width: 1.5)
+                        ? Border.all(color: colorScheme.error, width: 1.5)
                         : null,
                   ),
                   child: Column(
@@ -164,10 +166,10 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
                         style: TextStyle(
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                           color: isSelected
-                              ? Colors.white
+                              ? colorScheme.onPrimary
                               : isCurrentMonth
-                                  ? Colors.black87
-                                  : Colors.black38,
+                                  ? colorScheme.onSurface
+                                  : colorScheme.onSurfaceVariant,
                         ),
                       ),
                       if (dayOrders.isNotEmpty) ...[
@@ -180,10 +182,10 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
                               height: 5,
                               decoration: BoxDecoration(
                                 color: isSelected
-                                    ? Colors.white
+                                    ? colorScheme.onPrimary
                                     : hasRecurring
-                                        ? Theme.of(context).colorScheme.primary
-                                        : Colors.grey,
+                                        ? colorScheme.primary
+                                        : colorScheme.onSurfaceVariant,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -192,8 +194,8 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
                               Container(
                                 width: 5,
                                 height: 5,
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.error,
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -240,15 +242,16 @@ class _DayHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: 32,
       alignment: Alignment.center,
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.bold,
-          color: SfTokens.primaryDark,
+          color: colorScheme.onSurfaceVariant,
         ),
       ),
     );

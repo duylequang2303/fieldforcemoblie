@@ -60,6 +60,15 @@ class RecurringNotificationService {
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     await androidPlugin?.requestNotificationsPermission();
 
+    // Android 12+ exact alarm permission (for exactAllowWhileIdle)
+    if (Platform.isAndroid) {
+      try {
+        await androidPlugin?.requestExactAlarmsPermission();
+      } catch (e) {
+        logger.w('requestExactAlarmsPermission not available or failed', error: e);
+      }
+    }
+
     // iOS permissions
     final iosPlugin = _notifications
         .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
