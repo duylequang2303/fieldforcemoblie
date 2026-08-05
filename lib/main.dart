@@ -80,8 +80,11 @@ Future<void> main() async {
         try {
           await RecurringService.instance.fetchRecurringRules();
           await RecurringService.instance.generateOfflineInstances();
-        } catch (_) {
-          // Bỏ qua lỗi sync để tránh abort các handler khác của SyncManager
+        } on OdooApiException catch (e) {
+          logger.e('Recurring sync handler failed: Odoo API Error', error: e);
+        } catch (e, stackTrace) {
+          logger.e('Recurring sync handler failed: Unexpected Error',
+              error: e, stackTrace: stackTrace);
         }
       });
 

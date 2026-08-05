@@ -84,6 +84,10 @@ class RecurringService {
 
       logger.i(
           'RecurringService: Synced ${recurringRules.length} recurring rules and ${frequencySets.length} frequency sets.');
+    } on OdooAuthException {
+      rethrow;
+    } on OdooConnectionException {
+      rethrow;
     } catch (e, stackTrace) {
       logger.e('RecurringService.fetchRecurringRules: Failed to fetch recurring rules',
           error: e, stackTrace: stackTrace);

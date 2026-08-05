@@ -130,13 +130,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               ),
             ),
             const SizedBox(height: 4),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 OrderStatusChip(stage: order.stage),
-                if (order.recurringId != null && order.recurringId! > 0) ...[
-                  const SizedBox(width: 8),
+                if (order.recurringId != null && order.recurringId! > 0)
                   RecurringBadge(recurringId: order.recurringId!, showText: true),
-                ],
               ],
             ),
           ],

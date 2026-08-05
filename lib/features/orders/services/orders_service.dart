@@ -708,6 +708,31 @@ class OrdersService {
   /// Trả về odooId thật thu được từ Odoo server.
   Future<int?> _createOrderOnOdoo(FsmOrder order) async {
     try {
+      // Chống trùng lặp đơn hàng (Idempotency): kiểm tra xem Odoo đã tự động tạo
+      // hoặc đã nhận được đơn hàng định kỳ này trước đó chưa để tránh tạo duplicate.
+      if (order.recurringId != null && order.recurringId! > 0 && order.scheduledDateStart != null) {
+        try {
+          final scheduledStartStr = _formatDateTimeUtc(order.scheduledDateStart!);
+          final List<dynamic> exist = await _odoo.callKw(
+            model: _model,
+            method: 'search_read',
+            args: [[
+              ['scheduled_date_start', '=', scheduledStartStr],
+              ['person_id', '=', order.personId],
+              ['fsm_recurring_id', '=', order.recurringId]
+            ]],
+            kwargs: {'fields': ['id'], 'limit': 1},
+          ) as List<dynamic>;
+          if (exist.isNotEmpty) {
+            final existingId = exist.first['id'] as int;
+            logger.i('Idempotency check: Order already exists on Odoo server. Reusing ID: $existingId');
+            return existingId;
+          }
+        } catch (e) {
+          logger.w('Idempotency check failed (possibly fsm_recurring_id not supported by search), proceeding to create...', error: e);
+        }
+      }
+
       final data = <String, dynamic>{
         'name': order.name,
         'description': order.description,

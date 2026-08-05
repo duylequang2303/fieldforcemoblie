@@ -629,62 +629,13 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                               fontWeight: FontWeight.w600,
                               color: onSurfaceFaint)),
                       const SizedBox(height: 4),
-  String _repeatText = '(Không lặp)';
-
-  Future<void> _initRepeatText() async {
-    if (widget.order.recurringId == null || widget.order.recurringId! <= 0) {
-      if (mounted) setState(() => _repeatText = '(Không lặp)');
-      return;
-    }
-    try {
-      final isar = IsarService.instance.db;
-      final rec = await isar.fsmRecurrings
-          .filter()
-          .odooIdEqualTo(widget.order.recurringId!)
-          .findFirst();
-      if (rec == null) {
-        if (mounted) setState(() => _repeatText = '(Định kỳ)');
-        return;
-      }
-      final freq = await isar.fsmFrequencySets
-          .filter()
-          .odooIdEqualTo(rec.frequencySetId)
-          .findFirst();
-      if (freq == null) {
-        if (mounted) setState(() => _repeatText = '(Định kỳ)');
-        return;
-      }
-
-      final unit = freq.intervalType == FrequencyIntervalType.daily
-          ? 'ngày'
-          : freq.intervalType == FrequencyIntervalType.weekly
-              ? 'tuần'
-              : freq.intervalType == FrequencyIntervalType.monthly
-                  ? 'tháng'
-                  : 'năm';
-      final text = freq.interval == 1
-          ? '(Lặp mỗi $unit)'
-          : '(Lặp mỗi ${freq.interval} $unit)';
-      if (mounted) {
-        setState(() => _repeatText = text);
-      }
-    } catch (_) {
-      if (mounted) setState(() => _repeatText = '(Định kỳ)');
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _signatureController = SignatureController(
-      penStrokeWidth: 2,
-      penColor: Colors.black,
-      exportBackgroundColor: Colors.white,
-    );
-    _loadReportDraft();
-    _initRepeatText();
-  }
+                      Text(
+                        '${_formatDate(widget.order.scheduledDateStart)}\n$_repeatText',
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: theme.colorScheme.onSurface,
+                            height: 1.4),
+                      ),
                     ],
                   ),
                 ),
