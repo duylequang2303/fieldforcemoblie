@@ -38,6 +38,36 @@ if [ -n "$staged_files" ]; then
       exit 1
     fi
   fi
+
+  # 4. Kiểm tra generic catch trong các file Service
+  echo "4. Kiểm tra generic catch (e) trong các file Service..."
+  staged_services=$(echo "$staged_files" | grep "services/")
+  if [ -n "$staged_services" ]; then
+    generic_catches=$(echo "$staged_services" | xargs grep -n "catch (e)" 2>/dev/null)
+    if [ -n "$generic_catches" ]; then
+      echo "⚠️ Cảnh báo: Phát hiện generic catch (e) trong Service. Khuyến nghị:"
+      echo "  - Sử dụng specific exception: on OdooApiException catch (e)"
+      echo "  - Hoặc: catch (e, stackTrace) và log đầy đủ để không che giấu programming Errors."
+      echo "$generic_catches"
+    fi
+  fi
+
+  # 5. Kiểm tra quy tắc đặt tên test cases ('should')
+  echo "5. Kiểm tra quy tắc đặt tên test cases..."
+  staged_tests=$(echo "$staged_files" | grep "test/")
+  if [ -n "$staged_tests" ]; then
+    bad_test_names=$(echo "$staged_tests" | xargs grep -n "test('" | grep -i -v "test('should" 2>/dev/null)
+    if [ -n "$bad_test_names" ]; then
+      echo "⚠️ Cảnh báo: Tên test case khuyến nghị bắt đầu bằng 'should'..."
+      echo "$bad_test_names"
+    fi
+  fi
+
+  # 6. Kiểm tra an toàn cho zonedSchedule trên Linux
+  zoned_calls=$(echo "$staged_files" | xargs grep -n "zonedSchedule" 2>/dev/null)
+  if [ -n "$zoned_calls" ]; then
+    echo "💡 Lưu ý: Bạn đang sử dụng zonedSchedule. Đảm bảo có điều kiện check !Platform.isLinux để tránh crash UnimplementedError."
+  fi
 fi
 
 echo "✓ Tất cả các kiểm tra pre-commit đã vượt qua!"
