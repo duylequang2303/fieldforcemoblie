@@ -5,9 +5,9 @@ import '../widgets/schedule_top_bar.dart';
 import '../widgets/filter_chips_row.dart';
 import '../widgets/filter_bottom_sheet.dart';
 import '../widgets/schedule_card.dart';
-import '../features/orders/models/fsm_order.dart';
-import '../features/orders/services/orders_service.dart';
-import '../ui/theme/sf_tokens.dart';
+import 'package:fieldforce_mobile/features/orders/models/fsm_order.dart';
+import 'package:fieldforce_mobile/features/orders/services/orders_service.dart';
+import 'package:fieldforce_mobile/features/orders/widgets/recurring_calendar.dart';
 import 'package:go_router/go_router.dart';
 import '../core/routing/route_names.dart';
 
@@ -170,7 +170,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     return RefreshIndicator(
       onRefresh: _onRefresh,
-      color: SfTokens.primary,
+      color: Theme.of(context).colorScheme.primary,
       child: ListView.builder(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -238,8 +238,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: SfTokens.background,
+      backgroundColor: colorScheme.surface,
       body: Column(
         children: [
           ScheduleTopBar(
@@ -289,7 +290,25 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             },
           ),
           Expanded(
-            child: _buildJobList(),
+            child: _viewMode == 'Month'
+                ? Column(
+                    children: [
+                      RecurringCalendar(
+                        selectedDate: _selectedDate,
+                        orders: _orders,
+                        onDateSelected: (date) {
+                          setState(() {
+                            _selectedDate = date;
+                          });
+                        },
+                      ),
+                      const Divider(height: 1),
+                      Expanded(
+                        child: _buildJobList(),
+                      ),
+                    ],
+                  )
+                : _buildJobList(),
           ),
           _buildBottomSummaryBar(),
         ],

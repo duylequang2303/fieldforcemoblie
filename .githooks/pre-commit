@@ -18,7 +18,15 @@ staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep "\.dart$")
 
 if [ -n "$staged_files" ]; then
   # Kiểm tra AppColors.
-  hardcoded_colors=$(echo "$staged_files" | xargs grep -n "AppColors\." 2>/dev/null)
+  hardcoded_colors=""
+  while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    matches=$(git show ":$file" | grep -n "AppColors\.")
+    if [ -n "$matches" ]; then
+      hardcoded_colors="${hardcoded_colors}${file}:${matches}"$'\n'
+    fi
+  done <<< "$staged_files"
+
   if [ -n "$hardcoded_colors" ]; then
     echo "❌ Lỗi: Phát hiện hardcoded màu sắc bằng AppColors. ở các file sau:"
     echo "$hardcoded_colors"
@@ -30,13 +38,84 @@ if [ -n "$staged_files" ]; then
   echo "3. Kiểm tra gọi trực tiếp API Odoo từ Widget/Page..."
   staged_pages=$(echo "$staged_files" | grep "lib/features/.*/pages/")
   if [ -n "$staged_pages" ]; then
-    direct_api_calls=$(echo "$staged_pages" | xargs grep -n -E "OdooApiClient|call_kw" 2>/dev/null)
+    direct_api_calls=""
+    while IFS= read -r file; do
+      [ -z "$file" ] && continue
+      matches=$(git show ":$file" | grep -n -E "OdooApiClient|call_kw")
+      if [ -n "$matches" ]; then
+        direct_api_calls="${direct_api_calls}${file}:${matches}"$'\n'
+      fi
+    done <<< "$staged_pages"
+
     if [ -n "$direct_api_calls" ]; then
       echo "❌ Lỗi: Phát hiện gọi trực tiếp OdooApiClient hoặc call_kw trong Widget/Page:"
       echo "$direct_api_calls"
       echo "⚠️ Mọi thao tác gọi API Odoo bắt buộc phải thực hiện thông qua Service."
       exit 1
     fi
+  fi
+
+  # 4. Kiểm tra generic catch trong các file Service
+  echo "4. Kiểm tra generic catch trong các file Service..."
+  staged_services=$(echo "$staged_files" | grep "services/")
+  if [ -n "$staged_services" ]; then
+    # Regex matches generic catches: catch (e) or catch (err) or catch (error)
+    # but ignores "on Exception catch (e)" or "on OdooApiException catch (e)"
+    generic_catches=""
+    while IFS= read -r file; do
+      [ -z "$file" ] && continue
+      # We need a regex that matches `catch (some_var)` but not preceded by `on SomeType`
+      # In git show, we can filter using a regex:
+      # A line having `catch (var)` or `catch (var, var)` where the preceding word is NOT `on` or part of target type.
+      # More specifically, we check if the line matches `catch\s*\(` but NOT `on\s+\w+\s+catch` or similar.
+      # Let's write a python or ruby / grep script to check it cleanly or use grep with PCRE if available,
+      # but pure POSIX or grep -E is safer. Let's filter line by line:
+      # Look for catch(var) or catch(var, var) that is not prefixed by 'on ' on the same line.
+      matches=$(git show ":$file" | grep -n "catch" | grep -v "on " | grep -E "catch\s*\(\s*[a-zA-Z0-9_]+" || true)
+      if [ -n "$matches" ]; then
+        generic_catches="${generic_catches}${file}:${matches}"$'\n'
+      fi
+    done <<< "$staged_services"
+
+    if [ -n "$generic_catches" ]; then
+      echo "⚠️ Cảnh báo: Phát hiện generic catch trong Service. Khuyến nghị:"
+      echo "  - Sử dụng specific exception: on OdooApiException catch (e)"
+      echo "  - Hoặc: catch (e, stackTrace) và log đầy đủ để không che giấu programming Errors."
+      echo "$generic_catches"
+    fi
+  fi
+
+  # 5. Kiểm tra quy tắc đặt tên test cases ('should')
+  echo "5. Kiểm tra quy tắc đặt tên test cases..."
+  staged_tests=$(echo "$staged_files" | grep "test/")
+  if [ -n "$staged_tests" ]; then
+    bad_test_names=""
+    while IFS= read -r file; do
+      [ -z "$file" ] && continue
+      matches=$(git show ":$file" | grep -n "test('" | grep -i -v "test('should" || true)
+      if [ -n "$matches" ]; then
+        bad_test_names="${bad_test_names}${file}:${matches}"$'\n'
+      fi
+    done <<< "$staged_tests"
+
+    if [ -n "$bad_test_names" ]; then
+      echo "⚠️ Cảnh báo: Tên test case khuyến nghị bắt đầu bằng 'should'..."
+      echo "$bad_test_names"
+    fi
+  fi
+
+  # 6. Kiểm tra an toàn cho zonedSchedule trên Linux
+  zoned_calls=""
+  while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    matches=$(git show ":$file" | grep -n "zonedSchedule")
+    if [ -n "$matches" ]; then
+      zoned_calls="${zoned_calls}${file}:${matches}"$'\n'
+    fi
+  done <<< "$staged_files"
+
+  if [ -n "$zoned_calls" ]; then
+    echo "💡 Lưu ý: Bạn đang sử dụng zonedSchedule. Đảm bảo có điều kiện check !Platform.isLinux để tránh crash UnimplementedError."
   fi
 fi
 

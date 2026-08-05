@@ -73,6 +73,18 @@ void main() {
       expect(next4, DateTime(2026, 2, 15, 8, 0, 0));
     });
 
+    test('should restore target day after a short month', () {
+      // Target day test: 31st Jan -> Feb 28 -> March 31 (using targetDay: 31)
+      final freqSetMonthly = FsmFrequencySet()
+        ..interval = 1
+        ..intervalType = FrequencyIntervalType.monthly;
+      final nextFeb = service.calculateNextOccurrence(DateTime(2026, 1, 31), freqSetMonthly, targetDay: 31);
+      expect(nextFeb, DateTime(2026, 2, 28));
+
+      final nextMarch = service.calculateNextOccurrence(nextFeb, freqSetMonthly, targetDay: 31);
+      expect(nextMarch, DateTime(2026, 3, 31));
+    });
+
     test('Yearly interval validation', () {
       final from = DateTime(2026, 8, 5, 8, 0, 0);
 

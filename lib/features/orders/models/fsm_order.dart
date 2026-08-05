@@ -73,6 +73,9 @@ class FsmOrder {
   /// Đơn này bị skip trong chuỗi recurring (không tính completed/overdue).
   bool isSkipped = false;
 
+  /// Đơn định kỳ này đã được xử lý tính chu kỳ tiếp theo (để tránh double-schedule khi retry) chưa.
+  bool isRecurringProcessed = false;
+
   FsmOrder();
 
   /// Tạo từ JSON trả về từ Odoo API.
@@ -92,6 +95,7 @@ class FsmOrder {
       ..recurringId = _idOrNull(json['fsm_recurring_id'])
       ..isRecurringInstance = json['is_recurring_instance'] == true
       ..isSkipped = json['is_skipped'] == true
+      ..isRecurringProcessed = json['is_recurring_processed'] == true
       ..scheduledDateStart = _dateOrNull(json['scheduled_date_start'])
       ..scheduledDateEnd = _dateOrNull(json['scheduled_date_end'])
       ..dateStart = _dateOrNull(json['date_start'])

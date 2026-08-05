@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -21,6 +22,7 @@ import 'features/expense/models/expense.dart';
 import 'features/work_order/models/work_report.dart';
 import 'features/orders/services/orders_service.dart';
 import 'features/orders/services/recurring_service.dart';
+import 'features/orders/services/recurring_notification_service.dart';
 import 'features/timesheet/services/timesheet_service.dart';
 import 'features/expense/services/expense_service.dart';
 import 'features/stock/services/stock_service.dart';
@@ -82,6 +84,10 @@ Future<void> main() async {
         try {
           await RecurringService.instance.fetchRecurringRules();
           await RecurringService.instance.generateOfflineInstances();
+          // Reschedule notifications for upcoming recurring orders (skip on Linux)
+          if (!Platform.isLinux) {
+            await RecurringNotificationService.instance.rescheduleAllRecurringReminders();
+          }
         } on OdooApiException catch (e) {
           logger.e('Recurring sync handler failed: Odoo API Error', error: e);
         } catch (e, stackTrace) {
@@ -89,6 +95,13 @@ Future<void> main() async {
               error: e, stackTrace: stackTrace);
         }
       });
+
+      // Khởi tạo recurring notification service (skip on Linux - zonedSchedule not supported)
+      if (!Platform.isLinux) {
+        await RecurringNotificationService.instance.init();
+        // Schedule recurring reminders even on offline startup
+        await RecurringNotificationService.instance.rescheduleAllRecurringReminders();
+      }
 
       // Bắt đầu lắng nghe trạng thái mạng để tự động sync
       SyncManager.instance.startListening();
