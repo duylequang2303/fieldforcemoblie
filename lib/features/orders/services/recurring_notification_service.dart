@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'package:isar_community/isar.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
@@ -6,7 +7,6 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:fieldforce_mobile/core/database/isar_service.dart';
 import 'package:fieldforce_mobile/core/utils/logger.dart';
 import 'package:fieldforce_mobile/features/orders/models/fsm_order.dart';
-import 'package:fieldforce_mobile/features/orders/models/fsm_recurring.dart';
 
 class RecurringNotificationService {
   RecurringNotificationService._();
@@ -158,6 +158,12 @@ class RecurringNotificationService {
     required DateTime scheduledDate,
     required String payload,
   }) {
+    // Skip zonedSchedule on Linux - it's not supported
+    if (Platform.isLinux) {
+      logger.w('Skipping zonedSchedule on Linux (unsupported). Notification $id will not fire in background.');
+      return;
+    }
+
     // If scheduled date is within a few minutes, use a timer instead
     final now = DateTime.now();
     final diff = scheduledDate.difference(now);
