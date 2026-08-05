@@ -4,9 +4,10 @@ import '../models/fsm_order.dart';
 
 /// Chip hiển thị trạng thái (stage) của một đơn dịch vụ.
 class OrderStatusChip extends StatelessWidget {
-  const OrderStatusChip({super.key, required this.stage});
+  const OrderStatusChip({super.key, required this.stage, this.isSkipped = false});
 
   final FsmOrderStage stage;
+  final bool isSkipped;
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +38,9 @@ class OrderStatusChip extends StatelessWidget {
   }
 
   Color get _bgColor {
+    if (isSkipped) {
+      return Colors.grey.shade600;
+    }
     switch (stage) {
       case FsmOrderStage.draft:
         return AppColors.stageNew;
@@ -50,6 +54,9 @@ class OrderStatusChip extends StatelessWidget {
   }
 
   IconData get _icon {
+    if (isSkipped) {
+      return Icons.next_plan_outlined;
+    }
     switch (stage) {
       case FsmOrderStage.draft:
         return Icons.schedule_outlined;
@@ -63,6 +70,9 @@ class OrderStatusChip extends StatelessWidget {
   }
 
   String get _label {
+    if (isSkipped) {
+      return 'Đã bỏ qua';
+    }
     switch (stage) {
       case FsmOrderStage.draft:
         return 'Mới';

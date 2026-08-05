@@ -60,7 +60,7 @@ class OrderCard extends StatelessWidget {
                       ],
                     ),
                   ),
-                  OrderStatusChip(stage: order.stage),
+                  OrderStatusChip(stage: order.stage, isSkipped: order.isSkipped),
                 ],
               ),
 

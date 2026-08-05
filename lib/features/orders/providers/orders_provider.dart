@@ -3,6 +3,7 @@ import '../../../core/api/api_exception.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../models/fsm_order.dart';
 import '../services/orders_service.dart';
+import '../services/recurring_service.dart';
 
 /// State management cho danh sách fsm.order.
 class OrdersProvider extends ChangeNotifier {
@@ -156,6 +157,23 @@ class OrdersProvider extends ChangeNotifier {
       await _service.syncPending();
     } catch (_) {
       // Bỏ qua lỗi sync, sẽ retry sau
+    }
+  }
+
+  /// Đánh dấu bỏ qua kì định kỳ này (Skip)
+  Future<void> skipOccurrence(FsmOrder order) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await RecurringService.instance.skipOccurrence(order);
+      _orders = await _service.loadCachedOrders();
+    } catch (e) {
+      _errorMessage = 'Lỗi không xác định khi bỏ qua đơn: $e';
+      _orders = await _service.loadCachedOrders();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
