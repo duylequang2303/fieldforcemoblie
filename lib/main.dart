@@ -9,6 +9,8 @@ import 'core/database/sync_manager.dart';
 // Isar schemas — import generated .g.dart files
 import 'features/auth/models/user_session.dart';
 import 'features/orders/models/fsm_order.dart';
+import 'features/orders/models/fsm_recurring.dart';
+import 'features/orders/models/fsm_frequency_set.dart';
 import 'features/route_map/models/route_stop.dart';
 import 'features/stock/models/product.dart';
 import 'features/stock/models/stock_move.dart';
@@ -16,6 +18,7 @@ import 'features/timesheet/models/timesheet_entry.dart';
 import 'features/expense/models/expense.dart';
 import 'features/work_order/models/work_report.dart';
 import 'features/orders/services/orders_service.dart';
+import 'features/orders/services/recurring_service.dart';
 import 'features/timesheet/services/timesheet_service.dart';
 import 'features/expense/services/expense_service.dart';
 import 'features/stock/services/stock_service.dart';
@@ -51,6 +54,8 @@ Future<void> main() async {
       await IsarService.instance.init([
         UserSessionSchema,
         FsmOrderSchema,
+        FsmRecurringSchema,
+        FsmFrequencySetSchema,
         RouteStopSchema,
         ProductSchema,
         StockMoveSchema,
@@ -69,6 +74,16 @@ Future<void> main() async {
           .registerSyncHandler(StockService.instance.syncPending);
       SyncManager.instance
           .registerSyncHandler(WorkOrderService.instance.syncPending);
+
+      // Đăng ký các sync handlers cho recurring lặp định kỳ
+      SyncManager.instance.registerSyncHandler(() async {
+        try {
+          await RecurringService.instance.fetchRecurringRules();
+          await RecurringService.instance.generateOfflineInstances();
+        } catch (_) {
+          // Bỏ qua lỗi sync để tránh abort các handler khác của SyncManager
+        }
+      });
 
       // Bắt đầu lắng nghe trạng thái mạng để tự động sync
       SyncManager.instance.startListening();

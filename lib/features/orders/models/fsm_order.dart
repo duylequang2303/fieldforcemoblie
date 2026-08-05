@@ -62,6 +62,17 @@ class FsmOrder {
   // Rules
   bool requireSignature = false;
 
+  // Recurring - Tracking instance sinh từ recurring template
+  /// ID của fsm.recurring parent (Odoo ID, không phải Isar ID).
+  /// Nếu null = đơn one-time (không recurring).
+  int? recurringId;
+
+  /// Instance này có phải sinh ra từ recurring template không.
+  bool isRecurringInstance = false;
+
+  /// Đơn này bị skip trong chuỗi recurring (không tính completed/overdue).
+  bool isSkipped = false;
+
   FsmOrder();
 
   /// Tạo từ JSON trả về từ Odoo API.
@@ -78,6 +89,9 @@ class FsmOrder {
       ..locationAddress = _strOrNull(json['location_address']) ??
           _nameFromMany(json['location_id'])
       ..partnerPhone = _strOrNull(json['phone'])
+      ..recurringId = _idOrNull(json['fsm_recurring_id'])
+      ..isRecurringInstance = json['is_recurring_instance'] == true
+      ..isSkipped = json['is_skipped'] == true
       ..scheduledDateStart = _dateOrNull(json['scheduled_date_start'])
       ..scheduledDateEnd = _dateOrNull(json['scheduled_date_end'])
       ..dateStart = _dateOrNull(json['date_start'])

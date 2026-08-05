@@ -13,7 +13,11 @@ import '../widgets/quick_action_button.dart';
 import '../widgets/section_header.dart';
 import '../widgets/material_entry_form.dart';
 import '../features/orders/models/fsm_order.dart';
+import '../features/orders/models/fsm_recurring.dart';
+import '../features/orders/models/fsm_frequency_set.dart';
 import '../features/orders/services/orders_service.dart';
+import '../core/database/isar_service.dart';
+import 'package:isar_community/isar.dart';
 import '../features/stock/services/stock_service.dart';
 import '../features/stock/models/product.dart';
 import '../features/work_order/services/work_order_service.dart';
@@ -40,6 +44,50 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
   final List<Map<String, dynamic>> _materialsUsed = [];
   final List<String> _photoPaths = [];
 
+  String _repeatText = '(Không lặp)';
+
+  Future<void> _initRepeatText() async {
+    if (widget.order.recurringId == null || widget.order.recurringId! <= 0) {
+      if (mounted) setState(() => _repeatText = '(Không lặp)');
+      return;
+    }
+    try {
+      final isar = IsarService.instance.db;
+      final rec = await isar.fsmRecurrings
+          .filter()
+          .odooIdEqualTo(widget.order.recurringId!)
+          .findFirst();
+      if (rec == null) {
+        if (mounted) setState(() => _repeatText = '(Định kỳ)');
+        return;
+      }
+      final freq = await isar.fsmFrequencySets
+          .filter()
+          .odooIdEqualTo(rec.frequencySetId)
+          .findFirst();
+      if (freq == null) {
+        if (mounted) setState(() => _repeatText = '(Định kỳ)');
+        return;
+      }
+
+      final unit = freq.intervalType == FrequencyIntervalType.daily
+          ? 'ngày'
+          : freq.intervalType == FrequencyIntervalType.weekly
+              ? 'tuần'
+              : freq.intervalType == FrequencyIntervalType.monthly
+                  ? 'tháng'
+                  : 'năm';
+      final text = freq.interval == 1
+          ? '(Lặp mỗi $unit)'
+          : '(Lặp mỗi ${freq.interval} $unit)';
+      if (mounted) {
+        setState(() => _repeatText = text);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _repeatText = '(Định kỳ)');
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -50,6 +98,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
       exportBackgroundColor: Colors.white,
     );
     _loadReportDraft();
+    _initRepeatText();
   }
 
   Future<void> _loadReportDraft() async {
@@ -580,13 +629,62 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                               fontWeight: FontWeight.w600,
                               color: onSurfaceFaint)),
                       const SizedBox(height: 4),
-                      Text(
-                        '${_formatDate(widget.order.scheduledDateStart)}\n(Does not repeat)',
-                        style: TextStyle(
-                            fontSize: 14,
-                            color: theme.colorScheme.onSurface,
-                            height: 1.4),
-                      ),
+  String _repeatText = '(Không lặp)';
+
+  Future<void> _initRepeatText() async {
+    if (widget.order.recurringId == null || widget.order.recurringId! <= 0) {
+      if (mounted) setState(() => _repeatText = '(Không lặp)');
+      return;
+    }
+    try {
+      final isar = IsarService.instance.db;
+      final rec = await isar.fsmRecurrings
+          .filter()
+          .odooIdEqualTo(widget.order.recurringId!)
+          .findFirst();
+      if (rec == null) {
+        if (mounted) setState(() => _repeatText = '(Định kỳ)');
+        return;
+      }
+      final freq = await isar.fsmFrequencySets
+          .filter()
+          .odooIdEqualTo(rec.frequencySetId)
+          .findFirst();
+      if (freq == null) {
+        if (mounted) setState(() => _repeatText = '(Định kỳ)');
+        return;
+      }
+
+      final unit = freq.intervalType == FrequencyIntervalType.daily
+          ? 'ngày'
+          : freq.intervalType == FrequencyIntervalType.weekly
+              ? 'tuần'
+              : freq.intervalType == FrequencyIntervalType.monthly
+                  ? 'tháng'
+                  : 'năm';
+      final text = freq.interval == 1
+          ? '(Lặp mỗi $unit)'
+          : '(Lặp mỗi ${freq.interval} $unit)';
+      if (mounted) {
+        setState(() => _repeatText = text);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _repeatText = '(Định kỳ)');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _signatureController = SignatureController(
+      penStrokeWidth: 2,
+      penColor: Colors.black,
+      exportBackgroundColor: Colors.white,
+    );
+    _loadReportDraft();
+    _initRepeatText();
+  }
                     ],
                   ),
                 ),

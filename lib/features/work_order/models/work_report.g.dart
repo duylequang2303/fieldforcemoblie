@@ -77,13 +77,18 @@ const WorkReportSchema = CollectionSchema(
       name: r'signedAt',
       type: IsarType.dateTime,
     ),
-    r'syncedPhotoPaths': PropertySchema(
+    r'syncedAttachmentEntries': PropertySchema(
       id: 12,
+      name: r'syncedAttachmentEntries',
+      type: IsarType.stringList,
+    ),
+    r'syncedPhotoPaths': PropertySchema(
+      id: 13,
       name: r'syncedPhotoPaths',
       type: IsarType.stringList,
     ),
     r'workDone': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'workDone',
       type: IsarType.string,
     )
@@ -153,6 +158,13 @@ int _workReportEstimateSize(
       bytesCount += 3 + value.length * 3;
     }
   }
+  bytesCount += 3 + object.syncedAttachmentEntries.length * 3;
+  {
+    for (var i = 0; i < object.syncedAttachmentEntries.length; i++) {
+      final value = object.syncedAttachmentEntries[i];
+      bytesCount += value.length * 3;
+    }
+  }
   bytesCount += 3 + object.syncedPhotoPaths.length * 3;
   {
     for (var i = 0; i < object.syncedPhotoPaths.length; i++) {
@@ -182,8 +194,9 @@ void _workReportSerialize(
   writer.writeString(offsets[9], object.problemsFound);
   writer.writeString(offsets[10], object.recommendation);
   writer.writeDateTime(offsets[11], object.signedAt);
-  writer.writeStringList(offsets[12], object.syncedPhotoPaths);
-  writer.writeString(offsets[13], object.workDone);
+  writer.writeStringList(offsets[12], object.syncedAttachmentEntries);
+  writer.writeStringList(offsets[13], object.syncedPhotoPaths);
+  writer.writeString(offsets[14], object.workDone);
 }
 
 WorkReport _workReportDeserialize(
@@ -206,8 +219,9 @@ WorkReport _workReportDeserialize(
   object.problemsFound = reader.readStringOrNull(offsets[9]);
   object.recommendation = reader.readStringOrNull(offsets[10]);
   object.signedAt = reader.readDateTimeOrNull(offsets[11]);
-  object.syncedPhotoPaths = reader.readStringList(offsets[12]) ?? [];
-  object.workDone = reader.readString(offsets[13]);
+  object.syncedAttachmentEntries = reader.readStringList(offsets[12]) ?? [];
+  object.syncedPhotoPaths = reader.readStringList(offsets[13]) ?? [];
+  object.workDone = reader.readString(offsets[14]);
   return object;
 }
 
@@ -245,6 +259,8 @@ P _workReportDeserializeProp<P>(
     case 12:
       return (reader.readStringList(offset) ?? []) as P;
     case 13:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 14:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1673,6 +1689,233 @@ extension WorkReportQueryFilter
   }
 
   QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesElementEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'syncedAttachmentEntries',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesElementGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'syncedAttachmentEntries',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesElementLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'syncedAttachmentEntries',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesElementBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'syncedAttachmentEntries',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesElementStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'syncedAttachmentEntries',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesElementEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'syncedAttachmentEntries',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesElementContains(String value,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'syncedAttachmentEntries',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesElementMatches(String pattern,
+          {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'syncedAttachmentEntries',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesElementIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'syncedAttachmentEntries',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesElementIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'syncedAttachmentEntries',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesLengthEqualTo(int length) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'syncedAttachmentEntries',
+        length,
+        true,
+        length,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'syncedAttachmentEntries',
+        0,
+        true,
+        0,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'syncedAttachmentEntries',
+        0,
+        false,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesLengthLessThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'syncedAttachmentEntries',
+        0,
+        true,
+        length,
+        include,
+      );
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesLengthGreaterThan(
+    int length, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'syncedAttachmentEntries',
+        length,
+        include,
+        999999,
+        true,
+      );
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      syncedAttachmentEntriesLengthBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.listLength(
+        r'syncedAttachmentEntries',
+        lower,
+        includeLower,
+        upper,
+        includeUpper,
+      );
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
       syncedPhotoPathsElementEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -2441,6 +2684,13 @@ extension WorkReportQueryWhereDistinct
     });
   }
 
+  QueryBuilder<WorkReport, WorkReport, QDistinct>
+      distinctBySyncedAttachmentEntries() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'syncedAttachmentEntries');
+    });
+  }
+
   QueryBuilder<WorkReport, WorkReport, QDistinct> distinctBySyncedPhotoPaths() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'syncedPhotoPaths');
@@ -2535,6 +2785,13 @@ extension WorkReportQueryProperty
   QueryBuilder<WorkReport, DateTime?, QQueryOperations> signedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'signedAt');
+    });
+  }
+
+  QueryBuilder<WorkReport, List<String>, QQueryOperations>
+      syncedAttachmentEntriesProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'syncedAttachmentEntries');
     });
   }
 

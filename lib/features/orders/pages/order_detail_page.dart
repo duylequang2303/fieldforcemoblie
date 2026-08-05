@@ -9,6 +9,8 @@ import '../../../shared/widgets/loading_overlay.dart';
 import '../../../shared/widgets/offline_banner.dart';
 import '../models/fsm_order.dart';
 import '../providers/orders_provider.dart';
+import '../widgets/recurring_badge.dart';
+import '../services/recurring_service.dart';
 import '../../route_map/providers/route_provider.dart';
 import '../../work_order/providers/work_order_provider.dart';
 import '../widgets/order_status_chip.dart';
@@ -128,7 +130,15 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               ),
             ),
             const SizedBox(height: 4),
-            OrderStatusChip(stage: order.stage),
+            Row(
+              children: [
+                OrderStatusChip(stage: order.stage),
+                if (order.recurringId != null && order.recurringId! > 0) ...[
+                  const SizedBox(width: 8),
+                  RecurringBadge(recurringId: order.recurringId!, showText: true),
+                ],
+              ],
+            ),
           ],
         ),
         background: Container(
@@ -282,6 +292,47 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           color: AppColors.success,
           highlight: true,
         ),
+        if (order.isRecurringInstance &&
+            order.stage != FsmOrderStage.done &&
+            order.stage != FsmOrderStage.cancelled) ...[
+          const Divider(height: 1, indent: 68),
+          _ActionTile(
+            icon: Icons.skip_next_outlined,
+            label: 'Bỏ qua kỳ này (Skip)',
+            subtitle: 'Bỏ qua lần định kỳ này và lên lịch kỳ sau',
+            onTap: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Xác nhận bỏ qua'),
+                  content: const Text(
+                      'Bạn có chắc chắn muốn bỏ qua kỳ thực hiện dịch vụ định kỳ này không?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Hủy'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Đồng ý'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                await RecurringService.instance.skipOccurrence(order);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Đã đánh dấu bỏ qua kỳ định kỳ này.')),
+                  );
+                  context.pop(); // Quay lại trang trước
+                }
+              }
+            },
+            color: AppColors.warning,
+          ),
+        ],
       ],
     );
   }
