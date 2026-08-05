@@ -140,6 +140,7 @@ class RecurringService {
 
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
+      final horizon = today.add(const Duration(days: 30)); // 30-day scheduling horizon
 
       // Lấy toàn bộ active recurring rules từ database
       final activeRules = await _isar.db.fsmRecurrings
@@ -149,8 +150,10 @@ class RecurringService {
 
       int count = 0;
       for (final rule in activeRules) {
-        // Nếu không có nextDate hoặc nextDate chưa đến hạn thì skip
-        if (rule.nextDate == null || rule.nextDate!.isAfter(today)) {
+        if (rule.nextDate == null) continue;
+
+        // Bỏ qua completion rules nếu nextDate ở tương lai (đơn completion chỉ sinh khi hoàn thành/skip)
+        if (rule.ruleType == 'completion' && rule.nextDate!.isAfter(today)) {
           continue;
         }
 
@@ -165,45 +168,56 @@ class RecurringService {
           continue;
         }
 
-        // Kiểm tra xem đã có instance nào cho rule này vào ngày nextDate chưa
-        // để tránh duplicate local instances
-        final existInstance = await _isar.db.fsmOrders
-            .filter()
-            .recurringIdEqualTo(rule.odooId)
-            .scheduledDateStartEqualTo(rule.nextDate)
-            .findFirst();
+        // Vòng lặp sinh các instance trong tương lai đến hết horizon
+        while (rule.nextDate != null && !rule.nextDate!.isAfter(horizon)) {
+          // Check endDate
+          if (rule.endDate != null && rule.nextDate!.isAfter(rule.endDate!)) {
+            rule.isActive = false;
+            rule.nextDate = null;
+            await _isar.db.writeTxn(() async {
+              await _isar.db.fsmRecurrings.put(rule);
+            });
+            break;
+          }
 
-        if (existInstance != null) {
-          // Đã có instance cho hôm đó -> update nextDate để tính kỳ sau
-          await _isar.db.writeTxn(() async {
-            if (rule.ruleType == 'completion') {
-              // Completion-based: clear nextDate, will be set on completion/skip
+          // Kiểm tra xem đã có instance nào cho rule này vào ngày nextDate chưa
+          final existInstance = await _isar.db.fsmOrders
+              .filter()
+              .recurringIdEqualTo(rule.odooId)
+              .scheduledDateStartEqualTo(rule.nextDate)
+              .findFirst();
+
+          if (existInstance == null) {
+            await _generateLocalInstance(rule, freqSet);
+            count++;
+          }
+
+          // Với completion-based, chỉ sinh duy nhất 1 đơn rồi reset nextDate = null
+          if (rule.ruleType == 'completion') {
+            await _isar.db.writeTxn(() async {
               rule.nextDate = null;
-            } else {
-              rule.nextDate = calculateNextOccurrence(rule.nextDate!, freqSet, targetDay: rule.startDate.day);
-            }
-            await _isar.db.fsmRecurrings.put(rule);
-          });
-          continue;
-        }
+              await _isar.db.fsmRecurrings.put(rule);
+            });
+            break;
+          }
 
-        // Generate local instance
-        // endDate guard: skip if scheduledStart is after rule.endDate
-        if (rule.endDate != null && rule.nextDate!.isAfter(rule.endDate!)) {
-          rule.isActive = false;
-          rule.nextDate = null;
+          // Tính ngày tiếp theo cho date-based
+          final nextDate = calculateNextOccurrence(
+            rule.nextDate!,
+            freqSet,
+            targetDay: rule.startDate.day,
+          );
+
+          // Cập nhật nextDate tiếp theo cho vòng lặp
           await _isar.db.writeTxn(() async {
+            rule.nextDate = nextDate;
             await _isar.db.fsmRecurrings.put(rule);
           });
-          continue;
         }
-
-        await _generateLocalInstance(rule, freqSet);
-        count++;
       }
 
       if (count > 0) {
-        logger.i('RecurringService: Generated $count offline instances.');
+        logger.i('RecurringService: Generated $count offline instances within 30-day horizon.');
       }
     } on IsarError catch (e, stackTrace) {
       logger.e('RecurringService.generateOfflineInstances: Isar error',
