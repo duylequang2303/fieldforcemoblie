@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Cline PreToolUse hook: commit-requires-review
+# Blocks normal "git commit" commands unless the review marker
+# .cline/review-marker exists AND is less than 10 minutes old.
+# If missing or stale, BLOCK with message: "Run /review first".
+#
+# Input : stdin JSON (PreToolUse event) — supports both legacy
+#         (.preToolUse.parameters.command) and SDK (.tool_call.input.command) formats.
+# Output: stdout JSON — {"cancel": false} to allow, {"cancel": true, "errorMessage"} to block.
+
+set -euo pipefail
+
+input=$(cat)
+
+# Extract the command supporting both hook input formats
+cmd=$(echo "$input" | jq -r '.preToolUse.parameters.command // .tool_call.input.command // empty' 2>/dev/null || true)
+
+# Not a command execution — allow
+if [[ -z "$cmd" ]]; then
+  echo '{"cancel": false}'
+  exit 0
+fi
+
+# Only intercept normal "git commit", NOT "git commit --no-verify"
+# (--no-verify is already blocked by the block-no-verify hook)
+if [[ "$cmd" != *"git commit"* ]] || [[ "$cmd" == *"--no-verify"* ]]; then
+  echo '{"cancel": false}'
+  exit 0
+fi
+
+# Determine workspace root from the event; fall back to the current directory
+workspace_root=$(echo "$input" | jq -r '.workspaceRoots[0] // empty' 2>/dev/null || true)
+marker_dir="${workspace_root:-.}/.cline"
+marker_file="$marker_dir/review-marker"
+
+# Find the marker; if missing or stale → block
+if [[ ! -f "$marker_file" ]]; then
+  echo '{"cancel": true, "errorMessage": "Run /review first"}'
+  exit 0
+fi
+
+marker_age_seconds=$(( $(date +%s) - $(stat -c %Y "$marker_file" 2>/dev/null || echo 0) ))
+if (( marker_age_seconds < 0 )); then
+  marker_age_seconds=0
+fi
+
+if (( marker_age_seconds > 600 )); then  # 600 seconds = 10 minutes
+  echo '{"cancel": true, "errorMessage": "Run /review first (review marker is stale — older than 10 minutes)"}'
+  exit 0
+fi
+
+echo '{"cancel": false}'
+exit 0

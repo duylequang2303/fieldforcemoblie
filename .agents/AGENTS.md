@@ -100,9 +100,246 @@
     ```
 - ⚠️ **Hạn chế hỏi quyền tối đa**: Tránh chạy các lệnh shell thăm dò hoặc truy vấn rời rạc làm phiền User phê duyệt quyền nhiều lần. Nếu cần thông tin hoặc tạo dữ liệu test, hãy hỏi trực tiếp User hoặc gom các lệnh SQL/CLI cần thiết vào duy nhất một lần thực thi.
 
-## 12. Quy tắc sử dụng MCP Subagents (a2a-platform)
+## 12. ~~Quy tắc sử dụng MCP Subagents (a2a-platform)~~ [DEPRECATED - Zed không hỗ trợ MCP]
+
+> **Lưu ý:** Section này được giữ lại cho reference từ Cline setup cũ. Zed KHÔNG hỗ trợ MCP protocol native.
+> Thay thế: Dùng Zed's `spawn_agent` tool (xem §13 THINK/SCOUT/REVIEW workflows).
+
+<details>
+<summary>Reference only (click to expand)</summary>
+
 - 💡 **Tự động hóa Agent (a2a)**: Để tối ưu hóa chất lượng code và tránh rủi ro, AI nên chủ động gọi các subagents của `a2a-platform` tùy theo ngữ cảnh của nhiệm vụ:
   - **Khi Code/Refactor**: Sử dụng `softwareengineeringexpert` để hỗ trợ dọn rác, tái cấu trúc hoặc phát triển tính năng mới.
   - **Khi Review/Kiểm lỗi**: Sử dụng `constructivecritic` để kiểm tra chéo các thay đổi, đặc biệt là các logic nghiệp vụ quan trọng.
   - **Khi Sandbox/Thử nghiệm**: Sử dụng `sandboxcodingagent` để thử nghiệm mã nguồn một cách cô lập.
 - ⚡ **Thiết lập Nhớ Bối cảnh**: Kết hợp các Rule này cùng với việc huấn luyện trí nhớ dài hạn (qua các công cụ lưu trữ như `supermemory` hoặc Agent Memory) để AI ở các phiên chat khác tự động nhận diện và phối hợp các bộ tool MCP một cách hiệu quả.
+
+</details>
+
+## 13. THINK Workflow & Subagent Delegation
+
+### 🎯 THINK Workflow (Multi-agent Debate Pattern)
+
+**Khi nào BẮT BUỘC dùng THINK:**
+- Task phức tạp với >1 cách tiếp cận
+- Rủi ro cao: đụng sync/Odoo/schema
+- User báo bug nghiêm trọng cần verify
+- Design decision quan trọng
+
+**Pattern**: Spawn 3 subagents tranh luận:
+- **PROPOSER** → đề xuất giải pháp đơn giản
+- **SKEPTIC** → tấn công đề xuất, tìm lỗ hổng
+- **CHECKER** → verify bằng code thực tế
+
+→ Main agent tổng hợp → **FINAL PLAN** đã kiểm chứng
+
+**📘 Chi tiết đầy đủ:** Xem [`.agents/THINK_WORKFLOW.md`](.agents/THINK_WORKFLOW.md)
+- Templates cho 3 debaters
+- Synthesis format
+- Error handling
+- Ví dụ thực tế từ project
+
+### 🔧 Subagent Delegation (spawn_agent general guidelines)
+
+**✅ Khi NÊN dùng spawn_agent:**
+
+**1. Parallel Independent Tasks (song song không phụ thuộc)**
+- ✅ Nhiều subtasks độc lập có thể chạy đồng thời
+- ✅ Ví dụ: Research 3 libraries khác nhau cùng lúc, implement 3 features không overlap về file
+```markdown
+VD: Feature A cần research:
+- Subagent 1: Tìm hiểu package X cho authentication
+- Subagent 2: Tìm hiểu package Y cho state management
+- Subagent 3: Đọc docs của API Z
+→ Chạy song song, gộp kết quả sau
+```
+
+**2. Large Codebase Investigation (điều tra codebase lớn)**
+- ✅ Cần tìm hiểu nhiều files/modules khác nhau
+- ✅ Main agent focus vào implementation, delegate research cho subagent
+```markdown
+VD: Implement recurring feature:
+- Main agent: Thiết kế data model
+- Subagent: Đọc toàn bộ orders/ feature để hiểu pattern hiện tại
+→ Main agent giữ context implementation, subagent research về báo cáo
+```
+
+**3. Review & Second Opinion (kiểm tra chéo)**
+- ✅ Cần fresh perspective cho critical code
+- ✅ Verify logic phức tạp, security-sensitive code
+```markdown
+VD: Sau khi implement authentication:
+- Main agent: Đã viết xong auth_service.dart
+- Subagent: Review security holes, suggest improvements
+→ Subagent không có bias của implementation ban đầu
+```
+
+**4. Summarize Large Outputs (tóm tắt logs/outputs dài)**
+- ✅ Build logs, test outputs quá dài (>500 lines)
+- ✅ Main agent chỉ cần biết errors/warnings quan trọng
+```markdown
+VD: Chạy `flutter test` với 100+ test cases:
+- Main agent: Run tests
+- Subagent: Đọc full output, tóm tắt chỉ failures + root causes
+→ Tiết kiệm context window của main agent
+```
+
+**5. Isolated Experiments (thử nghiệm cô lập)**
+- ✅ Test approach mới mà không ảnh hưởng main context
+- ✅ POC/prototype nhỏ trước khi integrate
+```markdown
+VD: Thử 2 approaches khác nhau:
+- Subagent 1: Thử approach A (REST API)
+- Subagent 2: Thử approach B (GraphQL)
+→ So sánh kết quả, chọn approach tốt nhất
+```
+
+---
+
+### ❌ KHI NÀO KHÔNG NÊN DÙNG spawn_agent
+
+**1. Simple Tasks (task đơn giản, <3 tool calls)**
+- ❌ Đọc 1 file, grep 1 pattern, sửa 1 function
+- ✅ Làm trực tiếp nhanh hơn
+```markdown
+VD SAI: Delegate "đọc file config.dart và cho tôi biết API URL"
+→ Tốn thời gian bootstrap subagent, main agent đọc trực tiếp chỉ 1 tool call
+```
+
+**2. Context-Dependent Tasks (phụ thuộc context hiện tại)**
+- ❌ Task cần thông tin từ main agent conversation history
+- ❌ Task cần kết quả vừa tìm được ở bước trước
+```markdown
+VD SAI (case thực tế từ CP1):
+- Main agent vừa verify Odoo schema qua SSH (CP0)
+- Delegate "verify fsm.frequency.set qua API" cho subagent
+→ Subagent không có context CP0, phải research lại từ đầu
+✅ ĐÚNG: Dùng schema đã biết từ CP0 + Odoo convention để thiết kế model trực tiếp
+```
+
+**3. Private/Sensitive Data Access (cần access file private)**
+- ❌ Task cần đọc `.env`, credentials, SSH keys
+- ❌ Subagent không có quyền, sẽ bị block
+```markdown
+VD SAI: "Authenticate Odoo và fetch data qua API"
+→ Subagent không đọc được .env (private file), phải ask user nhiều lần
+✅ ĐÚNG: Main agent có context .env, gọi API trực tiếp hoặc viết script test
+```
+
+**4. Sequential Dependencies (phụ thuộc tuần tự)**
+- ❌ Step B cần kết quả của Step A
+- ✅ Main agent làm tuần tự, dùng kết quả trước cho bước sau
+```markdown
+VD SAI:
+- Subagent 1: Tìm file service
+- Subagent 2: Đọc file service (chờ kết quả subagent 1)
+→ Chậm gấp đôi, main agent làm tuần tự nhanh hơn
+```
+
+**5. Unclear Requirements (yêu cầu mơ hồ)**
+- ❌ Task không rõ scope, cần clarify với user
+- ❌ Subagent sẽ "nghĩ" lâu hoặc làm sai direction
+```markdown
+VD SAI: "Research best approach cho recurring feature"
+→ Quá mơ hồ, subagent không biết constraints (Odoo backend, offline-first...)
+✅ ĐÚNG: Main agent clarify với user trước, rồi delegate task cụ thể
+```
+
+---
+
+### 📋 Checklist trước khi spawn_agent
+
+Trả lời các câu hỏi sau trước khi delegate:
+
+- [ ] **Task độc lập?** Subagent có đủ context để làm mà không cần hỏi main agent?
+- [ ] **Task đủ lớn?** Task mất >5 tool calls hoặc >10 phút nếu main agent làm?
+- [ ] **Không phụ thuộc private data?** Task không cần `.env`, credentials, session info?
+- [ ] **Parallel được?** Task này có thể chạy song song với công việc main agent?
+- [ ] **Giá trị rõ ràng?** Delegate tiết kiệm thời gian hoặc context window đáng kể?
+
+**Nếu trả lời "Có" cho tất cả → ✅ NÊN DÙNG spawn_agent**
+
+**Nếu có ≥2 câu trả lời "Không" → ❌ LÀM TRỰC TIẾP nhanh hơn**
+
+---
+
+### 💡 Best Practices khi dùng spawn_agent
+
+**1. Message phải self-contained (đầy đủ context)**
+```markdown
+❌ SAI: "Tìm hiểu recurring feature trong project"
+✅ ĐÚNG:
+"Context: Project là Flutter app kết nối Odoo FSM backend. Feature hiện tại dùng Isar DB offline-first.
+Task: Đọc toàn bộ lib/features/orders/ và lib/features/schedule/, tóm tắt:
+1. Pattern gọi Odoo API (authentication, error handling)
+2. Pattern lưu offline (Isar models, sync logic)
+3. Các services hiện có và responsibilities
+Output format: Markdown với code snippets minh họa."
+```
+
+**2. Scope rõ ràng, output cụ thể**
+- Nói rõ subagent cần làm gì, không làm gì
+- Định nghĩa output format (JSON, markdown, bullet points...)
+- Giới hạn scope (files nào, models nào, không research thêm X/Y/Z)
+
+**3. Follow-up với session_id**
+- Reuse `session_id` khi cần follow-up trên cùng context
+- Message follow-up ngắn gọn (subagent đã có context)
+```dart
+// Lần 1
+spawn_agent(message: "Research X...") → session_id: "abc123"
+
+// Follow-up
+spawn_agent(
+  session_id: "abc123",
+  message: "Based on that, now compare approach A vs B"
+)
+```
+
+**4. Gom parallel calls khi có thể**
+```dart
+// ✅ ĐÚNG: 3 subagents song song
+spawn_agent(label: "Research auth", message: "...")
+spawn_agent(label: "Research state", message: "...")
+spawn_agent(label: "Research API", message: "...")
+// Chờ cả 3 xong, gộp kết quả
+
+// ❌ SAI: Sequential không cần thiết
+spawn_agent → đợi xong → spawn_agent → đợi xong → spawn_agent
+```
+
+---
+
+### 📊 Bài học từ thực tế (CP0-CP1)
+
+**Case 1: Subagent chậm (CP1 - 2026-08-05)**
+```markdown
+Task: Verify fsm.frequency.set schema qua Odoo API
+Vấn đề:
+- Subagent cần authenticate Odoo (không có .env context)
+- Cần research OdooService không tồn tại
+- Main agent đã có schema từ CP0 (PostgreSQL)
+→ Subagent "nghĩ" lâu, user cancel
+
+Giải pháp:
+- Main agent dùng schema PostgreSQL đã biết từ CP0
+- Thiết kế model dựa trên Odoo convention (interval_type: daily/weekly/monthly)
+→ Nhanh hơn, đủ để implement
+
+Bài học: Task đơn giản + phụ thuộc context + cần private data → LÀM TRỰC TIẾP
+```
+
+**Case 2: Subagent verify bugs (CP0 - đã thành công ở session trước)**
+```markdown
+Task: Verify 5 bugs trong codebase (service_type, sync logic, recurring files...)
+Kết quả:
+- Subagent SKEPTIC + CHECKER chạy OK
+- Phát hiện 2/5 bugs đã fix, 2 bugs files không tồn tại
+→ Hữu ích cho verification
+
+Nhưng:
+- Main agent phải verify lại trực tiếp code để chắc chắn (đã chứng minh subagent sai ở bug #1)
+→ Subagent report chỉ là hypothesis, cần verify bằng grep/read_file
+
+Bài học: Subagent tốt cho research, nhưng main agent phải verify lại critical findings
+```

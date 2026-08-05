@@ -1,16 +1,25 @@
 {
   "mcpServers": {
+    "a2a-platform": {
+      "disabled": false,
+      "timeout": 90,
+      "type": "sse",
+      "url": "https://agent-router-backend-1023201593264.europe-west1.run.app/mcp/sse",
+      "headers": {
+        "Authorization": "a2a_Fv5Jsb-aHrtQM3GgATd-htQeWb1Ux3_R-cXJ6yWao7Q"
+      }
+    },
     "dart": {
       "command": "dart",
-      "args": ["mcp-server"]
-    },
-    "marionette": {
-      "command": "/home/odoodev/.pub-cache/bin/marionette_mcp",
-      "args": []
+      "args": ["mcp-server"],
+      "timeout": 60,
+      "type": "stdio"
     },
     "odoo": {
       "command": "npx",
       "args": ["-y", "odoo-mcp-server"],
+      "timeout": 60,
+      "type": "stdio",
       "env": {
         "ODOO_URL": "https://demo002.crmhub.vn",
         "ODOO_DB": "demo002.crmhub.vn",

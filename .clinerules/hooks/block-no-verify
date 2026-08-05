@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Cline PreToolUse hook: block-no-verify
+# Blocks git commits/pushes that bypass verification or force-push.
+# Triggers on: "git commit --no-verify", "git push --no-verify", "git push --force"
+#
+# Input : stdin JSON (PreToolUse event) — supports both legacy
+#         (.preToolUse.parameters.command) and SDK (.tool_call.input.command) formats.
+# Output: stdout JSON — {"cancel": false} to allow, {"cancel": true, "errorMessage"} to block.
+
+set -euo pipefail
+
+input=$(cat)
+
+# Extract tool name and command supporting both hook input formats
+tool_name=$(echo "$input" | jq -r '.preToolUse.toolName // .tool_call.name // empty')
+cmd=$(echo "$input" | jq -r '.preToolUse.parameters.command // .tool_call.input.command // empty' 2>/dev/null || true)
+
+# Not a command execution — allow
+if [[ -z "$cmd" ]]; then
+  echo '{"cancel": false}'
+  exit 0
+fi
+
+if [[ "$cmd" == *"git commit --no-verify"* ]] || \
+   [[ "$cmd" == *"git push --no-verify"* ]] || \
+   [[ "$cmd" == *"git push --force"* ]]; then
+  cat <<'EOF'
+{"cancel": true, "errorMessage": "BLOCKED: git --no-verify commits/pushes and force pushes are not allowed. Use a normal verified commit/push instead.", "contextModification": "Never use git commit --no-verify, git push --no-verify, or git push --force. Always use verified git operations."}
+EOF
+  exit 0
+fi
+
+echo '{"cancel": false}'
+exit 0

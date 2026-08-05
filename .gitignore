@@ -39,6 +39,9 @@ Thumbs.db
 # Logs
 *.log
 
+# Review marker (written by /review hook — never commit)
+.cline/
+
 # Build artifacts
 build/
 dist/

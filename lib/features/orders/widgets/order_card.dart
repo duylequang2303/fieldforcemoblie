@@ -4,6 +4,7 @@ import '../../../core/routing/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../models/fsm_order.dart';
 import 'order_status_chip.dart';
+import 'recurring_badge.dart';
 import 'package:go_router/go_router.dart';
 
 /// Card hiển thị thông tin tóm tắt của một đơn dịch vụ trong danh sách.
@@ -38,13 +39,25 @@ class OrderCard extends StatelessWidget {
               Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      order.name,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                        color: AppColors.onSurface,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            order.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                              color: AppColors.onSurface,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (order.recurringId != null && order.recurringId! > 0) ...[
+                          const SizedBox(width: 6),
+                          RecurringBadge(recurringId: order.recurringId!),
+                        ],
+                      ],
                     ),
                   ),
                   OrderStatusChip(stage: order.stage),

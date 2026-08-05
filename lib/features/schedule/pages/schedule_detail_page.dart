@@ -236,7 +236,8 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
               ),
             ),
             const SizedBox(height: 24),
-            // Upcoming Work
+            // Upcoming Work (Mock - Hidden for Recurring Feature Integration)
+            /*
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text(
@@ -298,6 +299,7 @@ class _ScheduleDetailPageState extends State<ScheduleDetailPage> {
                   style: const TextStyle(
                       fontSize: 14, color: AppColors.scheduleText)),
             ),
+            */
             const SizedBox(height: 32),
           ],
         ),

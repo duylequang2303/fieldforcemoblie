@@ -42,119 +42,134 @@ const FsmOrderSchema = CollectionSchema(
       name: r'isPendingSync',
       type: IsarType.bool,
     ),
-    r'lastSyncAt': PropertySchema(
+    r'isRecurringInstance': PropertySchema(
       id: 5,
+      name: r'isRecurringInstance',
+      type: IsarType.bool,
+    ),
+    r'isSkipped': PropertySchema(
+      id: 6,
+      name: r'isSkipped',
+      type: IsarType.bool,
+    ),
+    r'lastSyncAt': PropertySchema(
+      id: 7,
       name: r'lastSyncAt',
       type: IsarType.dateTime,
     ),
     r'locationAddress': PropertySchema(
-      id: 6,
+      id: 8,
       name: r'locationAddress',
       type: IsarType.string,
     ),
     r'locationLat': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'locationLat',
       type: IsarType.double,
     ),
     r'locationLng': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'locationLng',
       type: IsarType.double,
     ),
     r'locationName': PropertySchema(
-      id: 9,
+      id: 11,
       name: r'locationName',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 10,
+      id: 12,
       name: r'name',
       type: IsarType.string,
     ),
     r'odooId': PropertySchema(
-      id: 11,
+      id: 13,
       name: r'odooId',
       type: IsarType.long,
     ),
     r'partnerId': PropertySchema(
-      id: 12,
+      id: 14,
       name: r'partnerId',
       type: IsarType.long,
     ),
     r'partnerName': PropertySchema(
-      id: 13,
+      id: 15,
       name: r'partnerName',
       type: IsarType.string,
     ),
     r'partnerPhone': PropertySchema(
-      id: 14,
+      id: 16,
       name: r'partnerPhone',
       type: IsarType.string,
     ),
     r'personId': PropertySchema(
-      id: 15,
+      id: 17,
       name: r'personId',
       type: IsarType.long,
     ),
     r'personName': PropertySchema(
-      id: 16,
+      id: 18,
       name: r'personName',
       type: IsarType.string,
     ),
     r'priority': PropertySchema(
-      id: 17,
+      id: 19,
       name: r'priority',
       type: IsarType.string,
     ),
+    r'recurringId': PropertySchema(
+      id: 20,
+      name: r'recurringId',
+      type: IsarType.long,
+    ),
     r'requireSignature': PropertySchema(
-      id: 18,
+      id: 21,
       name: r'requireSignature',
       type: IsarType.bool,
     ),
     r'routeId': PropertySchema(
-      id: 19,
+      id: 22,
       name: r'routeId',
       type: IsarType.long,
     ),
     r'routeSequence': PropertySchema(
-      id: 20,
+      id: 23,
       name: r'routeSequence',
       type: IsarType.long,
     ),
     r'routeState': PropertySchema(
-      id: 21,
+      id: 24,
       name: r'routeState',
       type: IsarType.string,
     ),
     r'scheduledDateEnd': PropertySchema(
-      id: 22,
+      id: 25,
       name: r'scheduledDateEnd',
       type: IsarType.dateTime,
     ),
     r'scheduledDateStart': PropertySchema(
-      id: 23,
+      id: 26,
       name: r'scheduledDateStart',
       type: IsarType.dateTime,
     ),
     r'stage': PropertySchema(
-      id: 24,
+      id: 27,
       name: r'stage',
       type: IsarType.string,
       enumMap: _FsmOrderstageEnumValueMap,
     ),
     r'stageId': PropertySchema(
-      id: 25,
+      id: 28,
       name: r'stageId',
       type: IsarType.long,
     ),
     r'stageName': PropertySchema(
-      id: 26,
+      id: 29,
       name: r'stageName',
       type: IsarType.string,
     ),
     r'warehouseId': PropertySchema(
-      id: 27,
+      id: 30,
       name: r'warehouseId',
       type: IsarType.long,
     )
@@ -258,29 +273,32 @@ void _fsmOrderSerialize(
   writer.writeString(offsets[2], object.description);
   writer.writeLong(offsets[3], object.inventoryLocationId);
   writer.writeBool(offsets[4], object.isPendingSync);
-  writer.writeDateTime(offsets[5], object.lastSyncAt);
-  writer.writeString(offsets[6], object.locationAddress);
-  writer.writeDouble(offsets[7], object.locationLat);
-  writer.writeDouble(offsets[8], object.locationLng);
-  writer.writeString(offsets[9], object.locationName);
-  writer.writeString(offsets[10], object.name);
-  writer.writeLong(offsets[11], object.odooId);
-  writer.writeLong(offsets[12], object.partnerId);
-  writer.writeString(offsets[13], object.partnerName);
-  writer.writeString(offsets[14], object.partnerPhone);
-  writer.writeLong(offsets[15], object.personId);
-  writer.writeString(offsets[16], object.personName);
-  writer.writeString(offsets[17], object.priority);
-  writer.writeBool(offsets[18], object.requireSignature);
-  writer.writeLong(offsets[19], object.routeId);
-  writer.writeLong(offsets[20], object.routeSequence);
-  writer.writeString(offsets[21], object.routeState);
-  writer.writeDateTime(offsets[22], object.scheduledDateEnd);
-  writer.writeDateTime(offsets[23], object.scheduledDateStart);
-  writer.writeString(offsets[24], object.stage.name);
-  writer.writeLong(offsets[25], object.stageId);
-  writer.writeString(offsets[26], object.stageName);
-  writer.writeLong(offsets[27], object.warehouseId);
+  writer.writeBool(offsets[5], object.isRecurringInstance);
+  writer.writeBool(offsets[6], object.isSkipped);
+  writer.writeDateTime(offsets[7], object.lastSyncAt);
+  writer.writeString(offsets[8], object.locationAddress);
+  writer.writeDouble(offsets[9], object.locationLat);
+  writer.writeDouble(offsets[10], object.locationLng);
+  writer.writeString(offsets[11], object.locationName);
+  writer.writeString(offsets[12], object.name);
+  writer.writeLong(offsets[13], object.odooId);
+  writer.writeLong(offsets[14], object.partnerId);
+  writer.writeString(offsets[15], object.partnerName);
+  writer.writeString(offsets[16], object.partnerPhone);
+  writer.writeLong(offsets[17], object.personId);
+  writer.writeString(offsets[18], object.personName);
+  writer.writeString(offsets[19], object.priority);
+  writer.writeLong(offsets[20], object.recurringId);
+  writer.writeBool(offsets[21], object.requireSignature);
+  writer.writeLong(offsets[22], object.routeId);
+  writer.writeLong(offsets[23], object.routeSequence);
+  writer.writeString(offsets[24], object.routeState);
+  writer.writeDateTime(offsets[25], object.scheduledDateEnd);
+  writer.writeDateTime(offsets[26], object.scheduledDateStart);
+  writer.writeString(offsets[27], object.stage.name);
+  writer.writeLong(offsets[28], object.stageId);
+  writer.writeString(offsets[29], object.stageName);
+  writer.writeLong(offsets[30], object.warehouseId);
 }
 
 FsmOrder _fsmOrderDeserialize(
@@ -296,31 +314,34 @@ FsmOrder _fsmOrderDeserialize(
   object.id = id;
   object.inventoryLocationId = reader.readLongOrNull(offsets[3]);
   object.isPendingSync = reader.readBool(offsets[4]);
-  object.lastSyncAt = reader.readDateTime(offsets[5]);
-  object.locationAddress = reader.readStringOrNull(offsets[6]);
-  object.locationLat = reader.readDoubleOrNull(offsets[7]);
-  object.locationLng = reader.readDoubleOrNull(offsets[8]);
-  object.locationName = reader.readStringOrNull(offsets[9]);
-  object.name = reader.readString(offsets[10]);
-  object.odooId = reader.readLong(offsets[11]);
-  object.partnerId = reader.readLongOrNull(offsets[12]);
-  object.partnerName = reader.readStringOrNull(offsets[13]);
-  object.partnerPhone = reader.readStringOrNull(offsets[14]);
-  object.personId = reader.readLongOrNull(offsets[15]);
-  object.personName = reader.readStringOrNull(offsets[16]);
-  object.priority = reader.readStringOrNull(offsets[17]);
-  object.requireSignature = reader.readBool(offsets[18]);
-  object.routeId = reader.readLongOrNull(offsets[19]);
-  object.routeSequence = reader.readLongOrNull(offsets[20]);
-  object.routeState = reader.readStringOrNull(offsets[21]);
-  object.scheduledDateEnd = reader.readDateTimeOrNull(offsets[22]);
-  object.scheduledDateStart = reader.readDateTimeOrNull(offsets[23]);
+  object.isRecurringInstance = reader.readBool(offsets[5]);
+  object.isSkipped = reader.readBool(offsets[6]);
+  object.lastSyncAt = reader.readDateTime(offsets[7]);
+  object.locationAddress = reader.readStringOrNull(offsets[8]);
+  object.locationLat = reader.readDoubleOrNull(offsets[9]);
+  object.locationLng = reader.readDoubleOrNull(offsets[10]);
+  object.locationName = reader.readStringOrNull(offsets[11]);
+  object.name = reader.readString(offsets[12]);
+  object.odooId = reader.readLong(offsets[13]);
+  object.partnerId = reader.readLongOrNull(offsets[14]);
+  object.partnerName = reader.readStringOrNull(offsets[15]);
+  object.partnerPhone = reader.readStringOrNull(offsets[16]);
+  object.personId = reader.readLongOrNull(offsets[17]);
+  object.personName = reader.readStringOrNull(offsets[18]);
+  object.priority = reader.readStringOrNull(offsets[19]);
+  object.recurringId = reader.readLongOrNull(offsets[20]);
+  object.requireSignature = reader.readBool(offsets[21]);
+  object.routeId = reader.readLongOrNull(offsets[22]);
+  object.routeSequence = reader.readLongOrNull(offsets[23]);
+  object.routeState = reader.readStringOrNull(offsets[24]);
+  object.scheduledDateEnd = reader.readDateTimeOrNull(offsets[25]);
+  object.scheduledDateStart = reader.readDateTimeOrNull(offsets[26]);
   object.stage =
-      _FsmOrderstageValueEnumMap[reader.readStringOrNull(offsets[24])] ??
+      _FsmOrderstageValueEnumMap[reader.readStringOrNull(offsets[27])] ??
           FsmOrderStage.draft;
-  object.stageId = reader.readLong(offsets[25]);
-  object.stageName = reader.readString(offsets[26]);
-  object.warehouseId = reader.readLongOrNull(offsets[27]);
+  object.stageId = reader.readLong(offsets[28]);
+  object.stageName = reader.readString(offsets[29]);
+  object.warehouseId = reader.readLongOrNull(offsets[30]);
   return object;
 }
 
@@ -342,51 +363,57 @@ P _fsmOrderDeserializeProp<P>(
     case 4:
       return (reader.readBool(offset)) as P;
     case 5:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 6:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 7:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 8:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 10:
-      return (reader.readString(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 11:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 13:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 14:
-      return (reader.readStringOrNull(offset)) as P;
-    case 15:
       return (reader.readLongOrNull(offset)) as P;
+    case 15:
+      return (reader.readStringOrNull(offset)) as P;
     case 16:
       return (reader.readStringOrNull(offset)) as P;
     case 17:
-      return (reader.readStringOrNull(offset)) as P;
-    case 18:
-      return (reader.readBool(offset)) as P;
-    case 19:
       return (reader.readLongOrNull(offset)) as P;
+    case 18:
+      return (reader.readStringOrNull(offset)) as P;
+    case 19:
+      return (reader.readStringOrNull(offset)) as P;
     case 20:
       return (reader.readLongOrNull(offset)) as P;
     case 21:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 22:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 23:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 24:
+      return (reader.readStringOrNull(offset)) as P;
+    case 25:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 26:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 27:
       return (_FsmOrderstageValueEnumMap[reader.readStringOrNull(offset)] ??
           FsmOrderStage.draft) as P;
-    case 25:
+    case 28:
       return (reader.readLong(offset)) as P;
-    case 26:
+    case 29:
       return (reader.readString(offset)) as P;
-    case 27:
+    case 30:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1065,6 +1092,26 @@ extension FsmOrderQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isPendingSync',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      isRecurringInstanceEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isRecurringInstance',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> isSkippedEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isSkipped',
         value: value,
       ));
     });
@@ -2503,6 +2550,77 @@ extension FsmOrderQueryFilter
     });
   }
 
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> recurringIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'recurringId',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      recurringIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'recurringId',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> recurringIdEqualTo(
+      int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'recurringId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      recurringIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'recurringId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> recurringIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'recurringId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> recurringIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'recurringId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
       requireSignatureEqualTo(bool value) {
     return QueryBuilder.apply(this, (query) {
@@ -3404,6 +3522,31 @@ extension FsmOrderQuerySortBy on QueryBuilder<FsmOrder, FsmOrder, QSortBy> {
     });
   }
 
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByIsRecurringInstance() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isRecurringInstance', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy>
+      sortByIsRecurringInstanceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isRecurringInstance', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByIsSkipped() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSkipped', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByIsSkippedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSkipped', Sort.desc);
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByLastSyncAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastSyncAt', Sort.asc);
@@ -3557,6 +3700,18 @@ extension FsmOrderQuerySortBy on QueryBuilder<FsmOrder, FsmOrder, QSortBy> {
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByPriorityDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'priority', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByRecurringId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'recurringId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByRecurringIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'recurringId', Sort.desc);
     });
   }
 
@@ -3757,6 +3912,31 @@ extension FsmOrderQuerySortThenBy
     });
   }
 
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByIsRecurringInstance() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isRecurringInstance', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy>
+      thenByIsRecurringInstanceDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isRecurringInstance', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByIsSkipped() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSkipped', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByIsSkippedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSkipped', Sort.desc);
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByLastSyncAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'lastSyncAt', Sort.asc);
@@ -3910,6 +4090,18 @@ extension FsmOrderQuerySortThenBy
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByPriorityDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'priority', Sort.desc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByRecurringId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'recurringId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByRecurringIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'recurringId', Sort.desc);
     });
   }
 
@@ -4068,6 +4260,18 @@ extension FsmOrderQueryWhereDistinct
     });
   }
 
+  QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByIsRecurringInstance() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isRecurringInstance');
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByIsSkipped() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isSkipped');
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByLastSyncAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'lastSyncAt');
@@ -4151,6 +4355,12 @@ extension FsmOrderQueryWhereDistinct
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'priority', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByRecurringId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'recurringId');
     });
   }
 
@@ -4256,6 +4466,18 @@ extension FsmOrderQueryProperty
     });
   }
 
+  QueryBuilder<FsmOrder, bool, QQueryOperations> isRecurringInstanceProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isRecurringInstance');
+    });
+  }
+
+  QueryBuilder<FsmOrder, bool, QQueryOperations> isSkippedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isSkipped');
+    });
+  }
+
   QueryBuilder<FsmOrder, DateTime, QQueryOperations> lastSyncAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'lastSyncAt');
@@ -4331,6 +4553,12 @@ extension FsmOrderQueryProperty
   QueryBuilder<FsmOrder, String?, QQueryOperations> priorityProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'priority');
+    });
+  }
+
+  QueryBuilder<FsmOrder, int?, QQueryOperations> recurringIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'recurringId');
     });
   }
 
