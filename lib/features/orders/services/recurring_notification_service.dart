@@ -155,7 +155,8 @@ class RecurringNotificationService {
   }
 
   void _cancelTimer(int orderOdooId) {
-    _pendingTimers.remove(orderOdooId)?.cancel();
+    _pendingTimers.remove(orderOdooId * 2)?.cancel();
+    _pendingTimers.remove(orderOdooId * 2 + 1)?.cancel();
   }
 
   Future<void> _scheduleNotification({
