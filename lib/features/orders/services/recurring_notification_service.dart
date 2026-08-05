@@ -101,7 +101,7 @@ class RecurringNotificationService {
     final oneHourBefore = scheduledStart.subtract(const Duration(hours: 1));
 
     if (oneDayBefore.isAfter(now)) {
-      _scheduleNotification(
+      await _scheduleNotification(
         id: order.odooId * 2,
         title: 'Nhắc nhở đơn định kỳ',
         body: 'Đơn "${order.name}" sẽ bắt đầu vào ngày ${_formatDate(scheduledStart)}',
@@ -111,7 +111,7 @@ class RecurringNotificationService {
     }
 
     if (oneHourBefore.isAfter(now)) {
-      _scheduleNotification(
+      await _scheduleNotification(
         id: order.odooId * 2 + 1,
         title: 'Sắp đến giờ',
         body: 'Đơn "${order.name}" bắt đầu sau 1 giờ',
@@ -158,13 +158,13 @@ class RecurringNotificationService {
     _pendingTimers.remove(orderOdooId)?.cancel();
   }
 
-  void _scheduleNotification({
+  Future<void> _scheduleNotification({
     required int id,
     required String title,
     required String body,
     required DateTime scheduledDate,
     required String payload,
-  }) {
+  }) async {
     // Skip zonedSchedule on Linux - it's not supported
     if (Platform.isLinux) {
       logger.w('Skipping zonedSchedule on Linux (unsupported). Notification $id will not fire in background.');
@@ -177,39 +177,48 @@ class RecurringNotificationService {
 
     if (diff.inMinutes <= 5 && diff.inMinutes > 0) {
       // Use a short timer
-      final timer = Timer(diff, () {
-        _showNotification(id, title, body, payload);
-        _pendingTimers.remove(id);
+      final timer = Timer(diff, () async {
+        try {
+          await _showNotification(id, title, body, payload);
+        } catch (e, stackTrace) {
+          logger.e('Failed to show notification $id', error: e, stackTrace: stackTrace);
+        } finally {
+          _pendingTimers.remove(id);
+        }
       });
       _pendingTimers[id] = timer;
     } else {
       // Use zoned schedule for future dates
       final tz.TZDateTime tzScheduled = tz.TZDateTime.from(scheduledDate, tz.local);
-      _notifications.zonedSchedule(
-        id,
-        title,
-        body,
-        tzScheduled,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'recurring_orders',
-            'Recurring Orders',
-            channelDescription: 'Reminders for recurring service orders',
-            importance: Importance.high,
-            priority: Priority.high,
-            icon: '@mipmap/ic_launcher',
+      try {
+        await _notifications.zonedSchedule(
+          id,
+          title,
+          body,
+          tzScheduled,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'recurring_orders',
+              'Recurring Orders',
+              channelDescription: 'Reminders for recurring service orders',
+              importance: Importance.high,
+              priority: Priority.high,
+              icon: '@mipmap/ic_launcher',
+            ),
+            iOS: DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
           ),
-          iOS: DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          ),
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        payload: payload,
-      );
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+          payload: payload,
+        );
+      } catch (e, stackTrace) {
+        logger.e('Failed to schedule notification $id via zonedSchedule', error: e, stackTrace: stackTrace);
+      }
     }
   }
 

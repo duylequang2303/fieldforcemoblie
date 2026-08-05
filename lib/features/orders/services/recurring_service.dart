@@ -113,14 +113,22 @@ class RecurringService {
 
       logger.i(
           'RecurringService: Synced ${recurringRules.length} recurring rules and ${frequencySets.length} frequency sets.');
-    } on OdooAuthException {
+    } on OdooConnectionException catch (e, stackTrace) {
+      logger.e('RecurringService.fetchRecurringRules: Connection error',
+          error: e, stackTrace: stackTrace);
       rethrow;
-    } on OdooConnectionException {
+    } on OdooAuthException catch (e, stackTrace) {
+      logger.e('RecurringService.fetchRecurringRules: Auth error',
+          error: e, stackTrace: stackTrace);
       rethrow;
-    } catch (e, stackTrace) {
-      logger.e('RecurringService.fetchRecurringRules: Failed to fetch recurring rules',
+    } on OdooApiException catch (e, stackTrace) {
+      logger.e('RecurringService.fetchRecurringRules: Odoo API error',
           error: e, stackTrace: stackTrace);
       throw OdooBusinessException('Lỗi tải cấu hình lặp định kỳ từ Odoo: $e');
+    } catch (e, stackTrace) {
+      logger.e('RecurringService.fetchRecurringRules: Unexpected error',
+          error: e, stackTrace: stackTrace);
+      throw OdooBusinessException('Lỗi không xác định khi tải cấu hình lặp định kỳ: $e');
     }
   }
 
@@ -197,8 +205,11 @@ class RecurringService {
       if (count > 0) {
         logger.i('RecurringService: Generated $count offline instances.');
       }
+    } on IsarError catch (e, stackTrace) {
+      logger.e('RecurringService.generateOfflineInstances: Isar error',
+          error: e, stackTrace: stackTrace);
     } catch (e, stackTrace) {
-      logger.e('RecurringService.generateOfflineInstances: Failed to generate instances',
+      logger.e('RecurringService.generateOfflineInstances: Unexpected error',
           error: e, stackTrace: stackTrace);
     }
   }
@@ -260,8 +271,6 @@ class RecurringService {
 
       // 3. Tạo instance local mới
       final scheduledStart = rule.nextDate!;
-      // Duration mặc định 2h nếu template không có duration
-      const durationHours = 2.0;
       final scheduledEnd = scheduledStart.add(const Duration(minutes: 120));
       
       // Tạo odooId âm duy nhất dựa trên micro giây để tránh trùng lặp unique index
@@ -317,8 +326,12 @@ class RecurringService {
       });
 
       logger.i('Generated local recurring order instance: ${localOrder.name} for date $scheduledStart');
+    } on IsarError catch (e, stackTrace) {
+      logger.e('RecurringService._generateLocalInstance: Isar error', error: e, stackTrace: stackTrace);
+    } on OdooApiException catch (e, stackTrace) {
+      logger.e('RecurringService._generateLocalInstance: Odoo API error', error: e, stackTrace: stackTrace);
     } catch (e, stackTrace) {
-      logger.e('RecurringService._generateLocalInstance: Failed', error: e, stackTrace: stackTrace);
+      logger.e('RecurringService._generateLocalInstance: Unexpected error', error: e, stackTrace: stackTrace);
     }
   }
 
@@ -375,26 +388,34 @@ class RecurringService {
     
     final now = DateTime.now();
 
-    await _isar.db.writeTxn(() async {
-      // Đánh dấu order đã được xử lý để tránh double-count khi retry
-      completed.isRecurringProcessed = true;
-      await _isar.db.fsmOrders.put(completed);
+    try {
+      await _isar.db.writeTxn(() async {
+        // Đánh dấu order đã được xử lý để tránh double-count khi retry
+        completed.isRecurringProcessed = true;
+        await _isar.db.fsmOrders.put(completed);
 
-      rule.completedCount++;
-      
-      if (rule.ruleType == 'completion' && rule.completionInterval > 0) {
-        final completionDate = completed.dateEnd ?? now;
-        final nextDate = DateTime(
-          completionDate.year,
-          completionDate.month,
-          completionDate.day + rule.completionInterval,
-          completed.scheduledDateStart?.hour ?? 9,
-          completed.scheduledDateStart?.minute ?? 0,
-        );
-        rule.nextDate = nextDate;
-      }
-      await _isar.db.fsmRecurrings.put(rule);
-    });
+        rule.completedCount++;
+        
+        if (rule.ruleType == 'completion' && rule.completionInterval > 0) {
+          final completionDate = completed.dateEnd ?? now;
+          final nextDate = DateTime(
+            completionDate.year,
+            completionDate.month,
+            completionDate.day + rule.completionInterval,
+            completed.scheduledDateStart?.hour ?? 9,
+            completed.scheduledDateStart?.minute ?? 0,
+          );
+          rule.nextDate = nextDate;
+        }
+        await _isar.db.fsmRecurrings.put(rule);
+      });
+    } on IsarError catch (e, stackTrace) {
+      logger.e('RecurringService.onOccurrenceCompleted: Isar error', error: e, stackTrace: stackTrace);
+      return;
+    } catch (e, stackTrace) {
+      logger.e('RecurringService.onOccurrenceCompleted: Unexpected error', error: e, stackTrace: stackTrace);
+      return;
+    }
 
     if (rule.ruleType == 'completion' && rule.completionInterval > 0) {
       logger.i('Completion recurrence rule target met: Scheduled next instance on ${rule.nextDate}');
@@ -421,29 +442,37 @@ class RecurringService {
 
     if (rule == null || !rule.isActive) return;
 
-    await _isar.db.writeTxn(() async {
-      order.isSkipped = true;
-      order.isRecurringProcessed = true;
-      order.stage = FsmOrderStage.cancelled;
-      order.stageName = 'Cancelled';
-      order.isPendingSync = true;
-      await _isar.db.fsmOrders.put(order);
+    try {
+      await _isar.db.writeTxn(() async {
+        order.isSkipped = true;
+        order.isRecurringProcessed = true;
+        order.stage = FsmOrderStage.cancelled;
+        order.stageName = 'Cancelled';
+        order.isPendingSync = true;
+        await _isar.db.fsmOrders.put(order);
 
-      rule.skippedCount++;
+        rule.skippedCount++;
 
-      if (rule.ruleType == 'completion' && rule.completionInterval > 0) {
-        final today = DateTime.now();
-        final nextDate = DateTime(
-          today.year,
-          today.month,
-          today.day + rule.completionInterval,
-          order.scheduledDateStart?.hour ?? 9,
-          order.scheduledDateStart?.minute ?? 0,
-        );
-        rule.nextDate = nextDate;
-      }
-      await _isar.db.fsmRecurrings.put(rule);
-    });
+        if (rule.ruleType == 'completion' && rule.completionInterval > 0) {
+          final today = DateTime.now();
+          final nextDate = DateTime(
+            today.year,
+            today.month,
+            today.day + rule.completionInterval,
+            order.scheduledDateStart?.hour ?? 9,
+            order.scheduledDateStart?.minute ?? 0,
+          );
+          rule.nextDate = nextDate;
+        }
+        await _isar.db.fsmRecurrings.put(rule);
+      });
+    } on IsarError catch (e, stackTrace) {
+      logger.e('RecurringService.skipOccurrence: Isar error', error: e, stackTrace: stackTrace);
+      return;
+    } catch (e, stackTrace) {
+      logger.e('RecurringService.skipOccurrence: Unexpected error', error: e, stackTrace: stackTrace);
+      return;
+    }
 
     logger.i('Skipped occurrence for order ${order.odooId}');
 
@@ -464,24 +493,32 @@ class RecurringService {
         
     if (rule == null) return;
     
-    await _isar.db.writeTxn(() async {
-      rule.isActive = false;
-      rule.nextDate = null;
-      rule.isPendingSync = true; // Mark for sync to Odoo
-      await _isar.db.fsmRecurrings.put(rule);
-      
-      // Xoá hoặc huỷ các draft local-only instances tương lai chưa bắt đầu
-      final futureDrafts = await _isar.db.fsmOrders
-          .filter()
-          .recurringIdEqualTo(recurringId)
-          .odooIdLessThan(0) // Local draft
-          .stageEqualTo(FsmOrderStage.draft)
-          .findAll();
-          
-      for (final draft in futureDrafts) {
-        await _isar.db.fsmOrders.delete(draft.id);
-      }
-    });
+    try {
+      await _isar.db.writeTxn(() async {
+        rule.isActive = false;
+        rule.nextDate = null;
+        rule.isPendingSync = true; // Mark for sync to Odoo
+        await _isar.db.fsmRecurrings.put(rule);
+        
+        // Xoá hoặc huỷ các draft local-only instances tương lai chưa bắt đầu
+        final futureDrafts = await _isar.db.fsmOrders
+            .filter()
+            .recurringIdEqualTo(recurringId)
+            .odooIdLessThan(0) // Local draft
+            .stageEqualTo(FsmOrderStage.draft)
+            .findAll();
+            
+        for (final draft in futureDrafts) {
+          await _isar.db.fsmOrders.delete(draft.id);
+        }
+      });
+    } on IsarError catch (e, stackTrace) {
+      logger.e('RecurringService.stopRecurringSeries: Isar error', error: e, stackTrace: stackTrace);
+      return;
+    } catch (e, stackTrace) {
+      logger.e('RecurringService.stopRecurringSeries: Unexpected error', error: e, stackTrace: stackTrace);
+      return;
+    }
     
     logger.i('Stopped recurring series $recurringId and cleared future local drafts.');
   }
