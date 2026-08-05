@@ -10,7 +10,6 @@ import '../../../shared/widgets/offline_banner.dart';
 import '../models/fsm_order.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/recurring_badge.dart';
-import '../services/recurring_service.dart';
 import '../../route_map/providers/route_provider.dart';
 import '../../work_order/providers/work_order_provider.dart';
 import '../widgets/order_status_chip.dart';
@@ -786,7 +785,7 @@ class _ActionTile extends StatelessWidget {
     required this.icon,
     required this.label,
     this.subtitle,
-    required this.onTap,
+    this.onTap,
     this.color,
     this.highlight = false,
   });
@@ -794,7 +793,7 @@ class _ActionTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final String? subtitle;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final Color? color;
   final bool highlight;
 
