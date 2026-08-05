@@ -125,43 +125,21 @@
   - Xác nhận App không có form Tạo/Sửa order của Worker (chỉ fetch phân công) -> Task UI Tạo lặp không áp dụng.
   - Test compile: 0 warnings, 0 check errors.
 - **KẾT LUẬN CP3:** ✅ HOÀN THÀNH — sẵn sàng chuyển sang CP4 (Advanced Features)
-- **Bắt đầu CP1:** Đọc `02_PRE_REQS.md` + `03_DATA_MODEL.md` để hiểu requirements
-- **Thiết kế data model:** Quyết định theo hướng **Odoo-first** (map trực tiếp với backend schema) thay vì tự định nghĩa logic mới
-- **Tạo 2 Isar models mới:**
-  - `FsmFrequencySet` (`lib/features/orders/models/fsm_frequency_set.dart`) — 75 dòng, enum `FrequencyIntervalType`, parse từ Odoo JSON
-  - `FsmRecurring` (`lib/features/orders/models/fsm_recurring.dart`) — 90 dòng, link `frequencySetId`, tracking `nextDate`/`generatedCount`
-- **Cập nhật `FsmOrder`:** Thêm 3 fields (`recurringId`, `isRecurringInstance`, `isSkipped`) + parse từ JSON
-- **Cập nhật Isar schema:** Thêm 2 imports + 2 schemas vào `main.dart`
-- **Generate code:** `dart run build_runner build` — thành công, 20 outputs, 0 errors
-- **Subagent issue:** User báo subagent chạy chậm (task verify `fsm.frequency.set` via Odoo API) → cancel, làm trực tiếp thiết kế model theo schema PostgreSQL đã biết từ CP0
-- **KẾT QUẢ:** CP1 data model hoàn thành 90% (còn unit tests optional)
+
+### Session 2026-08-05 11:20-11:45 UTC (Giải quyết CodeRabbit PR #30 comments)
+- **Tập trung sửa các vấn đề được CodeRabbit chỉ ra trên PR #30:**
+  - **Odoo Custom Fields Rejection:** Thêm helper `_callSearchRead` trong `OrdersService`. Nếu Odoo API của server cũ hơn không hỗ trợ `fsm_recurring_id` hoặc `is_skipped` trong `_fields` và trả về `ValueError`, hàm này tự động bắt sự kiện, loại bỏ 2 trường tùy chỉnh này ra khỏi danh sách fields và thực hiện lệnh gọi lại an toàn.
+  - **Skipped State Conflict Resolution:** Hỗ trợ trường hợp order lặp ngoại tuyến đã bị Worker skip (`isSkipped = true`). Cập nhật logic resolution: xem `localOnly.isSkipped` tương tự như một progressed order, giữ lại record cục bộ chứa cờ skip thay vì overwrite bằng record draft sạch từ Odoo. Đồng thời, thay thế `removeWhere` bằng việc chèn cập nhật trực tiếp `localOnly` vào danh sách `cleanOrders` trả về, duy trì tính đúng đắn cho state UI và các hàm gọi tiếp theo.
+  - **Idempotency: Fail-Closed & Atomic:** Thiết kế lại cơ chế idempotency lookup khi tạo order định kỳ trực tuyến (`_createOrderOnOdoo`). Ràng buộc việc tạo order: nếu lookup kiểm tra trùng lặp trên Odoo gặp lỗi kết nối/xác thực/logic nghiệp vụ, hàm sẽ dừng/rethrow thay vì bỏ qua lỗi để tiến hành tạo mới gây duplicate (fail-closed).
+  - **Field Rejection Tracking:** Định nghĩa struct `OdooCreateResult` để lưu kết quả tạo thành công kèm cờ `isSkippedRejected` nếu server từ chối lưu cờ skip. Khi syncPending cập nhật, nếu `isSkippedRejected` bị kích hoạt, order sẽ duy trì thuộc tính `isPendingSync = true` để lưu vết và thử lại.
+  - **Main / Imports Clean-up:** Sửa compilation error trong `lib/main.dart` do thiếu import `OdooApiException` và `logger`.
+  - Chạy `flutter test` thành công (4/4 tests passed). Chạy analyze sạch lỗi compiler. Đã push commit cập nhật lên PR #30.
 
 ---
 
 ## ⚠️ Lưu ý quan trọng cho phiên sau
 
 1. **Đừng research lại toàn bộ** - đọc checkpoint files là đủ
-2. **Đừng tin subagent báo bug 100%** - verify trực tiếp code (đã chứng minh ở CP0: service_type không có bug, 2 service files không tồn tại)
-3. **CP1 ĐÃ HOÀN THÀNH 90%** (2026-08-05 09:50 UTC) → Files đã tạo:
-   - `lib/features/orders/models/fsm_frequency_set.dart`
-   - `lib/features/orders/models/fsm_recurring.dart`
-   - Updated: `lib/features/orders/models/fsm_order.dart` (+3 fields)
-   - Updated: `lib/main.dart` (+2 schemas)
-   - Generated: `.g.dart` files via build_runner
-4. **Thiết kế đã implement:** **Odoo-first approach** — map trực tiếp với backend schema (`fsm.recurring` + `fsm.frequency.set`), Odoo là source of truth.
-5. **CP1 & CP2 ĐÃ HOÀN THÀNH** (2026-08-05 10:45 UTC).
-6. **Files đã tạo/sửa mới:**
-   - `lib/features/orders/models/fsm_frequency_set.dart`
-   - `lib/features/orders/models/fsm_recurring.dart`
-   - `lib/features/orders/services/recurring_service.dart`
-   - `lib/features/orders/widgets/recurring_badge.dart`
-   - `test/features/orders/services/recurring_service_test.dart`
-   - Sửa: `lib/features/orders/models/fsm_order.dart`
-   - Sửa: `lib/features/orders/services/orders_service.dart`
-   - Sửa: `lib/features/orders/widgets/order_card.dart`
-   - Sửa: `lib/features/orders/pages/order_detail_page.dart`
-   - Sửa: `lib/screens/work_order_detail_screen.dart`
-   - Sửa: `lib/features/schedule/pages/schedule_detail_page.dart`
-   - Sửa: `lib/main.dart`
-   - Sửa: `pubspec.yaml`
-7. **Việc tiếp theo:** Bắt đầu CP4 (Advanced Features) — đọc `06_ADVANCED_FEATURES.md`.
+2. **Đừng tin subagent báo bug 100%** - verify trực tiếp code
+3. **CP1, CP2, CP3 ĐÃ HOÀN THÀNH** - PR #30 đang chờ review/sát nhập.
+4. **Bắt đầu CP4 (Advanced Features)** - đọc `06_ADVANCED_FEATURES.md`.

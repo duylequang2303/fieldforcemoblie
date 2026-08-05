@@ -154,21 +154,26 @@ class OrdersService {
         kwargs: {'fields': _fields, 'order': 'scheduled_date_start asc'},
       ) as List<dynamic>;
     } on OdooBusinessException catch (be) {
-      if (be.message.contains('fsm_recurring_id') ||
-          be.message.contains('is_skipped') ||
-          be.message.contains('ValueError')) {
-        logger.w('Odoo search_read rejected custom fields, retrying without them...', error: be);
-        final reducedFields = List<String>.from(_fields)
-          ..remove('fsm_recurring_id')
-          ..remove('is_skipped');
-        return await _odoo.callKw(
-          model: _model,
-          method: 'search_read',
-          args: [domain],
-          kwargs: {'fields': reducedFields, 'order': 'scheduled_date_start asc'},
-        ) as List<dynamic>;
+      final msg = be.message;
+      final List<String> fieldsToRemove = [];
+      if (msg.contains('fsm_recurring_id')) {
+        fieldsToRemove.add('fsm_recurring_id');
       }
-      rethrow;
+      if (msg.contains('is_skipped')) {
+        fieldsToRemove.add('is_skipped');
+      }
+      // Generic ValueError without specific field -> rethrow
+      if (fieldsToRemove.isEmpty) {
+        rethrow;
+      }
+      logger.w('Odoo search_read rejected custom fields: ${fieldsToRemove.join(', ')}, retrying without them...', error: be);
+      final reducedFields = List<String>.from(_fields)..removeWhere(fieldsToRemove.contains);
+      return await _odoo.callKw(
+        model: _model,
+        method: 'search_read',
+        args: [domain],
+        kwargs: {'fields': reducedFields, 'order': 'scheduled_date_start asc'},
+      ) as List<dynamic>;
     }
   }
 
