@@ -93,7 +93,10 @@ class RecurringService {
               existing.nextDate = rule.nextDate;
             }
             // NEVER overwrite local generatedCount, completedCount, skippedCount
-            existing.isActive = rule.isActive;
+            // Stop recurring series sync check: preserve local false isActive state if pending sync
+            if (!existing.isPendingSync) {
+              existing.isActive = rule.isActive;
+            }
             existing.lastSyncAt = DateTime.now();
             await _isar.db.fsmRecurrings.put(existing);
           } else {
@@ -258,8 +261,8 @@ class RecurringService {
       // 3. Tạo instance local mới
       final scheduledStart = rule.nextDate!;
       // Duration mặc định 2h nếu template không có duration
-      final durationHours = 2.0; 
-      final scheduledEnd = scheduledStart.add(Duration(minutes: (durationHours * 60).round()));
+      const durationHours = 2.0;
+      final scheduledEnd = scheduledStart.add(const Duration(minutes: 120));
       
       // Tạo odooId âm duy nhất dựa trên micro giây để tránh trùng lặp unique index
       final tempOdooId = -DateTime.now().microsecondsSinceEpoch;
@@ -352,9 +355,15 @@ class RecurringService {
   }
 
   /// Khi một occurrence hoàn thành (định kỳ theo completion)
-  /// Đảm bảo tính Idempotency: Kiểm tra nếu order chưa từng ở trạng thái Done (chưa được đánh dấu hoành thành trước đó).
+  /// Đảm bảo tính Idempotency: Kiểm tra nếu order chưa từng được xử lý chu kỳ lặp.
   Future<void> onOccurrenceCompleted(FsmOrder completed) async {
     if (completed.recurringId == null) return;
+    
+    // Tránh double-count khi sync retry
+    if (completed.isRecurringProcessed) {
+      logger.i('Order ${completed.odooId} recurrence is already processed. Skipping duplicate completion handling.');
+      return;
+    }
     
     // Đọc recurring rule
     final rule = await _isar.db.fsmRecurrings
@@ -363,25 +372,14 @@ class RecurringService {
         .findFirst();
 
     if (rule == null || !rule.isActive) return;
-
-    // Tránh double-count khi sync retry: Kiểm tra xem order này trên local đã được sync hoàn thành chưa 
-    // Chúng ta có thể dựa vào cờ trạng thái hoặc check xem dateEnd đã được điền.
-    // Để an toàn, chúng ta kiểm tra xem order này đã hoàn tất/done ở local và đã được xử lý chưa.
-    // Cách tốt nhất là lưu vết hoặc kiểm tra Isar local list để chắc chắn
-    // hoặc tạm thời dựa vào metadata: nếu completed.dateEnd trước đó đã có -> có thể đã xử lý.
-    // Một phương án là thêm cờ local (VD: isSkipped / stage)
-    // Hoặc dựa trên transaction đơn lẻ kết hợp kiểm tra:
-    // Đếm số lượng done orders của rule này trên local để check
-    // Tuy nhiên cách dễ nhất là kiểm tra xem rule có rule.nextDate đã được tính tiếp chưa 
-    // (nếu rule.ruleType == 'completion' và rule.nextDate đã có giá trị trong tương lai rồi thì bỏ qua).
     
     final now = DateTime.now();
 
     await _isar.db.writeTxn(() async {
-      // 1. Tận dụng transaction đơn để update stats chính xác
-      // Kiểm tra xem đã xử lý hoàn thành cho order này chưa
-      // Ở đây ta có thể lưu một map ID đã xử lý hoặc kiểm tra order stage
-      // để tránh double completedCount
+      // Đánh dấu order đã được xử lý để tránh double-count khi retry
+      completed.isRecurringProcessed = true;
+      await _isar.db.fsmOrders.put(completed);
+
       rule.completedCount++;
       
       if (rule.ruleType == 'completion' && rule.completionInterval > 0) {
@@ -409,6 +407,12 @@ class RecurringService {
   Future<void> skipOccurrence(FsmOrder order) async {
     if (order.recurringId == null) return;
 
+    // Tránh double-skip khi retry
+    if (order.isRecurringProcessed || order.isSkipped) {
+      logger.i('Order ${order.odooId} is already marked as skipped or processed. Skipping retry skipOccurrence.');
+      return;
+    }
+
     // Đọc và check rule trước
     final rule = await _isar.db.fsmRecurrings
         .filter()
@@ -417,14 +421,9 @@ class RecurringService {
 
     if (rule == null || !rule.isActive) return;
 
-    // Tránh double-skip khi retry
-    if (order.isSkipped) {
-      logger.i('Order ${order.odooId} is already marked as skipped. Skipping retry skipOccurrence.');
-      return;
-    }
-
     await _isar.db.writeTxn(() async {
       order.isSkipped = true;
+      order.isRecurringProcessed = true;
       order.stage = FsmOrderStage.cancelled;
       order.stageName = 'Cancelled';
       order.isPendingSync = true;
