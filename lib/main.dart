@@ -6,6 +6,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'core/database/isar_service.dart';
 import 'core/locale/locale_service.dart';
 import 'core/database/sync_manager.dart';
+import 'core/api/api_exception.dart';
+import 'core/utils/logger.dart';
 // Isar schemas — import generated .g.dart files
 import 'features/auth/models/user_session.dart';
 import 'features/orders/models/fsm_order.dart';

@@ -5,6 +5,12 @@ import '../../../core/database/isar_service.dart';
 import '../../../core/utils/logger.dart';
 import '../models/fsm_order.dart';
 
+class OdooCreateResult {
+  final int id;
+  final bool isSkippedRejected;
+  OdooCreateResult(this.id, {this.isSkippedRejected = false});
+}
+
 /// Service giao tiếp với Odoo API cho fsm.order.
 /// Tất cả Odoo call đi qua đây, không gọi trực tiếp từ Provider hay Widget.
 class OrdersService {
@@ -49,6 +55,9 @@ class OrdersService {
     'color',
     'state_name',
     'todo',
+    // Recurring fields needed for conflict resolution
+    'fsm_recurring_id',
+    'is_skipped',
   ];
 
   static const _locationFields = [
@@ -135,6 +144,34 @@ class OrdersService {
     return null;
   }
 
+  /// Helper method để gọi search_read với fallback khi custom fields bị từ chối
+  Future<List<dynamic>> _callSearchRead(List<dynamic> domain) async {
+    try {
+      return await _odoo.callKw(
+        model: _model,
+        method: 'search_read',
+        args: [domain],
+        kwargs: {'fields': _fields, 'order': 'scheduled_date_start asc'},
+      ) as List<dynamic>;
+    } on OdooBusinessException catch (be) {
+      if (be.message.contains('fsm_recurring_id') ||
+          be.message.contains('is_skipped') ||
+          be.message.contains('ValueError')) {
+        logger.w('Odoo search_read rejected custom fields, retrying without them...', error: be);
+        final reducedFields = List<String>.from(_fields)
+          ..remove('fsm_recurring_id')
+          ..remove('is_skipped');
+        return await _odoo.callKw(
+          model: _model,
+          method: 'search_read',
+          args: [domain],
+          kwargs: {'fields': reducedFields, 'order': 'scheduled_date_start asc'},
+        ) as List<dynamic>;
+      }
+      rethrow;
+    }
+  }
+
   /// Lấy danh sách đơn dịch vụ được giao cho user đang đăng nhập.
   /// Fetch từ Odoo → lưu Isar → trả về list.
   Future<List<FsmOrder>> fetchMyOrders() async {
@@ -169,12 +206,7 @@ class OrdersService {
     // Fetch orders với domain chính
     logger.i(
         'OrdersService.fetchMyOrders: Fetching with domain: person_id.user_id = $userId');
-    final rawOrders = await _odoo.callKw(
-      model: _model,
-      method: 'search_read',
-      args: [domain],
-      kwargs: {'fields': _fields, 'order': 'scheduled_date_start asc'},
-    ) as List<dynamic>;
+    final rawOrders = await _callSearchRead(domain);
 
     // Nếu không có kết quả, thử fallback domains
     if (rawOrders.isEmpty) {
@@ -275,12 +307,7 @@ class OrdersService {
   /// Helper method để thử fetch orders với một domain khác.
   Future<List<FsmOrder>> _tryFetchOrders(List<dynamic> domain) async {
     try {
-      final rawOrders = await _odoo.callKw(
-        model: _model,
-        method: 'search_read',
-        args: [domain],
-        kwargs: {'fields': _fields, 'order': 'scheduled_date_start asc'},
-      ) as List<dynamic>;
+      final rawOrders = await _callSearchRead(domain);
 
       if (rawOrders.isEmpty) {
         return [];
@@ -561,22 +588,25 @@ class OrdersService {
 
     for (final order in pending) {
       try {
+        bool isSkippedRejected = false;
+
         // 1. Nếu đây là local-only order (do logic lặp sinh ra lúc offline, odooId < 0)
         // -> Cần gọi API create trên Odoo trước để lấy odooId thật.
         if (order.odooId < 0) {
-          final realId = await _createOrderOnOdoo(order);
-          if (realId == null) {
+          final createResult = await _createOrderOnOdoo(order);
+          if (createResult == null) {
             logger.w('OrdersService.syncPending: Skip processing local order ${order.id} due to failed Odoo creation');
             continue;
           }
+          isSkippedRejected = createResult.isSkippedRejected;
           
           // Cập nhật odooId thật vào Isar. Phải làm trong txn
           final oldOdooId = order.odooId;
           await _isar.db.writeTxn(() async {
-            order.odooId = realId;
+            order.odooId = createResult.id;
             await _isar.db.fsmOrders.put(order);
           });
-          logger.i('OrdersService.syncPending: Swapped local order odooId: $oldOdooId -> $realId');
+          logger.i('OrdersService.syncPending: Swapped local order odooId: $oldOdooId -> ${createResult.id}');
         }
 
         // Đơn đã completed offline → gọi action chuẩn của Odoo
@@ -593,7 +623,7 @@ class OrdersService {
           final data = <String, dynamic>{
             'stage_id': order.stageId,
           };
-          if (order.isSkipped) {
+          if (order.isSkipped && !isSkippedRejected) {
             data['is_skipped'] = true;
           }
           
@@ -610,6 +640,7 @@ class OrdersService {
             if (be.message.contains('is_skipped') || be.message.contains('ValueError')) {
               logger.w('Odoo reject is_skipped field, retrying without it...', error: be);
               data.remove('is_skipped');
+              isSkippedRejected = true;
               await _odoo.callKw(
                 model: _model,
                 method: 'write',
@@ -643,10 +674,14 @@ class OrdersService {
           );
         }
 
-        await _isar.db.writeTxn(() async {
-          order.isPendingSync = false;
-          await _isar.db.fsmOrders.put(order);
-        });
+        if (!isSkippedRejected) {
+          await _isar.db.writeTxn(() async {
+            order.isPendingSync = false;
+            await _isar.db.fsmOrders.put(order);
+          });
+        } else {
+          logger.w('OrdersService.syncPending: is_skipped was rejected/unsupported by Odoo. Retaining isPendingSync=true for order ${order.odooId}');
+        }
       } catch (e) {
         logger.w('OrdersService.syncPending: failed for order ${order.odooId}',
             error: e);
@@ -677,16 +712,19 @@ class OrdersService {
             .findFirst();
 
         if (localOnly != null) {
-          // Case 1: Thợ đã bắt đầu/hoàn thành tasks offline -> Giữ local changes, merge odooId
-          if (localOnly.stage != FsmOrderStage.draft || localOnly.dateStart != null) {
+          // Case 1: Thợ đã bắt đầu/hoàn thành/skip tasks offline -> Giữ local changes, merge odooId
+          if (localOnly.stage != FsmOrderStage.draft || localOnly.dateStart != null || localOnly.isSkipped) {
             logger.i(
                 'Conflict Resolution: Local order ${localOnly.id} has progress. Copying real odooId: ${odooOrder.odooId}');
             localOnly.odooId = odooOrder.odooId;
             localOnly.isPendingSync = true;
             await isar.fsmOrders.put(localOnly);
 
-            // Không over-write bằng dữ liệu stale từ server
-            cleanOrders.removeWhere((o) => o.odooId == odooOrder.odooId);
+            // Replace the server order with the local one in the returned collection
+            final index = cleanOrders.indexWhere((o) => o.odooId == odooOrder.odooId);
+            if (index != -1) {
+              cleanOrders[index] = localOnly;
+            }
           } else {
             // Case 2: Local order là clean (chưa làm gì) -> Odoo wins, delete local duplicate
             logger.i(
@@ -706,92 +744,89 @@ class OrdersService {
 
   /// Tạo một fsm.order thật trên Odoo từ local instance.
   /// Trả về odooId thật thu được từ Odoo server.
-  Future<int?> _createOrderOnOdoo(FsmOrder order) async {
+  Future<OdooCreateResult?> _createOrderOnOdoo(FsmOrder order) async {
+    // Chống trùng lặp đơn hàng (Idempotency): kiểm tra xem Odoo đã tự động tạo
+    // hoặc đã nhận được đơn hàng định kỳ này trước đó chưa để tránh tạo duplicate.
+    // This MUST succeed for recurring orders; if the lookup fails we do NOT proceed to create.
+    if (order.recurringId != null && order.recurringId! > 0 && order.scheduledDateStart != null) {
+      final scheduledStartStr = _formatDateTimeUtc(order.scheduledDateStart!);
+      final List<dynamic> exist = await _odoo.callKw(
+        model: _model,
+        method: 'search_read',
+        args: [[
+          ['scheduled_date_start', '=', scheduledStartStr],
+          ['person_id', '=', order.personId],
+          ['fsm_recurring_id', '=', order.recurringId]
+        ]],
+        kwargs: {'fields': ['id'], 'limit': 1},
+      ) as List<dynamic>;
+      if (exist.isNotEmpty) {
+        final existingId = exist.first['id'] as int;
+        logger.i('Idempotency check: Order already exists on Odoo server. Reusing ID: $existingId');
+        return OdooCreateResult(existingId);
+      }
+      // If lookup succeeded but no existing order found, proceed to create.
+    }
+
+    final data = <String, dynamic>{
+      'name': order.name,
+      'description': order.description,
+      'stage_id': order.stageId,
+      'scheduled_date_start': order.scheduledDateStart != null
+          ? _formatDateTimeUtc(order.scheduledDateStart!)
+          : null,
+      'scheduled_date_end': order.scheduledDateEnd != null
+          ? _formatDateTimeUtc(order.scheduledDateEnd!)
+          : null,
+      'priority': order.priority ?? '0',
+      'require_signature': order.requireSignature,
+    };
+
+    if (order.isSkipped) {
+      data['is_skipped'] = true;
+    }
+
+    // Map relation fields an toàn (nếu có gán)
+    if (order.partnerId != null && order.partnerId! > 0) {
+      data['partner_id'] = order.partnerId;
+    }
+    if (order.warehouseId != null && order.warehouseId! > 0) {
+      data['warehouse_id'] = order.warehouseId;
+    }
+    if (order.personId != null && order.personId! > 0) {
+      data['person_id'] = order.personId;
+    }
+
+    // Link về recurring parent nếu có
+    if (order.recurringId != null && order.recurringId! > 0) {
+      data['fsm_recurring_id'] = order.recurringId;
+    }
+
     try {
-      // Chống trùng lặp đơn hàng (Idempotency): kiểm tra xem Odoo đã tự động tạo
-      // hoặc đã nhận được đơn hàng định kỳ này trước đó chưa để tránh tạo duplicate.
-      if (order.recurringId != null && order.recurringId! > 0 && order.scheduledDateStart != null) {
-        try {
-          final scheduledStartStr = _formatDateTimeUtc(order.scheduledDateStart!);
-          final List<dynamic> exist = await _odoo.callKw(
-            model: _model,
-            method: 'search_read',
-            args: [[
-              ['scheduled_date_start', '=', scheduledStartStr],
-              ['person_id', '=', order.personId],
-              ['fsm_recurring_id', '=', order.recurringId]
-            ]],
-            kwargs: {'fields': ['id'], 'limit': 1},
-          ) as List<dynamic>;
-          if (exist.isNotEmpty) {
-            final existingId = exist.first['id'] as int;
-            logger.i('Idempotency check: Order already exists on Odoo server. Reusing ID: $existingId');
-            return existingId;
-          }
-        } catch (e) {
-          logger.w('Idempotency check failed (possibly fsm_recurring_id not supported by search), proceeding to create...', error: e);
-        }
-      }
-
-      final data = <String, dynamic>{
-        'name': order.name,
-        'description': order.description,
-        'stage_id': order.stageId,
-        'scheduled_date_start': order.scheduledDateStart != null
-            ? _formatDateTimeUtc(order.scheduledDateStart!)
-            : null,
-        'scheduled_date_end': order.scheduledDateEnd != null
-            ? _formatDateTimeUtc(order.scheduledDateEnd!)
-            : null,
-        'priority': order.priority ?? '0',
-        'require_signature': order.requireSignature,
-      };
-
-      if (order.isSkipped) {
-        data['is_skipped'] = true;
-      }
-
-      // Map relation fields an toàn (nếu có gán)
-      if (order.partnerId != null && order.partnerId! > 0) {
-        data['partner_id'] = order.partnerId;
-      }
-      if (order.warehouseId != null && order.warehouseId! > 0) {
-        data['warehouse_id'] = order.warehouseId;
-      }
-      if (order.personId != null && order.personId! > 0) {
-        data['person_id'] = order.personId;
-      }
-
-      // Link về recurring parent nếu có
-      if (order.recurringId != null && order.recurringId! > 0) {
-        data['fsm_recurring_id'] = order.recurringId;
-      }
-
-      try {
+      final id = await _odoo.callKw(
+        model: _model,
+        method: 'create',
+        args: [data],
+      ) as int;
+      return OdooCreateResult(id);
+    } on OdooBusinessException catch (be) {
+      // Chỉ fallback khi lỗi là do field không tồn tại (custom fields chưa được hỗ trợ)
+      // Các lỗi khác (auth, connection, business logic) rethrow để fail closed
+      if (be.message.contains('fsm_recurring_id') ||
+          be.message.contains('is_skipped') ||
+          be.message.contains('ValueError')) {
+        logger.w('Odoo reject custom fields, retrying with basic fields...', error: be);
+        data.remove('fsm_recurring_id');
+        data.remove('is_skipped');
+        // Retry with basic fields
         final id = await _odoo.callKw(
           model: _model,
           method: 'create',
           args: [data],
         ) as int;
-        return id;
-      } on OdooBusinessException catch (be) {
-        // Nếu Odoo báo lỗi field name (ValueError) do fsm_recurring_id hoặc is_skipped
-        if (be.message.contains('fsm_recurring_id') ||
-            be.message.contains('is_skipped') ||
-            be.message.contains('ValueError')) {
-          logger.w('Odoo reject custom fields, retrying with basic fields...', error: be);
-          data.remove('fsm_recurring_id');
-          data.remove('is_skipped');
-          // Retry
-          final id = await _odoo.callKw(
-            model: _model,
-            method: 'create',
-            args: [data],
-          ) as int;
-          return id;
-        }
-        rethrow;
+        return OdooCreateResult(id, isSkippedRejected: order.isSkipped);
       }
+      rethrow;
     } catch (e, stackTrace) {
       logger.e('OrdersService._createOrderOnOdoo failed for temporary order ${order.odooId}',
           error: e, stackTrace: stackTrace);

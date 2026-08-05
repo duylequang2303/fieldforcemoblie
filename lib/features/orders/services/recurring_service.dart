@@ -6,7 +6,6 @@ import '../../../core/utils/logger.dart';
 import '../models/fsm_order.dart';
 import '../models/fsm_recurring.dart';
 import '../models/fsm_frequency_set.dart';
-import 'orders_service.dart';
 
 class RecurringService {
   RecurringService._();
