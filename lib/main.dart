@@ -99,6 +99,8 @@ Future<void> main() async {
       // Khởi tạo recurring notification service (skip on Linux - zonedSchedule not supported)
       if (!Platform.isLinux) {
         await RecurringNotificationService.instance.init();
+        // Schedule recurring reminders even on offline startup
+        await RecurringNotificationService.instance.rescheduleAllRecurringReminders();
       }
 
       // Bắt đầu lắng nghe trạng thái mạng để tự động sync

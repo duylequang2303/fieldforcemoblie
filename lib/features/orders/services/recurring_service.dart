@@ -73,9 +73,33 @@ class RecurringService {
         }).toList();
       }
 
-      // 3. Lưu vào Isar Database
+      // 3. Lưu vào Isar Database - MERGE để bảo toàn local-only fields
       await _isar.db.writeTxn(() async {
-        await _isar.db.fsmRecurrings.putAllByOdooId(recurringRules);
+        for (final rule in recurringRules) {
+          final existing = await _isar.db.fsmRecurrings
+              .filter()
+              .odooIdEqualTo(rule.odooId)
+              .findFirst();
+          if (existing != null) {
+            // Merge: chỉ cập nhật fields từ Odoo, giữ local-only fields
+            existing.name = rule.name;
+            existing.frequencySetId = rule.frequencySetId;
+            existing.orderTemplateId = rule.orderTemplateId;
+            existing.companyId = rule.companyId;
+            existing.startDate = rule.startDate;
+            existing.endDate = rule.endDate;
+            existing.nextDate = rule.nextDate;
+            existing.generatedCount = rule.generatedCount;
+            existing.isActive = rule.isActive;
+            existing.lastSyncAt = DateTime.now();
+            await _isar.db.fsmRecurrings.put(existing);
+          } else {
+            // New rule - dùng fromJson default local-only values
+            rule.isPendingSync = false;
+            rule.lastSyncAt = DateTime.now();
+            await _isar.db.fsmRecurrings.put(rule);
+          }
+        }
         if (frequencySets.isNotEmpty) {
           await _isar.db.fsmFrequencySets.putAllByOdooId(frequencySets);
         }
@@ -295,7 +319,7 @@ class RecurringService {
         }
         // Handle ngày cuối tháng (VD: 31/01 -> 31/02 không tồn tại, lùi về 28/02)
         var day = targetDay ?? from.day;
-        var maxDays = _daysInMonth(year, month);
+        final maxDays = _daysInMonth(year, month);
         if (day > maxDays) {
           day = maxDays;
         }

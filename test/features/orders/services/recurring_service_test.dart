@@ -71,7 +71,9 @@ void main() {
       final from3 = DateTime(2025, 11, 15, 8, 0, 0);
       final next4 = service.calculateNextOccurrence(from3, freqSet1..interval = 3);
       expect(next4, DateTime(2026, 2, 15, 8, 0, 0));
+    });
 
+    test('should restore target day after a short month', () {
       // Target day test: 31st Jan -> Feb 28 -> March 31 (using targetDay: 31)
       final freqSetMonthly = FsmFrequencySet()
         ..interval = 1

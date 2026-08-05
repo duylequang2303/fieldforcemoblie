@@ -479,8 +479,10 @@ class OrdersService {
       });
       try {
         await RecurringService.instance.onOccurrenceCompleted(local);
-      } catch (e) {
-        logger.w('Error updating recurring occurrence logic on completion', error: e);
+      } on OdooApiException catch (e) {
+        logger.w('Error updating recurring occurrence logic on completion (Odoo)', error: e);
+      } on StateError catch (e) {
+        logger.w('Error updating recurring occurrence logic on completion (State)', error: e);
       }
     }
 

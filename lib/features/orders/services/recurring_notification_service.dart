@@ -77,11 +77,18 @@ class RecurringNotificationService {
   Future<void> scheduleOrderReminder(FsmOrder order) async {
     if (!_initialized) await init();
 
-    if (order.scheduledDateStart == null) return;
-    if (order.stage == FsmOrderStage.done || order.stage == FsmOrderStage.cancelled) return;
+    final scheduledStart = order.scheduledDateStart;
+    if (scheduledStart == null) return;
+
+    switch (order.stage) {
+      case FsmOrderStage.done:
+      case FsmOrderStage.cancelled:
+        return;
+      default:
+        break;
+    }
 
     final now = DateTime.now();
-    final scheduledStart = order.scheduledDateStart!;
 
     // Không schedule cho quá khứ
     if (scheduledStart.isBefore(now)) return;

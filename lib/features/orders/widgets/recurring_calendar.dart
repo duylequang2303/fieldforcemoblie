@@ -53,7 +53,7 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
   @override
   Widget build(BuildContext context) {
     final days = _generateCalendarDays(_currentMonth);
-    final monthName = _getMonthNameVi(_currentMonth.month);
+    final monthName = _monthNameVi(_currentMonth.month);
     final year = _currentMonth.year;
 
     return Container(
@@ -212,7 +212,7 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
     );
   }
 
-  String _getMonthNameVi(int month) {
+  String _monthNameVi(int month) {
     const months = [
       'Tháng 1',
       'Tháng 2',
