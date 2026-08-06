@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../../core/routing/route_names.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_overlay.dart';
@@ -95,7 +97,7 @@ class _StockMovesPageState extends State<StockMovesPage> {
           floatingActionButton: FloatingActionButton.extended(
             heroTag: 'fab_scanner',
             onPressed: () {
-              Navigator.of(context).pushNamed('/scanner');
+              context.push('${RouteNames.scanner}/${widget.orderId}');
             },
             backgroundColor: AppColors.accent,
             elevation: 4,

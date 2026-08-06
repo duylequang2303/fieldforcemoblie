@@ -9,7 +9,9 @@ import '../providers/stock_provider.dart';
 
 /// Trang quét mã barcode/QR vật tư.
 class ScannerPage extends StatefulWidget {
-  const ScannerPage({super.key});
+  const ScannerPage({super.key, required this.orderId});
+
+  final int orderId;
 
   @override
   State<ScannerPage> createState() => _ScannerPageState();
@@ -104,9 +106,9 @@ class _ScannerPageState extends State<ScannerPage> {
                           ? _ProductFoundPanel(
                               product: provider.scannedProduct!,
                               onRecord: (qty) async {
-                                // Lấy orderId từ route params nếu có
+                                // Lấy orderId từ route params
                                 await provider.recordOut(
-                                  orderOdooId: 0, // sẽ truyền từ route
+                                  orderOdooId: widget.orderId,
                                   qty: qty,
                                 );
                                 if (context.mounted) {

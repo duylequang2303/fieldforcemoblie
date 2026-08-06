@@ -1,4 +1,6 @@
 import '../api/odoo_session_manager.dart';
+import '../database/sync_manager.dart';
+import '../database/isar_service.dart';
 import '../locale/locale_service.dart';
 import 'secure_storage.dart';
 import 'biometric_service.dart';
@@ -36,7 +38,6 @@ class AuthService {
       sessionId: session.sessionId,
       userId: session.userId,
       locale: session.locale,
-      password: password,
     );
   }
 
@@ -83,16 +84,34 @@ class AuthService {
     final biometricEnabled = await _storage.isBiometricEnabled;
     if (!biometricEnabled) return false;
 
-    final authenticated = await _biometric.authenticate();
-    if (!authenticated) return false;
+    try {
+      final authenticated = await _biometric.authenticate();
+      if (!authenticated) return false;
 
-    return tryRestoreSession();
+      return tryRestoreSession();
+    } on BiometricLockoutException {
+      // Đã log trong BiometricService, chỉ cần return false để UI xử lý chuyển về login thường
+      return false;
+    } catch (_) {
+      return false;
+    }
   }
 
-  /// Đăng xuất: xóa session local + Odoo.
+  /// Đăng xuất: xóa session local + Odoo + cleanup sync resources + clear database.
   Future<void> logout() async {
     await _sessionManager.logout();
     await _storage.clearSession();
+    
+    // FIX C04 + C05: Dispose SyncManager resources, KHÔNG dispose OdooApiClient singleton
+    await SyncManager.instance.dispose();
+
+    // FIX C06: Xoá trắng database Isar cục bộ phòng chống lộ lọt thông tin ngoại tuyến của user cũ
+    if (IsarService.instance.isInitialized) {
+      final isar = IsarService.instance.db;
+      await isar.writeTxn(() async {
+        await isar.clear();
+      });
+    }
   }
 
   /// Kiểm tra biometric có khả dụng không.

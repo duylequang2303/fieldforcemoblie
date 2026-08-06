@@ -21,15 +21,16 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _init() async {
+    final goRouter = GoRouter.of(context);
     final auth = context.read<AuthProvider>();
     await auth.initialize();
 
     if (!mounted) return;
 
     if (auth.isAuthenticated) {
-      context.go(RouteNames.shellSchedule);
+      goRouter.go(RouteNames.shellSchedule);
     } else {
-      context.go(RouteNames.login);
+      goRouter.go(RouteNames.login);
     }
   }
 

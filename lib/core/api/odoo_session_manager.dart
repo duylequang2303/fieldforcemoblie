@@ -51,7 +51,11 @@ class OdooSessionManager {
       final client = OdooApiClient.instance.client;
 
       // odoo_rpc authenticate signature: (db, login, password)
-      final session = await client.authenticate(database, username, password);
+      final session = await client
+          .authenticate(database, username, password)
+          .timeout(const Duration(seconds: 30), onTimeout: () {
+        throw const OdooConnectionException('Kết nối đăng nhập quá hạn sau 30 giây.');
+      });
 
       String userLang = 'vi_VN';
       try {
@@ -232,58 +236,9 @@ class OdooSessionManager {
 
   /// Đọc credentials đã lưu và re-authenticate.
   /// Trả về true nếu thành công, false nếu không có credentials hoặc login thất bại.
+  /// KHÔNG dùng password để re-authenticate (đã gỡ save password).
   Future<bool> _tryReAuthenticate() async {
-    _isReAuthenticating = true;
-    try {
-      final saved = await SecureStorageService.instance.loadSession();
-      final serverUrl = saved['serverUrl'];
-      final database = saved['database'];
-      final username = saved['username'];
-      final password = saved['password'];
-
-      if (serverUrl == null ||
-          database == null ||
-          username == null ||
-          password == null) {
-        logger.w('Cannot re-authenticate: missing stored credentials');
-        return false;
-      }
-
-      // Re-initialize client and authenticate fresh
-      OdooApiClient.instance.initialize(serverUrl);
-      final client = OdooApiClient.instance.client;
-      final session = await client.authenticate(database, username, password);
-
-      _currentSession = OdooSessionData(
-        serverUrl: serverUrl,
-        database: database,
-        username: username,
-        userId: session.userId,
-        sessionId: session.id,
-        locale: _currentSession?.locale ?? 'vi_VN',
-      );
-
-      // Update stored session with new sessionId
-      await SecureStorageService.instance.saveSession(
-        serverUrl: serverUrl,
-        database: database,
-        username: username,
-        sessionId: session.id,
-        userId: session.userId,
-        locale: _currentSession?.locale ?? 'vi_VN',
-        password: password,
-      );
-
-      logger.i('Silent re-authentication successful');
-      return true;
-    } on OdooException catch (e) {
-      logger.e('Silent re-authentication failed', error: e);
-      return false;
-    } catch (e) {
-      logger.e('Silent re-authentication failed', error: e);
-      return false;
-    } finally {
-      _isReAuthenticating = false;
-    }
+    logger.w('Silent re-auth not possible without stored password. User must login again.');
+    return false;
   }
 }

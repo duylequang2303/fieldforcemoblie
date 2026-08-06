@@ -21,9 +21,11 @@ class SyncManager {
   bool get isSyncing => _isSyncing;
 
   Timer? _autoSyncTimer;
+  StreamSubscription? _connectivitySubscription;
 
   void startListening() {
-    _connectivity.onConnectivityChanged.listen((results) async {
+    _connectivitySubscription?.cancel();
+    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((results) async {
       final isOnline = await _connectivity.isOnline;
       if (isOnline && !_isSyncing && await _allowedByNetworkPref()) {
         await syncPending();
@@ -91,7 +93,12 @@ class SyncManager {
       for (final handler in _syncHandlers) {
         try {
           await handler();
-        } catch (_) {}
+        } catch (e, stackTrace) {
+          if (kDebugMode) {
+            debugPrint('SyncManager: handler failed: $e\n$stackTrace');
+          }
+          // Log error but continue with other handlers
+        }
       }
     } finally {
       _isSyncing = false;
@@ -110,6 +117,21 @@ class SyncManager {
   final List<Future<void> Function()> _syncHandlers = [];
 
   void registerSyncHandler(Future<void> Function() handler) {
-    _syncHandlers.add(handler);
+    // Prevent duplicate handlers
+    if (!_syncHandlers.contains(handler)) {
+      _syncHandlers.add(handler);
+    } else if (kDebugMode) {
+      debugPrint('SyncManager: duplicate handler registration ignored');
+    }
+  }
+
+  /// Cleanup resources on logout/app terminate
+  Future<void> dispose() async {
+    _connectivitySubscription?.cancel();
+    _connectivitySubscription = null;
+    _autoSyncTimer?.cancel();
+    _autoSyncTimer = null;
+    _syncHandlers.clear();
+    _isSyncing = false;
   }
 }

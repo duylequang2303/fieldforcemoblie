@@ -36,9 +36,11 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _redirectIfAuthed() {
+    if (!mounted) return;
+    final goRouter = GoRouter.of(context);
     final auth = context.read<AuthProvider>();
-    if (mounted && auth.isAuthenticated) {
-      context.go(RouteNames.shellSchedule);
+    if (auth.isAuthenticated) {
+      goRouter.go(RouteNames.shellSchedule);
     }
   }
 
@@ -65,7 +67,10 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _onLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    await context.read<AuthProvider>().login(
+    final goRouter = GoRouter.of(context);
+    final authProvider = context.read<AuthProvider>();
+
+    await authProvider.login(
           serverUrl: _serverUrlCtrl.text.trim(),
           database: _databaseCtrl.text.trim(),
           username: _usernameCtrl.text.trim(),
@@ -75,9 +80,8 @@ class _LoginPageState extends State<LoginPage> {
     // Redirect được handle bởi _redirectIfAuthed listener
     // nhưng vẫn giữ để đảm bảo chuyển trang ngay lập tức sau login thành công
     if (!mounted) return;
-    final auth = context.read<AuthProvider>();
-    if (auth.isAuthenticated) {
-      context.go(RouteNames.shellSchedule);
+    if (authProvider.isAuthenticated) {
+      goRouter.go(RouteNames.shellSchedule);
     }
   }
 
