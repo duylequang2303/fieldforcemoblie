@@ -20,16 +20,21 @@ class SyncManager {
   final _connectivity = ConnectivityService.instance;
 
   Completer<void>? _initCompleter;
+  bool _disposed = false;
 
   Future<void> _waitForInitialization() async {
+    if (_disposed) throw StateError('SyncManager has been disposed');
     if (_initCompleter == null) {
       _initCompleter = Completer<void>();
       try {
         await SettingsRepository.instance.loadAll();
-        _initCompleter!.complete();
+        if (!_disposed) {
+          _initCompleter!.complete();
+        } else {
+          _initCompleter!.completeError(StateError('SyncManager was disposed during initialization'));
+        }
       } catch (e) {
         _initCompleter!.completeError(e);
-        _initCompleter = null;
       }
     }
     return _initCompleter!.future;
@@ -65,6 +70,7 @@ class SyncManager {
   }
 
   Future<void> _restartTimer() async {
+    if (_disposed) return;
     await _waitForInitialization();
     _autoSyncTimer?.cancel();
     _autoSyncTimer = null;
@@ -72,7 +78,9 @@ class SyncManager {
     if (minutes <= 0) return; // 0 = tắt
     _autoSyncTimer = Timer.periodic(
       Duration(minutes: minutes),
-      (_) async => await _autoTick(),
+      (_) async {
+        if (!_disposed) await _autoTick();
+      },
     );
     if (kDebugMode) {
       debugPrint(
@@ -176,6 +184,9 @@ class SyncManager {
 
   /// Cleanup resources on logout/app terminate
   Future<void> dispose() async {
+    _disposed = true;
+    _initCompleter = null;
+
     final subscription = _connectivitySubscription;
     if (subscription != null) {
       await subscription.cancel();
@@ -192,13 +203,6 @@ class SyncManager {
       } catch (_) {}
     }
 
-    if (_initCompleter != null) {
-      _initCompleter!.complete();
-      _initCompleter = null;
-    }
-
-    // KHÔNG xóa _syncHandlers để lưu giữ các handler đăng ký từ main.dart cho session sau
-    // _syncHandlers.clear();
     _isSyncing = false;
   }
 }
