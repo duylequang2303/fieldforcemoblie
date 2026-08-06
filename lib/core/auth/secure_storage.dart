@@ -1,5 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:async';
+import '../utils/logger.dart';
 
 /// Class khóa bất đồng bộ đơn giản để serialize các thao tác ghi dữ liệu.
 class _SimpleLock {
@@ -52,15 +53,27 @@ class SecureStorageService {
       await _storage.write(key: _keyUserId, value: userId.toString());
       await _storage.write(key: _keyLocale, value: locale);
       // Migration: Xoá odoo_password key nếu còn sót từ các session trước
-      await _storage.delete(key: 'odoo_password');
+      try {
+        await _storage.delete(key: 'odoo_password');
+      } catch (e, stack) {
+        logger.e('Failed to delete legacy password in saveSession', error: e, stackTrace: stack);
+      }
+    });
+  }
+
+  /// Xóa odoo_password cũ phát hành ở phiên bản cũ (Migration) có tuần tự hóa ghi
+  Future<void> removeLegacyPassword() async {
+    await _writeLock.synchronized(() async {
+      try {
+        await _storage.delete(key: 'odoo_password');
+      } catch (e, stack) {
+        logger.e('Failed to delete legacy password in removeLegacyPassword', error: e, stackTrace: stack);
+      }
     });
   }
 
   /// Load session data (không bao gồm password)
   Future<Map<String, String?>> loadSession() async {
-    // Migration: Xoá legacy password bất đồng bộ khi app bắt đầu phục hồi session
-    unawaited(_storage.delete(key: 'odoo_password'));
-
     // Reads không cần lock
     final results = await Future.wait([
       _storage.read(key: _keyServerUrl),

@@ -4,6 +4,7 @@ import 'api_exception.dart';
 import 'odoo_client.dart';
 import '../auth/secure_storage.dart';
 import '../database/sync_manager.dart';
+import '../database/isar_service.dart';
 import '../utils/logger.dart';
 
 class OdooSessionData {
@@ -199,6 +200,9 @@ class OdooSessionManager {
   /// trong SecureStorage rồi retry lại API call 1 lần.
   bool _isReAuthenticating = false;
 
+  final _sessionExpiredController = StreamController<void>.broadcast();
+  Stream<void> get onSessionExpired => _sessionExpiredController.stream;
+
   Future<dynamic> callKw({
     required String model,
     required String method,
@@ -241,6 +245,16 @@ class OdooSessionManager {
     logger.w('Silent re-auth not possible without stored password. User must login again.');
     await logout();
     await SecureStorageService.instance.clearSession();
+    
+    // Clear local database on session expiration to isolate data (Fix C06)
+    if (IsarService.instance.isInitialized) {
+      final isar = IsarService.instance.db;
+      await isar.writeTxn(() async {
+        await isar.clear();
+      });
+    }
+    
+    _sessionExpiredController.add(null);
     return false;
   }
 }
