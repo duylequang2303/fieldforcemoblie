@@ -27,13 +27,14 @@ class SafeImageFile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     if (path.isEmpty) {
       return errorWidget ??
           Container(
             width: width,
             height: height,
-            color: Colors.grey[200],
-            child: const Icon(Icons.broken_image, color: Colors.grey, size: 28),
+            color: colorScheme.surfaceContainerHighest,
+            child: Icon(Icons.broken_image, color: colorScheme.onSurfaceVariant, size: 28),
           );
     }
 
@@ -49,8 +50,8 @@ class SafeImageFile extends StatelessWidget {
             Container(
               width: width,
               height: height,
-              color: Colors.grey[200],
-              child: const Icon(Icons.broken_image, color: Colors.grey, size: 28),
+              color: colorScheme.surfaceContainerHighest,
+              child: Icon(Icons.broken_image, color: colorScheme.onSurfaceVariant, size: 28),
             );
       },
     );

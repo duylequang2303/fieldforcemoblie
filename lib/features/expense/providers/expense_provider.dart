@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/utils/logger.dart';
 import '../../../core/api/odoo_session_manager.dart';
+import '../../../core/api/api_exception.dart';
+import '../../../core/api/session_guard.dart';
 import '../models/expense.dart';
 import '../services/expense_service.dart';
 
-class ExpenseProvider extends ChangeNotifier {
+class ExpenseProvider extends ChangeNotifier with SessionGuard {
   ExpenseProvider._internal() : _service = ExpenseService.instance;
   static final ExpenseProvider instance = ExpenseProvider._internal();
 
@@ -21,19 +23,19 @@ class ExpenseProvider extends ChangeNotifier {
   double get totalAmount => _expenses.fold(0.0, (sum, e) => sum + e.amount);
 
   Future<void> loadExpenses(int orderOdooId) async {
-    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
+    final sessionToken = currentSessionToken;
     _isLoading = true;
     notifyListeners();
     try {
       final expenses = await _service.getExpensesForOrder(orderOdooId);
-      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
+      if (!isSameSession(sessionToken)) return;
       _expenses = expenses;
-    } catch (e) {
-      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
-      _errorMessage = 'Lỗi tải chi phí: $e';
+    } on OdooApiException catch (e) {
+      if (!isSameSession(sessionToken)) return;
+      _errorMessage = 'Lỗi tải chi phí: ${e.message}';
       logger.e('ExpenseProvider.loadExpenses', error: e);
     } finally {
-      if (OdooSessionManager.instance.currentSession?.sessionId == sessionToken) {
+      if (isSameSession(sessionToken)) {
         _isLoading = false;
         notifyListeners();
       }
@@ -49,7 +51,7 @@ class ExpenseProvider extends ChangeNotifier {
     String? receiptImagePath,
     String? note,
   }) async {
-    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
+    final sessionToken = currentSessionToken;
     _isLoading = true;
     notifyListeners();
     try {
@@ -62,11 +64,11 @@ class ExpenseProvider extends ChangeNotifier {
         receiptImagePath: receiptImagePath,
         note: note,
       );
-      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
+      if (!isSameSession(sessionToken)) return;
       await loadExpenses(orderOdooId);
-    } catch (e) {
-      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
-      _errorMessage = 'Lỗi thêm chi phí: $e';
+    } on OdooApiException catch (e) {
+      if (!isSameSession(sessionToken)) return;
+      _errorMessage = 'Lỗi thêm chi phí: ${e.message}';
       logger.e('ExpenseProvider.addExpense', error: e);
       _isLoading = false;
       notifyListeners();

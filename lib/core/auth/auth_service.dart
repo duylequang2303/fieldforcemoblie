@@ -43,7 +43,10 @@ class AuthService {
     );
 
     // Chạy migration gán các bản ghi offline cũ (không localOwnerId) cho user hiện tại (Fix Thread #5)
-    await DatabaseMigrationService.migrateLegacyRecords(session.userId);
+    final migrationSuccess = await DatabaseMigrationService.migrateLegacyRecords(session.userId);
+    if (!migrationSuccess) {
+      logger.w('DatabaseMigrationService: Legacy record migration failed during login.');
+    }
     // Bắt đầu đồng bộ sau khi migration hoàn thành (đã giải quyết race condition)
     unawaited(SyncManager.instance.syncAfterAuth());
   }
@@ -86,7 +89,10 @@ class AuthService {
 
     if (restored) {
       // Chạy migration gán các bản ghi offline cũ (không localOwnerId) cho user hiện tại (Fix Thread #5)
-      await DatabaseMigrationService.migrateLegacyRecords(userId);
+      final migrationSuccess = await DatabaseMigrationService.migrateLegacyRecords(userId);
+      if (!migrationSuccess) {
+        logger.w('DatabaseMigrationService: Legacy record migration failed during restore.');
+      }
       if (locale != null && locale.isNotEmpty) {
         // Fix Thread #11: Await setLocale to ensure locale is persisted before returning
         await LocaleService.instance.setLocale(locale);

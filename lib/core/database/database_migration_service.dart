@@ -20,8 +20,11 @@ class DatabaseMigrationService {
   /// post-upgrade login to claim another user's legacy records.
   /// In a single-user device context (field force mobile), this is acceptable.
   /// For multi-user devices, legacy records should be discarded instead.
-  static Future<void> migrateLegacyRecords(int currentUserId) async {
-    if (!IsarService.instance.isInitialized) return;
+  static Future<bool> migrateLegacyRecords(int currentUserId) async {
+    if (!IsarService.instance.isInitialized) {
+      logger.w('DatabaseMigrationService: Legacy record migration was skipped because the database is not initialized.');
+      return false;
+    }
     final isar = IsarService.instance.db;
 
     try {
@@ -76,8 +79,13 @@ class DatabaseMigrationService {
           await isar.workReports.putAll(reports);
         }
       });
+      return true;
+    } on IsarError catch (e, stackTrace) {
+      logger.e('DatabaseMigrationService: Isar migration failed', error: e, stackTrace: stackTrace);
+      return false;
     } catch (e, stackTrace) {
-      logger.e('DatabaseMigrationService: Migration failed', error: e, stackTrace: stackTrace);
+      logger.e('DatabaseMigrationService: Unexpected migration failed', error: e, stackTrace: stackTrace);
+      return false;
     }
   }
 }

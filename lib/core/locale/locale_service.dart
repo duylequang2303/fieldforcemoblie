@@ -1,5 +1,6 @@
 import 'package:intl/intl.dart';
 import 'dart:ui';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/utils/logger.dart';
 
@@ -40,6 +41,9 @@ class LocaleService {
         logger.e('LocaleService: Failed to persist locale - SharedPreferences setString returned false');
       }
       return success;
+    } on PlatformException catch (e, stackTrace) {
+      logger.e('LocaleService: PlatformException while persisting locale', error: e, stackTrace: stackTrace);
+      return false;
     } catch (e, stackTrace) {
       logger.e('LocaleService: Exception while persisting locale', error: e, stackTrace: stackTrace);
       return false;

@@ -1,12 +1,13 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/api/odoo_session_manager.dart';
+import '../../../core/api/session_guard.dart';
 import '../../../core/utils/logger.dart';
 import '../models/work_report.dart';
 import '../services/work_order_service.dart';
 import '../../orders/models/fsm_order.dart';
 
-class WorkOrderProvider extends ChangeNotifier {
+class WorkOrderProvider extends ChangeNotifier with SessionGuard {
   WorkOrderProvider._internal()
       : _service = WorkOrderService.instance;
   static final WorkOrderProvider instance = WorkOrderProvider._internal();
@@ -33,22 +34,22 @@ class WorkOrderProvider extends ChangeNotifier {
   }
 
   Future<void> loadReport(int orderOdooId) async {
-    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
+    final sessionToken = currentSessionToken;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
       final report = await _service.getOrCreateReport(orderOdooId);
       final order = await _service.getOrder(orderOdooId);
-      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
+      if (!isSameSession(sessionToken)) return;
       _report = report;
       _order = order;
     } catch (e) {
-      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
+      if (!isSameSession(sessionToken)) return;
       _errorMessage = 'Lỗi tải báo cáo: $e';
       logger.e('WorkOrderProvider.loadReport', error: e);
     } finally {
-      if (OdooSessionManager.instance.currentSession?.sessionId == sessionToken) {
+      if (isSameSession(sessionToken)) {
         _isLoading = false;
         notifyListeners();
       }
@@ -91,12 +92,14 @@ class WorkOrderProvider extends ChangeNotifier {
 
   Future<void> saveLocally() async {
     if (_report == null) return;
-    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
+    final sessionToken = currentSessionToken;
     if (sessionToken == null) return;
+    final currentUserId = OdooSessionManager.instance.currentUserId;
+    if (currentUserId == null) return;
     try {
-      await _service.saveReport(_report!);
+      await _service.saveReport(_report!, currentUserId);
     } catch (e) {
-      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
+      if (!isSameSession(sessionToken)) return;
       _errorMessage = 'Lỗi lưu báo cáo: $e';
       notifyListeners();
     }
@@ -104,21 +107,21 @@ class WorkOrderProvider extends ChangeNotifier {
 
   Future<bool> submitReport() async {
     if (_report == null || !isComplete) return false;
-    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
+    final sessionToken = currentSessionToken;
     _isSubmitting = true;
     _errorMessage = null;
     notifyListeners();
     try {
       await _service.submitReport(_report!);
-      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return false;
+      if (!isSameSession(sessionToken)) return false;
       return true;
     } on OdooApiException catch (e) {
-      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return false;
+      if (!isSameSession(sessionToken)) return false;
       _errorMessage = e.message;
       logger.e('WorkOrderProvider.submitReport', error: e);
       return false;
     } finally {
-      if (OdooSessionManager.instance.currentSession?.sessionId == sessionToken) {
+      if (isSameSession(sessionToken)) {
         _isSubmitting = false;
         notifyListeners();
       }

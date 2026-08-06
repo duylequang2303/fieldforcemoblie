@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart'; // kIsWeb
 import 'package:isar_community/isar.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
-import 'package:fieldforce_mobile/core/database/isar_service.dart';
-import 'package:fieldforce_mobile/core/utils/logger.dart';
-import 'package:fieldforce_mobile/features/orders/models/fsm_order.dart';
+import '../../../core/database/isar_service.dart';
+import '../../../core/utils/logger.dart';
+import '../models/fsm_order.dart';
 
 class RecurringNotificationService {
   RecurringNotificationService._();
@@ -29,15 +28,21 @@ class RecurringNotificationService {
     tz.initializeTimeZones();
     
     String timeZoneName = 'Asia/Ho_Chi_Minh'; // Fallback
-    if (!kIsWeb) {
-      try {
-        final tzInfo = await FlutterTimezone.getLocalTimezone();
-        timeZoneName = tzInfo.identifier;
-      } catch (e) {
-        logger.w('Failed to get local timezone dynamically, fallback to Asia/Ho_Chi_Minh', error: e);
-      }
+    try {
+      final tzInfo = await FlutterTimezone.getLocalTimezone();
+      timeZoneName = tzInfo.identifier;
+    } catch (e) {
+      logger.w('Failed to get local timezone dynamically, fallback to Asia/Ho_Chi_Minh', error: e);
     }
-    tz.setLocalLocation(tz.getLocation(timeZoneName));
+    
+    try {
+      tz.setLocalLocation(tz.getLocation(timeZoneName));
+    } catch (e) {
+      logger.w('Timezone $timeZoneName not found, fallback to Asia/Ho_Chi_Minh', error: e);
+      try {
+        tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
+      } catch (_) {}
+    }
 
     // Android initialization settings
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -73,12 +78,10 @@ class RecurringNotificationService {
     await androidPlugin?.requestNotificationsPermission();
 
     /// Android 12+ exact alarm permission (for exactAllowWhileIdle)
-    if (!kIsWeb) {
-      try {
-        await androidPlugin?.requestExactAlarmsPermission();
-      } catch (e) {
-        logger.w('requestExactAlarmsPermission not available or failed', error: e);
-      }
+    try {
+      await androidPlugin?.requestExactAlarmsPermission();
+    } catch (e) {
+      logger.w('requestExactAlarmsPermission not available or failed', error: e);
     }
 
     // iOS permissions
@@ -150,19 +153,22 @@ class RecurringNotificationService {
     final now = DateTime.now();
     final future = now.add(const Duration(days: 30)); // Look ahead 30 days
 
-    // Lấy tất cả recurring instances sắp tới
+    // Lấy tất cả recurring instances sắp tới (loại trừ done và cancelled)
     final upcomingOrders = await _isar.db.fsmOrders
         .filter()
         .isRecurringInstanceEqualTo(true)
         .scheduledDateStartGreaterThan(now)
         .scheduledDateStartLessThan(future)
-        .stageEqualTo(FsmOrderStage.draft)
+        .and()
+        .not()
+        .stageEqualTo(FsmOrderStage.done)
+        .and()
+        .not()
+        .stageEqualTo(FsmOrderStage.cancelled)
         .findAll();
 
     for (final order in upcomingOrders) {
-      if (order.stage != FsmOrderStage.done && order.stage != FsmOrderStage.cancelled) {
-        await scheduleOrderReminder(order);
-      }
+      await scheduleOrderReminder(order);
     }
 
     logger.i('Rescheduled reminders for ${upcomingOrders.length} recurring orders');

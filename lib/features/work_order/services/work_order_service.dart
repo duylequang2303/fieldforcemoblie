@@ -67,16 +67,19 @@ class WorkOrderService {
   }
 
   /// Lưu nội dung báo cáo (local).
-  Future<void> saveReport(WorkReport report) async {
-    final currentUserId = _odoo.currentUserId;
+  Future<void> saveReport(WorkReport report, [int? currentUserId]) async {
+    final ownerId = currentUserId ?? _odoo.currentUserId;
+    if (ownerId == null) {
+      throw const OdooAuthException('Không tìm thấy phiên làm việc hợp lệ.');
+    }
     final existing = await _isar.db.workReports
         .filter()
         .orderOdooIdEqualTo(report.orderOdooId)
         .and()
-        .localOwnerIdEqualTo(currentUserId)
+        .localOwnerIdEqualTo(ownerId)
         .findFirst();
 
-    report.localOwnerId = currentUserId;
+    report.localOwnerId = ownerId;
     if (existing != null) {
       report.id = existing.id;
       if (existing.workDone != report.workDone) {

@@ -22,7 +22,7 @@ import '../features/orders/services/recurring_service.dart';
 import '../features/stock/services/stock_service.dart';
 import '../features/stock/models/product.dart';
 import '../features/work_order/services/work_order_service.dart';
-import '../shared/widgets/safe_image_file.dart';
+import 'package:fieldforce_mobile/shared/widgets/safe_image_file.dart';
 
 class _MaterialResult {
   final Product? product;
