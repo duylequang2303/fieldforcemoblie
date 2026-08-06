@@ -10,7 +10,6 @@ import '../../../shared/widgets/offline_banner.dart';
 import '../models/fsm_order.dart';
 import '../providers/orders_provider.dart';
 import '../widgets/recurring_badge.dart';
-import '../services/recurring_service.dart';
 import '../../route_map/providers/route_provider.dart';
 import '../../work_order/providers/work_order_provider.dart';
 import '../widgets/order_status_chip.dart';
@@ -135,7 +134,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               runSpacing: 4,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                OrderStatusChip(stage: order.stage),
+                OrderStatusChip(stage: order.stage, isSkipped: order.isSkipped),
                 if (order.recurringId != null && order.recurringId! > 0)
                   RecurringBadge(recurringId: order.recurringId!, showText: true),
               ],
@@ -240,7 +239,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _buildActionsCard(
+      Widget _buildRelatedActions(
       BuildContext context, OrdersProvider provider, FsmOrder order) {
+    final isClosed = order.stage == FsmOrderStage.done ||
+        order.stage == FsmOrderStage.cancelled ||
+        order.isSkipped ||
+        order.isRecurringProcessed;
+    final theme = Theme.of(context);
+
     return _SectionCard(
       title: 'CÔNG VIỆC LIÊN QUAN',
       icon: Icons.work_outline,
@@ -250,52 +256,66 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           label: 'Xem bản đồ tuyến đường',
           subtitle: 'Xem vị trí và chỉ đường',
           onTap: () => context.push(RouteNames.routeMap),
-          color: AppColors.info,
+          color: theme.colorScheme.secondary,
         ),
         const Divider(height: 1, indent: 68),
         _ActionTile(
           icon: Icons.qr_code_scanner_outlined,
           label: 'Quét vật tư / Stock',
-          subtitle: 'Quản lý vật tư và thiết bị',
-          onTap: () => context.push(
-            RouteNames.stockMoves.replaceFirst(':orderId', '${order.odooId}'),
-          ),
-          color: AppColors.warning,
+          subtitle: isClosed
+              ? 'Đơn đã đóng/bỏ qua - Không thể thực hiện'
+              : 'Quản lý vật tư và thiết bị',
+          onTap: isClosed
+              ? null
+              : () => context.push(
+                    RouteNames.stockMoves.replaceFirst(':orderId', '${order.odooId}'),
+                  ),
+          color: theme.colorScheme.tertiary,
         ),
         const Divider(height: 1, indent: 68),
         _ActionTile(
           icon: Icons.access_time_outlined,
           label: 'Ghi nhận giờ công',
-          subtitle: 'Thêm timesheet cho đơn',
-          onTap: () => context.push(
-            RouteNames.timesheet.replaceFirst(':orderId', '${order.odooId}'),
-          ),
-          color: AppColors.info,
+          subtitle: isClosed
+              ? 'Đơn đã đóng/bỏ qua - Không thể thực hiện'
+              : 'Thêm timesheet cho đơn',
+          onTap: isClosed
+              ? null
+              : () => context.push(
+                    RouteNames.timesheet.replaceFirst(':orderId', '${order.odooId}'),
+                  ),
+          color: theme.colorScheme.secondary,
         ),
         const Divider(height: 1, indent: 68),
         _ActionTile(
           icon: Icons.receipt_long_outlined,
           label: 'Thêm khoản chi',
-          subtitle: 'Ghi nhận chi phí phát sinh',
-          onTap: () => context.push(
-            RouteNames.expense.replaceFirst(':orderId', '${order.odooId}'),
-          ),
-          color: AppColors.error,
+          subtitle: isClosed
+              ? 'Đơn đã đóng/bỏ qua - Không thể thực hiện'
+              : 'Ghi nhận chi phí phát sinh',
+          onTap: isClosed
+              ? null
+              : () => context.push(
+                    RouteNames.expense.replaceFirst(':orderId', '${order.odooId}'),
+                  ),
+          color: theme.colorScheme.error,
         ),
         const Divider(height: 1, indent: 68),
         _ActionTile(
           icon: Icons.fact_check_outlined,
           label: 'Nghiệm thu & Chữ ký',
-          subtitle: 'Hoàn tất và ký xác nhận',
-          onTap: () => context.push(
-            RouteNames.workOrder.replaceFirst(':orderId', '${order.odooId}'),
-          ),
-          color: AppColors.success,
-          highlight: true,
+          subtitle: isClosed
+              ? 'Đơn đã đóng/bỏ qua - Không thể thực hiện'
+              : 'Hoàn tất và ký xác nhận',
+          onTap: isClosed
+              ? null
+              : () => context.push(
+                    RouteNames.workOrder.replaceFirst(':orderId', '${order.odooId}'),
+                  ),
+          color: theme.colorScheme.primary,
+          highlight: !isClosed,
         ),
-        if (order.isRecurringInstance &&
-            order.stage != FsmOrderStage.done &&
-            order.stage != FsmOrderStage.cancelled) ...[
+        if (order.isRecurringInstance && !isClosed && !order.isRecurringProcessed) ...[
           const Divider(height: 1, indent: 68),
           _ActionTile(
             icon: Icons.skip_next_outlined,
@@ -321,7 +341,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 ),
               );
               if (confirm == true) {
-                await RecurringService.instance.skipOccurrence(order);
+                await provider.skipOccurrence(order);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -331,7 +351,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 }
               }
             },
-            color: AppColors.warning,
+            color: theme.colorScheme.error,
           ),
         ],
       ],
@@ -377,7 +397,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
         child: Row(
           children: [
             if (order.stage == FsmOrderStage.done ||
-                order.stage == FsmOrderStage.cancelled)
+                order.stage == FsmOrderStage.cancelled ||
+                order.isSkipped ||
+                order.isRecurringProcessed)
               Expanded(
                 child: Container(
                   height: 56,
@@ -389,23 +411,29 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        Icons.check_circle,
+                        (order.isSkipped || order.isRecurringProcessed && order.stage == FsmOrderStage.cancelled)
+                            ? Icons.next_plan_outlined
+                            : (order.stage == FsmOrderStage.done
+                                ? Icons.check_circle
+                                : Icons.cancel),
                         size: 22,
                         color: order.stage == FsmOrderStage.done
                             ? AppColors.success
-                            : AppColors.onSurfaceMuted,
+                            : Colors.grey,
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        order.stage == FsmOrderStage.done
-                            ? 'Đã hoàn thành'
-                            : 'Đã huỷ',
+                        (order.isSkipped || order.isRecurringProcessed && order.stage == FsmOrderStage.cancelled)
+                            ? 'Đã bỏ qua'
+                            : (order.stage == FsmOrderStage.done
+                                ? 'Đã hoàn thành'
+                                : 'Đã huỷ'),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                           color: order.stage == FsmOrderStage.done
                               ? AppColors.success
-                              : AppColors.onSurfaceMuted,
+                              : Colors.grey,
                         ),
                       ),
                     ],
@@ -761,7 +789,7 @@ class _ActionTile extends StatelessWidget {
     required this.icon,
     required this.label,
     this.subtitle,
-    required this.onTap,
+    this.onTap,
     this.color,
     this.highlight = false,
   });
@@ -769,14 +797,15 @@ class _ActionTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final String? subtitle;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final Color? color;
   final bool highlight;
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor =
-        color ?? (highlight ? AppColors.accent : AppColors.primary);
+    final theme = Theme.of(context);
+    final fallbackColor = highlight ? theme.colorScheme.primary : theme.colorScheme.secondary;
+    final effectiveColor = onTap == null ? theme.colorScheme.outline : (color ?? fallbackColor);
 
     return InkWell(
       onTap: onTap,

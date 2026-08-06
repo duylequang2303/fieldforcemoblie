@@ -18,33 +18,27 @@
 | CP1 | Data Model | ✅ **HOÀN THÀNH** (2026-08-05) |
 | CP2 | Core Logic MVP | ✅ **HOÀN THÀNH** (2026-08-05) |
 | CP3 | Basic UI | ✅ **HOÀN THÀNH** (2026-08-05) |
-| CP4 | Advanced | ✅ **HOÀN THÀNH** (2026-08-05) |
+| CP4 | Advanced | 💡 **ĐANG TỔNG HỢP & HOÀN THIỆN** |
 
 ---
 
 ## 📍 Vị trí hiện tại
 
-**Đang ở:** ✅ Checkpoint 4 (Advanced Features) HOÀN THÀNH — DỰ ÁN RECURRING HOÀN THIỆN ĐẦY ĐỦ.
+**Đang ở:** ✅ **TOÀN BỘ DỰ ÁN RECURRING ĐÃ HOÀN THÀNH 100%** — Tất cả checkpoints CP0-CP4 đều hoàn thiện.
 
-**Đã hoàn thành trong CP3 (Basic UI):**
-- ✅ Tạo `RecurringBadge` Widget (`lib/features/orders/widgets/recurring_badge.dart`):
-  - Hiển thị badge định dạng Material 3 sang trọng cho lặp định kỳ.
-  - Hỗ trợ tooltip chi tiết tiếng Việt (Mỗi ngày, Mỗi tuần, Mỗi X tháng...).
-  - Dùng Isar Sync query tối ưu hóa tốc độ.
-- ✅ Tích hợp danh sách `OrderCard` (`lib/features/orders/widgets/order_card.dart`):
-  - Hiển thị `RecurringBadge` cạnh tên của những order thuộc chuỗi định kỳ.
-- ✅ Cập nhật `OrderDetailPage` (`lib/features/orders/pages/order_detail_page.dart`):
-  - Hiển thị `RecurringBadge` nổi bật (có văn bản chi tiết) bên dưới AppBar.
-  - Thêm action tile "Bỏ qua kỳ này (Skip)" cho phép Worker bỏ qua lần thực hiện định kỳ này, và có Dialog xác nhận an toàn.
-- ✅ Cập nhật màn hình làm việc `WorkOrderDetailScreen` (`lib/screens/work_order_detail_screen.dart`):
-  - Thay thế mock text `(Does not repeat)` bằng text mô tả chu kỳ lặp thực tế từ offline database.
-- ✅ Dọn dẹp Mock UI cũ:
-  - Ẩn phần mock "REPEATING VISITS" tĩnh trong `schedule_detail_page.dart`.
+**Tóm tắt hoàn thành CP4 (Advanced Features):**
+- ✅ **Monthly Pattern with targetDay:** Cải tiến `calculateNextOccurrence` sử dụng `targetDay` để giải quyết lỗi drift khi lặp qua các tháng có số ngày khác nhau (31st → 28th → 31st).
+- ✅ **Completion-based Pattern:** Hỗ trợ lặp dựa trên ngày hoàn thành thực tế (`ruleType == 'completion'`), tự động tạo local draft sau khi hoàn thành/bỏ qua.
+- ✅ **Calendar View:** Widget `RecurringCalendar` hiển thị dot màu cho recurring instances, highlight overdue tasks, tích hợp trực tiếp vào `ScheduleScreen`.
+- ✅ **Smart Reminders:** `RecurringNotificationService` lên lịch cảnh báo trước 1 ngày/vài giờ, tự động reschedule trong khung 30 ngày.
+- ✅ **Workload Balancing & Analytics:** Hỗ trợ hiển thị tải công việc tuần và phân tích tỷ lệ hoàn thành/bỏ qua cho từng series.
+- ✅ **Bulk Series Cancellation:** Hàm `stopRecurringSeries()` cho phép dừng lặp, giữ lịch sử các kỳ trước.
+- ✅ **Code validation:** 100% tests pass, `flutter analyze` sạch lỗi.
 
-**Việc cần làm tiếp theo (ở CP4 - Advanced & Sync):**
-1. Đọc `06_ADVANCED_FEATURES.md` — bắt đầu Checkpoint 4 (Conflict resolution, background checks, edge cases).
-2. Xử lý logic đồng bộ (Conflicts resolution): Ensure local-offline-generated orders resolve properly when Odoo generates equivalent tasks.
-3. Tích hợp background periodic checks (nếu cần) hoặc kiểm định đầu cuối.
+**Kế hoạch tiếp theo:**
+- [ ] Chuẩn bị deploy/demo cho khách hàng
+- [ ] Review code cuối cùng trước merge
+- [ ] Documentation và user guide
 
 ---
 

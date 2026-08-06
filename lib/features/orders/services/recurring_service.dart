@@ -13,6 +13,8 @@ class RecurringService {
 
   final _odoo = OdooSessionManager.instance;
   final _isar = IsarService.instance;
+  bool _isGenerating = false;
+  bool _pendingRegeneration = false;
 
   /// Fetch fsm.recurring và fsm.frequency.set từ Odoo về Isar.
   Future<void> fetchRecurringRules() async {
@@ -135,11 +137,18 @@ class RecurringService {
   /// Tự động sinh local order instances cho các lặp định kỳ đến hạn khi OFFLINE.
   /// Gọi khi app khởi động hoặc định kỳ.
   Future<void> generateOfflineInstances() async {
+    if (_isGenerating) {
+      _pendingRegeneration = true;
+      logger.i('RecurringService: Generation already in progress, setting pending regeneration flag.');
+      return;
+    }
+    _isGenerating = true;
     try {
       logger.i('RecurringService: Checking and generating offline recurring instances...');
 
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
+      final horizon = today.add(const Duration(days: 30)); // 30-day scheduling horizon
 
       // Lấy toàn bộ active recurring rules từ database
       final activeRules = await _isar.db.fsmRecurrings
@@ -149,8 +158,10 @@ class RecurringService {
 
       int count = 0;
       for (final rule in activeRules) {
-        // Nếu không có nextDate hoặc nextDate chưa đến hạn thì skip
-        if (rule.nextDate == null || rule.nextDate!.isAfter(today)) {
+        if (rule.nextDate == null) continue;
+
+        // Bỏ qua completion rules nếu nextDate ở tương lai (đơn completion chỉ sinh khi hoàn thành/skip)
+        if (rule.ruleType == 'completion' && rule.nextDate!.isAfter(today)) {
           continue;
         }
 
@@ -165,45 +176,80 @@ class RecurringService {
           continue;
         }
 
-        // Kiểm tra xem đã có instance nào cho rule này vào ngày nextDate chưa
-        // để tránh duplicate local instances
-        final existInstance = await _isar.db.fsmOrders
-            .filter()
-            .recurringIdEqualTo(rule.odooId)
-            .scheduledDateStartEqualTo(rule.nextDate)
-            .findFirst();
-
-        if (existInstance != null) {
-          // Đã có instance cho hôm đó -> update nextDate để tính kỳ sau
-          await _isar.db.writeTxn(() async {
-            if (rule.ruleType == 'completion') {
-              // Completion-based: clear nextDate, will be set on completion/skip
+        // Vòng lặp sinh các instance trong tương lai đến hết horizon
+        while (rule.nextDate != null && !rule.nextDate!.isAfter(horizon)) {
+          // Check endDate inclusively
+          if (rule.endDate != null) {
+            final endLimit = DateTime(rule.endDate!.year, rule.endDate!.month, rule.endDate!.day, 23, 59, 59);
+            if (rule.nextDate!.isAfter(endLimit)) {
+              rule.isActive = false;
               rule.nextDate = null;
-            } else {
-              rule.nextDate = calculateNextOccurrence(rule.nextDate!, freqSet, targetDay: rule.startDate.day);
+              await _isar.db.writeTxn(() async {
+                await _isar.db.fsmRecurrings.put(rule);
+              });
+              break;
             }
-            await _isar.db.fsmRecurrings.put(rule);
-          });
-          continue;
-        }
+          }
 
-        // Generate local instance
-        // endDate guard: skip if scheduledStart is after rule.endDate
-        if (rule.endDate != null && rule.nextDate!.isAfter(rule.endDate!)) {
-          rule.isActive = false;
-          rule.nextDate = null;
-          await _isar.db.writeTxn(() async {
-            await _isar.db.fsmRecurrings.put(rule);
-          });
-          continue;
-        }
+          // Kiểm tra xem đã có instance nào cho rule này vào ngày nextDate chưa
+          final existInstance = await _isar.db.fsmOrders
+              .filter()
+              .recurringIdEqualTo(rule.odooId)
+              .scheduledDateStartEqualTo(rule.nextDate)
+              .findFirst();
 
-        await _generateLocalInstance(rule, freqSet);
-        count++;
+          if (existInstance == null) {
+            final success = await _generateLocalInstance(rule, freqSet);
+            if (success) {
+              count++;
+            } else {
+              break; // Dừng vòng lặp đối với rule này nếu không thể generate tiếp
+            }
+          } else if (existInstance.isSkipped) {
+            // Nếu đơn hàng trước đó đã được sinh nhưng bị skip, ta cần chắc chắn rule.nextDate
+            // được chuyển tiếp bình thường thay vì bị kẹt liên tiếp ở đây.
+            if (rule.ruleType == 'completion') {
+              // Đối với completion-based, nextDate được cập nhật tại skipOccurrence của order đó rồi.
+              // Nhưng nếu nextDate vẫn chỉ vào ngày này, ta cần reset/null để tránh loop.
+              if (rule.nextDate == existInstance.scheduledDateStart) {
+                await _isar.db.writeTxn(() async {
+                  rule.nextDate = null;
+                  await _isar.db.fsmRecurrings.put(rule);
+                });
+                break;
+              }
+            } else {
+              // Đối với date-based, tiến thêm một kỳ
+              final nextDate = calculateNextOccurrence(
+                rule.nextDate!,
+                freqSet,
+                targetDay: rule.startDate.day,
+              );
+              await _isar.db.writeTxn(() async {
+                rule.nextDate = nextDate;
+                await _isar.db.fsmRecurrings.put(rule);
+              });
+            }
+          } else {
+            // Đã tồn tại instance hoạt động bình thường, ta tự dịch chuyển nextDate tiếp theo cho Date-based
+            if (rule.ruleType == 'completion') {
+              break;
+            }
+            final nextDate = calculateNextOccurrence(
+              rule.nextDate!,
+              freqSet,
+              targetDay: rule.startDate.day,
+            );
+            await _isar.db.writeTxn(() async {
+              rule.nextDate = nextDate;
+              await _isar.db.fsmRecurrings.put(rule);
+            });
+          }
+        }
       }
 
       if (count > 0) {
-        logger.i('RecurringService: Generated $count offline instances.');
+        logger.i('RecurringService: Generated $count offline instances within 30-day horizon.');
       }
     } on IsarError catch (e, stackTrace) {
       logger.e('RecurringService.generateOfflineInstances: Isar error',
@@ -211,15 +257,25 @@ class RecurringService {
     } catch (e, stackTrace) {
       logger.e('RecurringService.generateOfflineInstances: Unexpected error',
           error: e, stackTrace: stackTrace);
+    } finally {
+      _isGenerating = false;
+      if (_pendingRegeneration) {
+        _pendingRegeneration = false;
+        Future.microtask(() => generateOfflineInstances());
+      }
     }
   }
 
-  /// Sinh một order instance local từ rule và frequency set
-  Future<void> _generateLocalInstance(FsmRecurring rule, FsmFrequencySet freqSet) async {
+  // Tạo odooId âm duy nhất dựa trên local id và counter tăng dần để tránh trùng lặp unique index trong cùng một microgiây
+  static int _tempOdooIdCounter = 0;
+
+  /// Sinh một order instance local từ rule và frequency set.
+  /// Trả về true nếu sinh đơn thành công.
+  Future<bool> _generateLocalInstance(FsmRecurring rule, FsmFrequencySet freqSet) async {
     try {
       if (rule.orderTemplateId == null || rule.orderTemplateId == 0) {
         logger.w('RecurringRule ${rule.odooId} has no order template.');
-        return;
+        return false;
       }
 
       // 1. Tìm order template. 
@@ -266,15 +322,16 @@ class RecurringService {
       // 2. Không có template -> không thể clone an toàn
       if (templateOrder == null) {
         logger.e('Cannot generate instance for rule ${rule.odooId}: Template order ${rule.orderTemplateId} not found.');
-        return;
+        return false;
       }
 
       // 3. Tạo instance local mới
       final scheduledStart = rule.nextDate!;
       final scheduledEnd = scheduledStart.add(const Duration(minutes: 120));
       
-      // Tạo odooId âm duy nhất dựa trên micro giây để tránh trùng lặp unique index
-      final tempOdooId = -DateTime.now().microsecondsSinceEpoch;
+      // Tạo odooId âm duy nhất dựa trên micro giây + counter để tránh trùng lặp unique index
+      _tempOdooIdCounter++;
+      final tempOdooId = -(DateTime.now().microsecondsSinceEpoch + _tempOdooIdCounter);
 
       final localOrder = FsmOrder()
         ..odooId = tempOdooId
@@ -317,21 +374,28 @@ class RecurringService {
           rule.nextDate = null;
         } else {
           rule.nextDate = calculateNextOccurrence(scheduledStart, freqSet, targetDay: rule.startDate.day);
-          if (rule.endDate != null && rule.nextDate!.isAfter(rule.endDate!)) {
-            rule.isActive = false;
-            rule.nextDate = null;
+          if (rule.endDate != null) {
+            final endLimit = DateTime(rule.endDate!.year, rule.endDate!.month, rule.endDate!.day, 23, 59, 59);
+            if (rule.nextDate!.isAfter(endLimit)) {
+              rule.isActive = false;
+              rule.nextDate = null;
+            }
           }
         }
         await _isar.db.fsmRecurrings.put(rule);
       });
 
       logger.i('Generated local recurring order instance: ${localOrder.name} for date $scheduledStart');
+      return true;
     } on IsarError catch (e, stackTrace) {
       logger.e('RecurringService._generateLocalInstance: Isar error', error: e, stackTrace: stackTrace);
+      return false;
     } on OdooApiException catch (e, stackTrace) {
       logger.e('RecurringService._generateLocalInstance: Odoo API error', error: e, stackTrace: stackTrace);
+      return false;
     } catch (e, stackTrace) {
       logger.e('RecurringService._generateLocalInstance: Unexpected error', error: e, stackTrace: stackTrace);
+      return false;
     }
   }
 
@@ -429,69 +493,83 @@ class RecurringService {
     }
   }
 
-  /// Skip một occurrence
-  Future<void> skipOccurrence(FsmOrder order) async {
-    if (order.recurringId == null) return;
+  /// Skip một occurrence, trả về true nếu thành công
+  Future<bool> skipOccurrence(FsmOrder order) async {
+    if (order.recurringId == null) {
+      throw ArgumentError('Order does not have a valid recurringId.');
+    }
 
     // Tránh double-skip khi retry
-    if (order.isRecurringProcessed || order.isSkipped) {
-      logger.i('Order ${order.odooId} is already marked as skipped or processed. Skipping retry skipOccurrence.');
-      return;
+    if (order.isSkipped) {
+      throw StateError('Đơn hàng đã được bỏ qua.');
+    }
+    if (order.isRecurringProcessed) {
+      throw StateError('Chu kỳ của đơn hàng này đã được thực hiện.');
     }
 
     FsmRecurring? updatedRule;
+    bool success = false;
 
-    try {
-      await _isar.db.writeTxn(() async {
-        final freshOrder = await _isar.db.fsmOrders.get(order.id);
-        if (freshOrder == null || freshOrder.isRecurringProcessed || freshOrder.isSkipped) return;
+    await _isar.db.writeTxn(() async {
+      final freshOrder = await _isar.db.fsmOrders.get(order.id);
+      if (freshOrder == null) {
+        throw StateError('Order not found under local database.');
+      }
+      if (freshOrder.isSkipped) {
+        throw StateError('Đơn hàng đã được bỏ qua trên DB cục bộ.');
+      }
+      if (freshOrder.isRecurringProcessed) {
+        throw StateError('Chu kỳ của đơn hàng này đã được thực hiện trên DB cục bộ.');
+      }
 
-        // Đọc recurring rule inside transaction
-        final rule = await _isar.db.fsmRecurrings
-            .filter()
-            .odooIdEqualTo(order.recurringId!)
-            .findFirst();
+      // Đọc recurring rule inside transaction
+      final rule = await _isar.db.fsmRecurrings
+          .filter()
+          .odooIdEqualTo(order.recurringId!)
+          .findFirst();
 
-        if (rule == null || !rule.isActive) return;
+      if (rule == null) {
+        throw StateError('Recurring rule not found for ID ${order.recurringId}');
+      }
+      if (!rule.isActive) {
+        throw StateError('Recurring rule is inactive.');
+      }
 
-        freshOrder.isSkipped = true;
-        freshOrder.isRecurringProcessed = true;
-        freshOrder.stage = FsmOrderStage.cancelled;
-        freshOrder.stageName = 'Cancelled';
-        freshOrder.isPendingSync = true;
-        await _isar.db.fsmOrders.put(freshOrder);
+      freshOrder.isSkipped = true;
+      freshOrder.isRecurringProcessed = true;
+      freshOrder.stage = FsmOrderStage.cancelled;
+      freshOrder.stageName = 'Cancelled';
+      freshOrder.isPendingSync = true;
+      await _isar.db.fsmOrders.put(freshOrder);
 
-        rule.skippedCount++;
+      rule.skippedCount++;
 
-        if (rule.ruleType == 'completion' && rule.completionInterval > 0) {
-          final today = DateTime.now();
-          final nextDate = DateTime(
-            today.year,
-            today.month,
-            today.day + rule.completionInterval,
-            freshOrder.scheduledDateStart?.hour ?? 9,
-            freshOrder.scheduledDateStart?.minute ?? 0,
-          );
-          rule.nextDate = nextDate;
-        }
-        await _isar.db.fsmRecurrings.put(rule);
-        updatedRule = rule;
-      });
-    } on IsarError catch (e, stackTrace) {
-      logger.e('RecurringService.skipOccurrence: Isar error', error: e, stackTrace: stackTrace);
-      return;
-    } catch (e, stackTrace) {
-      logger.e('RecurringService.skipOccurrence: Unexpected error', error: e, stackTrace: stackTrace);
-      return;
+      if (rule.ruleType == 'completion' && rule.completionInterval > 0) {
+        final today = DateTime.now();
+        final nextDate = DateTime(
+          today.year,
+          today.month,
+          today.day + rule.completionInterval,
+          freshOrder.scheduledDateStart?.hour ?? 9,
+          freshOrder.scheduledDateStart?.minute ?? 0,
+        );
+        rule.nextDate = nextDate;
+      }
+      await _isar.db.fsmRecurrings.put(rule);
+      updatedRule = rule;
+      success = true;
+    });
+
+    if (success) {
+      logger.i('Skipped occurrence for order ${order.odooId}');
+
+      if (updatedRule != null && updatedRule!.ruleType == 'completion' && updatedRule!.completionInterval > 0) {
+        logger.i('Skipped completion-based occurrence. Scheduled next on ${updatedRule!.nextDate}');
+        // Gọi generate offline sau khi transaction đã committed thành công
+        await generateOfflineInstances();
+      }
     }
-
-    logger.i('Skipped occurrence for order ${order.odooId}');
-
-    if (updatedRule != null && updatedRule!.ruleType == 'completion' && updatedRule!.completionInterval > 0) {
-      logger.i('Skipped completion-based occurrence. Scheduled next on ${updatedRule!.nextDate}');
-      // Gọi generate offline sau khi transaction đã committed thành công
-      await generateOfflineInstances();
-    }
+    return success;
   }
 
   /// Dừng chuỗi lặp: đặt isActive = false và xoá/huỷ các draft local-only instances tương lai.

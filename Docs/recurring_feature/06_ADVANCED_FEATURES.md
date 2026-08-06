@@ -2,7 +2,7 @@
 
 > **Mục tiêu:** Hoàn thiện full recurring feature
 > **Duration:** 3 tuần
-> **Status:** ⏳ PENDING
+> **Status:** 💡 **ĐANG THỰC HIỆN** (Đánh giá chất lượng)
 > **Pre-requisite:** Hoàn thành CP0 - CP3
 
 ---

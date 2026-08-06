@@ -3,17 +3,23 @@ import '../../../core/api/api_exception.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../models/fsm_order.dart';
 import '../services/orders_service.dart';
+import '../services/recurring_service.dart';
 
 /// State management cho danh sách fsm.order.
 class OrdersProvider extends ChangeNotifier {
-  OrdersProvider({OrdersService? service, ConnectivityService? connectivity})
-      : _service = service ?? OrdersService.instance,
-        _connectivity = connectivity ?? ConnectivityService.instance {
+  OrdersProvider({
+    OrdersService? service,
+    ConnectivityService? connectivity,
+    RecurringService? recurringService,
+  })  : _service = service ?? OrdersService.instance,
+        _connectivity = connectivity ?? ConnectivityService.instance,
+        _recurringService = recurringService ?? RecurringService.instance {
     _listenConnectivity();
   }
 
   final OrdersService _service;
   final ConnectivityService _connectivity;
+  final RecurringService _recurringService;
 
   List<FsmOrder> _orders = [];
   bool _isLoading = false;
@@ -156,6 +162,33 @@ class OrdersProvider extends ChangeNotifier {
       await _service.syncPending();
     } catch (_) {
       // Bỏ qua lỗi sync, sẽ retry sau
+    }
+  }
+
+  /// Đánh dấu bỏ qua kì định kỳ này (Skip), trả về true nếu thành công
+  Future<bool> skipOccurrence(FsmOrder order) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      final success = await _recurringService.skipOccurrence(order);
+      if (success) {
+        _orders = await _service.loadCachedOrders();
+        return true;
+      }
+      return false;
+    } on ArgumentError catch (e) {
+      _errorMessage = 'Lỗi tham số: ${e.message}';
+      return false;
+    } on StateError catch (e) {
+      _errorMessage = e.message;
+      return false;
+    } catch (e) {
+      _errorMessage = 'Lỗi không xác định khi bỏ qua đơn: $e';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 

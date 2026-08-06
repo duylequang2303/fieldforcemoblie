@@ -155,15 +155,22 @@ class FsmOrder {
   static DateTime? _dateOrNull(dynamic v) =>
       (v == null || v == false) ? null : DateTime.tryParse(v as String);
 
+  static FsmOrderStage parseStageName(String name) {
+    final normalized = name.toLowerCase().trim();
+    return switch (normalized) {
+      'new' || 'draft' || 'scheduled' || 'mới' || 'nháp' || 'đã lên lịch' || 'lên lịch' || 'hold' || 'on hold' || 'on_hold' => FsmOrderStage.draft,
+      'ready' || 'in_progress' || 'in progress' || 'sẵn sàng' || 'đang thực hiện' || 'thực hiện' => FsmOrderStage.inProgress,
+      'done' || 'completed' || 'hoàn thành' || 'hoàn' => FsmOrderStage.done,
+      'cancelled' || 'cancel' || 'huỷ' || 'hủy' || 'đã huỷ' || 'đã hủy' => FsmOrderStage.cancelled,
+      // fallback checks matching exact substring patterns
+      _ when normalized.contains('progress') || normalized.contains('thực hiện') || normalized.contains('ready') || normalized.contains('sẵn sàng') => FsmOrderStage.inProgress,
+      _ when normalized.contains('done') || normalized.contains('completed') || normalized.contains('hoàn') => FsmOrderStage.done,
+      _ when normalized.contains('cancel') || normalized.contains('huỷ') || normalized.contains('hủy') => FsmOrderStage.cancelled,
+      _ => FsmOrderStage.draft,
+    };
+  }
+
   static FsmOrderStage _parseStage(dynamic stageField) {
-    final name = _nameFromMany(stageField).toLowerCase();
-    if (name.contains('progress') || name.contains('thực hiện')) {
-      return FsmOrderStage.inProgress;
-    } else if (name.contains('done') || name.contains('hoàn')) {
-      return FsmOrderStage.done;
-    } else if (name.contains('cancel') || name.contains('huỷ')) {
-      return FsmOrderStage.cancelled;
-    }
-    return FsmOrderStage.draft;
+    return parseStageName(_nameFromMany(stageField));
   }
 }

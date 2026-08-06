@@ -18,6 +18,7 @@ import '../features/orders/models/fsm_frequency_set.dart';
 import '../features/orders/services/orders_service.dart';
 import '../core/database/isar_service.dart';
 import 'package:isar_community/isar.dart';
+import '../features/orders/services/recurring_service.dart';
 import '../features/stock/services/stock_service.dart';
 import '../features/stock/models/product.dart';
 import '../features/work_order/services/work_order_service.dart';
@@ -43,6 +44,16 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
   final TextEditingController _workDoneController = TextEditingController();
   final List<Map<String, dynamic>> _materialsUsed = [];
   final List<String> _photoPaths = [];
+  FsmOrder? _freshOrder;
+  bool _isProcessing = false;
+
+  bool get _isClosed {
+    final currentOrder = _freshOrder ?? widget.order;
+    return currentOrder.stage == FsmOrderStage.done ||
+        currentOrder.stage == FsmOrderStage.cancelled ||
+        currentOrder.isSkipped ||
+        currentOrder.isRecurringProcessed;
+  }
 
   String _repeatText = '(Không lặp)';
 
@@ -103,10 +114,15 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
 
   Future<void> _loadReportDraft() async {
     try {
+      final fresh = await IsarService.instance.db.fsmOrders
+          .filter()
+          .odooIdEqualTo(widget.order.odooId)
+          .findFirst();
       final report = await WorkOrderService.instance
           .getOrCreateReport(widget.order.odooId);
       if (mounted) {
         setState(() {
+          _freshOrder = fresh;
           _workDoneController.text = report.workDone;
           _customerNameController.text = report.customerName ?? '';
           _photoPaths.addAll(report.photoPaths);
@@ -430,6 +446,10 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
   }
 
   Future<void> _onComplete() async {
+    if (_isProcessing) return;
+    setState(() {
+      _isProcessing = true;
+    });
     try {
       final report = await WorkOrderService.instance
           .getOrCreateReport(widget.order.odooId);
@@ -490,22 +510,43 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
     } catch (e) {
       if (!mounted) return;
       _showSnackBar('Failed to complete order: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 
   Future<void> _onSkipConfirm() async {
-    final stageId = await OrdersService.instance
-        .getStageIdByKeywords(['cancel', 'huỷ', 'cancelled']);
-    if (stageId == null) {
-      if (!mounted) return;
-      _showSnackBar('Cancelled stage not configured in Odoo.');
-      return;
-    }
+    if (_isProcessing) return;
+    setState(() {
+      _isProcessing = true;
+    });
     try {
-      await OrdersService.instance.updateStage(widget.order.odooId, stageId);
+      final currentOrder = _freshOrder ?? widget.order;
+      bool success = false;
+      if (currentOrder.recurringId != null && currentOrder.recurringId! > 0) {
+        success = await RecurringService.instance.skipOccurrence(currentOrder);
+      } else {
+        final stageId = await OrdersService.instance
+            .getStageIdByKeywords(['cancel', 'huỷ', 'cancelled']);
+        if (stageId == null) {
+          if (!mounted) return;
+          _showSnackBar('Cancelled stage not configured in Odoo.');
+          return;
+        }
+        await OrdersService.instance.updateStage(widget.order.odooId, stageId);
+        success = true;
+      }
       if (!mounted) return;
-      _showSnackBar('Order skipped.');
-      Navigator.of(context).pop(true);
+      if (success) {
+        _showSnackBar('Order skipped.');
+        Navigator.of(context).pop(true);
+      } else {
+        _showSnackBar('Order was not skipped (it may already be processed).');
+      }
     } on OdooApiException {
       if (!mounted) return;
       _showSnackBar('Skipped locally — will sync when online.');
@@ -513,6 +554,12 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
     } catch (e) {
       if (!mounted) return;
       _showSnackBar('Failed to skip order: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 
@@ -551,6 +598,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
     final theme = Theme.of(context);
     final onSurfaceMuted = theme.colorScheme.onSurface.withOpacity(0.6);
     final onSurfaceFaint = theme.colorScheme.onSurface.withOpacity(0.5);
+    final isClosed = _isClosed;
+
     return Card(
       margin: EdgeInsets.zero,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
@@ -572,7 +621,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                               size: 14, color: onSurfaceMuted),
                           const SizedBox(width: 6),
                           Text(
-                            _formatDate(widget.order.scheduledDateStart),
+                            _formatDate(currentOrder.scheduledDateStart),
                             style: TextStyle(
                                 fontSize: 14,
                                 color: onSurfaceMuted,
@@ -582,13 +631,13 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        widget.order.locationAddress ?? widget.order.name,
+                        currentOrder.locationAddress ?? currentOrder.name,
                         style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w700, height: 1.3),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        widget.order.partnerName ?? 'Anonymous customer',
+                        currentOrder.partnerName ?? 'Anonymous customer',
                         style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -630,7 +679,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                               color: onSurfaceFaint)),
                       const SizedBox(height: 4),
                       Text(
-                        '${_formatDate(widget.order.scheduledDateStart)}\n$_repeatText',
+                        '${_formatDate(currentOrder.scheduledDateStart)}\n$_repeatText',
                         style: TextStyle(
                             fontSize: 14,
                             color: theme.colorScheme.onSurface,
@@ -650,7 +699,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                               color: onSurfaceFaint)),
                       const SizedBox(height: 4),
                       Text(
-                        '${_duration(widget.order.scheduledDateStart, widget.order.scheduledDateEnd)}\nPrice TBD',
+                        '${_duration(currentOrder.scheduledDateStart, currentOrder.scheduledDateEnd)}\nPrice TBD',
                         style: TextStyle(
                             fontSize: 14,
                             color: theme.colorScheme.onSurface,
@@ -662,43 +711,70 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
               ],
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton(
-                    key: const Key('btn_mark_complete'),
-                    onPressed: _onComplete,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: theme.colorScheme.onPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+            if (isClosed)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: currentOrder.stage == FsmOrderStage.done
+                      ? theme.colorScheme.primaryContainer
+                      : theme.colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Center(
+                  child: Text(
+                    currentOrder.isSkipped
+                        ? 'Job skipped / Đã bỏ qua'
+                        : (currentOrder.stage == FsmOrderStage.done
+                            ? 'Job completed / Đã hoàn thành'
+                            : 'Job cancelled / Đã huỷ'),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: currentOrder.stage == FsmOrderStage.done
+                          ? theme.colorScheme.onPrimaryContainer
+                          : theme.colorScheme.onErrorContainer,
                     ),
-                    child: const Text('Mark complete',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    key: const Key('btn_skip'),
-                    onPressed: _askSkip,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: BorderSide(color: theme.dividerColor),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton(
+                      key: const Key('btn_mark_complete'),
+                      onPressed: _isProcessing ? null : _onComplete,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('Mark complete',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
-                    child: Text('Skip',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color:
-                                theme.colorScheme.onSurface.withOpacity(0.7))),
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      key: const Key('btn_skip'),
+                      onPressed: _isProcessing ? null : _askSkip,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(color: theme.dividerColor),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: Text('Skip',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.7))),
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
       ),
@@ -707,9 +783,16 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
 
   Widget _photoThumb(int index, String path) {
     final theme = Theme.of(context);
-    return SizedBox(
+    final isClosed = _isClosed;
+
+    return Container(
       width: 88,
       height: 88,
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.dividerColor),
+      ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
@@ -724,21 +807,22 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                   176, // ✅ decode ở 176px (2x Retina) thay vì full resolution
             ),
           ),
-          Positioned(
-            top: -6,
-            right: -6,
-            child: GestureDetector(
-              onTap: () => _removePhoto(index),
-              child: Container(
-                width: 22,
-                height: 22,
-                decoration: BoxDecoration(
-                    color: theme.colorScheme.error, shape: BoxShape.circle),
-                child: Icon(Icons.close,
-                    color: theme.colorScheme.onError, size: 14),
+          if (!isClosed)
+            Positioned(
+              top: -6,
+              right: -6,
+              child: GestureDetector(
+                onTap: () => _removePhoto(index),
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                      color: theme.colorScheme.error, shape: BoxShape.circle),
+                  child: Icon(Icons.close,
+                      color: theme.colorScheme.onError, size: 14),
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -746,6 +830,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
 
   Widget _buildAttachments() {
     final theme = Theme.of(context);
+    final isClosed = _isClosed;
+
     return ExpandableSection(
       title: 'ATTACHMENTS',
       child: Wrap(
@@ -756,30 +842,31 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
               .asMap()
               .entries
               .map((e) => _photoThumb(e.key, e.value)),
-          InkWell(
-            onTap: _pickPhoto,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: theme.dividerColor),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.add_a_photo_outlined,
-                      size: 28, color: theme.colorScheme.primary),
-                  const SizedBox(height: 4),
-                  Text('Add Photo',
-                      style: TextStyle(
-                          fontSize: 10, color: theme.colorScheme.primary)),
-                ],
+          if (!isClosed)
+            InkWell(
+              onTap: _pickPhoto,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: theme.dividerColor),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.add_a_photo_outlined,
+                        size: 28, color: theme.colorScheme.primary),
+                    const SizedBox(height: 4),
+                    Text('Add Photo',
+                        style: TextStyle(
+                            fontSize: 10, color: theme.colorScheme.primary)),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -788,12 +875,15 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final currentOrder = _freshOrder ?? widget.order;
+    final isClosed = _isClosed;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.of(context).pop()),
-        title: Text(widget.order.locationAddress ?? widget.order.name),
+        title: Text(currentOrder.locationAddress ?? currentOrder.name),
         actions: [
           IconButton(icon: const Icon(Icons.edit_outlined), onPressed: () {})
         ],
@@ -809,12 +899,12 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                   ExpandableSection(
                     title: 'GENERAL INSTRUCTIONS',
                     initiallyExpanded: true,
-                    child: Text(_stripHtml(widget.order.description),
+                    child: Text(_stripHtml(currentOrder.description),
                         style: theme.textTheme.bodyMedium),
                   ),
                   ExpandableSection(
                     title: 'WORK REQUIRED',
-                    child: Text(_stripHtml(widget.order.description),
+                    child: Text(_stripHtml(currentOrder.description),
                         style: theme.textTheme.bodyMedium),
                   ),
                   _buildAttachments(),
@@ -839,7 +929,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                         const SizedBox(height: 8),
                         TextButton.icon(
                           key: const Key('btn_add_material'),
-                          onPressed: _openMaterialSheet,
+                          onPressed: isClosed ? null : _openMaterialSheet,
                           icon: const Icon(Icons.add),
                           label: const Text('Add material'),
                           style: TextButton.styleFrom(padding: EdgeInsets.zero),
@@ -856,7 +946,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                             Expanded(
                               child: OutlinedButton.icon(
                                 key: const Key('btn_check_in'),
-                                onPressed: _onCheckIn,
+                                onPressed: isClosed ? null : _onCheckIn,
                                 icon: const Icon(Icons.play_arrow),
                                 label: const Text('Check-in'),
                               ),
@@ -865,7 +955,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                             Expanded(
                               child: OutlinedButton.icon(
                                 key: const Key('btn_check_out'),
-                                onPressed: _onCheckOut,
+                                onPressed: isClosed ? null : _onCheckOut,
                                 icon: const Icon(Icons.stop),
                                 label: const Text('Check-out'),
                               ),
@@ -886,6 +976,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                     title: 'WORK REPORT / BÁO CÁO CÔNG VIỆC',
                     child: TextField(
                       controller: _workDoneController,
+                      enabled: !isClosed,
                       maxLines: 3,
                       decoration: const InputDecoration(
                         labelText: 'Work done / Nội dung công việc',
@@ -902,6 +993,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                           padding: const EdgeInsets.only(bottom: 8),
                           child: TextField(
                             controller: _customerNameController,
+                            enabled: !isClosed,
                             decoration: const InputDecoration(
                               labelText: 'Customer name (người ký)',
                               border: OutlineInputBorder(),
@@ -915,12 +1007,15 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Signature(
-                              key: const Key('signature_pad'),
-                              controller: _signatureController,
-                              height: 150,
-                              backgroundColor:
-                                  theme.colorScheme.surfaceContainerHighest,
+                            child: AbsorbPointer(
+                              absorbing: isClosed,
+                              child: Signature(
+                                key: const Key('signature_pad'),
+                                controller: _signatureController,
+                                height: 150,
+                                backgroundColor:
+                                    theme.colorScheme.surfaceContainerHighest,
+                              ),
                             ),
                           ),
                         ),
@@ -928,7 +1023,9 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
-                              onPressed: () => _signatureController.clear(),
+                              onPressed: isClosed
+                                  ? null
+                                  : () => _signatureController.clear(),
                               child: const Text('Clear')),
                         ),
                       ],

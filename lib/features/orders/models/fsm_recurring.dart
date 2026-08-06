@@ -87,8 +87,8 @@ class FsmRecurring {
       'start_date': startDate.toIso8601String().split('T')[0],
       'end_date': endDate?.toIso8601String().split('T')[0],
       'next_date': nextDate?.toIso8601String().split('T')[0],
-      'generated_count': generatedCount,
       'active': isActive,
+      // NOT sending 'generated_count' since Odoo backend doesn't support or sync it
       // NOTE: rule_type, completion_interval, completed_count, skipped_count are LOCAL-ONLY
       // not synced to Odoo (backend doesn't have these fields)
     };

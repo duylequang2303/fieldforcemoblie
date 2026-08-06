@@ -72,10 +72,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
   }
 
-  // Lọc orders theo ngày đã chọn
-  List<FsmOrder> get _filteredOrders {
-    return _orders.where((order) {
-      if (order.scheduledDateStart == null) return false;
+      // Lọc orders theo ngày đã chọn và ẩn các đơn bị skip
+      List<FsmOrder> get _filteredOrders {
+        return _orders.where((order) {
+          if (order.isSkipped) return false;
+          if (order.scheduledDateStart == null) return false;
       final matchDate = order.scheduledDateStart!.year == _selectedDate.year &&
           order.scheduledDateStart!.month == _selectedDate.month &&
           order.scheduledDateStart!.day == _selectedDate.day;
@@ -296,10 +297,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                       RecurringCalendar(
                         selectedDate: _selectedDate,
                         orders: _orders,
-                        onDateSelected: (date) {
+                        onDateSelected: (date) async {
                           setState(() {
                             _selectedDate = date;
                           });
+                          // Khi chuyển qua ngày khác, tự động chạy check sinh local recurring instances
+                          await RecurringService.instance.generateOfflineInstances();
+                          final updated = await OrdersService.instance.loadCachedOrders();
+                          if (mounted) {
+                            setState(() {
+                              _orders = updated;
+                            });
+                          }
                         },
                       ),
                       const Divider(height: 1),

@@ -401,21 +401,18 @@ class OrdersService {
   void _updateStageFields(FsmOrder local, int newStageId) {
     local.stageId = newStageId;
     final name = _stageNames[newStageId] ?? '';
+    local.stage = FsmOrder.parseStageName(name);
 
-    if (name.contains('progress') || name.contains('thực hiện')) {
-      local.stageName = 'In Progress';
-      local.stage = FsmOrderStage.inProgress;
-    } else if (name.contains('completed') ||
-        name.contains('done') ||
-        name.contains('hoàn')) {
-      local.stageName = 'Completed';
-      local.stage = FsmOrderStage.done;
-    } else if (name.contains('cancel') || name.contains('huỷ')) {
-      local.stageName = 'Cancelled';
-      local.stage = FsmOrderStage.cancelled;
+    // Giữ nguyên nhãn Odoo gốc nếu có, chỉ fallback sang tiếng Anh mặc định nếu rỗng
+    if (name.isNotEmpty) {
+      local.stageName = name;
     } else {
-      local.stageName = 'New';
-      local.stage = FsmOrderStage.draft;
+      local.stageName = switch (local.stage) {
+        FsmOrderStage.inProgress => 'In Progress',
+        FsmOrderStage.done => 'Completed',
+        FsmOrderStage.cancelled => 'Cancelled',
+        FsmOrderStage.draft => 'New',
+      };
     }
   }
 
