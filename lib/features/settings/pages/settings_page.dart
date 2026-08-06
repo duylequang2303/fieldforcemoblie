@@ -10,6 +10,7 @@ import '../../../../core/routing/route_names.dart';
 import '../../../../core/settings/offline_storage_service.dart';
 import '../../../../core/settings/settings_repository.dart';
 import '../../../../core/settings/sync_status_provider.dart';
+import '../../../core/database/sync_manager.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../ui/theme/sf_tokens.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -355,10 +356,22 @@ class _SettingsPageState extends State<SettingsPage> {
             trailing: DropdownButton<int>(
               value: _autoSync,
               underline: const SizedBox.shrink(),
-              onChanged: (v) {
+              onChanged: (v) async {
                 if (v == null) return;
+                final previousValue = _autoSync;
                 setState(() => _autoSync = v);
-                SettingsRepository.instance.saveAutoSyncMinutes(v);
+                try {
+                  await SettingsRepository.instance.saveAutoSyncMinutes(v);
+                  SyncManager.instance.applyPreferences();
+                } catch (e) {
+                  logger.e('Failed to save auto-sync settings', error: e);
+                  if (mounted) {
+                    setState(() => _autoSync = previousValue);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Lưu cấu hình không thành công.')),
+                    );
+                  }
+                }
               },
               items: const [
                 DropdownMenuItem(value: 0, child: Text('Off')),
@@ -376,9 +389,21 @@ class _SettingsPageState extends State<SettingsPage> {
             trailing: Switch(
               value: _wifiOnly,
               activeThumbColor: SfTokens.primary,
-              onChanged: (v) {
+              onChanged: (v) async {
+                final previousValue = _wifiOnly;
                 setState(() => _wifiOnly = v);
-                SettingsRepository.instance.saveWifiOnly(v);
+                try {
+                  await SettingsRepository.instance.saveWifiOnly(v);
+                  SyncManager.instance.applyPreferences();
+                } catch (e) {
+                  logger.e('Failed to save wifi-only settings', error: e);
+                  if (mounted) {
+                    setState(() => _wifiOnly = previousValue);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Lưu cấu hình không thành công.')),
+                    );
+                  }
+                }
               },
             ),
           ),

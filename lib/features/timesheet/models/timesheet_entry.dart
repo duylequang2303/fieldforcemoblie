@@ -14,6 +14,10 @@ class TimesheetEntry {
   @Index()
   late int orderOdooId; // fsm.order.id
 
+  /// ID của user sở hữu dữ liệu offline này (cách ly dữ liệu giữa các user).
+  @Index()
+  int? localOwnerId;
+
   late DateTime date; // Ngày làm việc
   late double hours; // Số giờ công
   late String name; // Mô tả công việc

@@ -42,18 +42,23 @@ const TimesheetEntrySchema = CollectionSchema(
       name: r'isPendingSync',
       type: IsarType.bool,
     ),
-    r'name': PropertySchema(
+    r'localOwnerId': PropertySchema(
       id: 5,
+      name: r'localOwnerId',
+      type: IsarType.long,
+    ),
+    r'name': PropertySchema(
+      id: 6,
       name: r'name',
       type: IsarType.string,
     ),
     r'odooId': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'odooId',
       type: IsarType.long,
     ),
     r'orderOdooId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'orderOdooId',
       type: IsarType.long,
     )
@@ -72,6 +77,19 @@ const TimesheetEntrySchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'orderOdooId',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
+    r'localOwnerId': IndexSchema(
+      id: 8066245324207909689,
+      name: r'localOwnerId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'localOwnerId',
           type: IndexType.value,
           caseSensitive: false,
         )
@@ -113,9 +131,10 @@ void _timesheetEntrySerialize(
   writer.writeString(offsets[2], object.employeeName);
   writer.writeDouble(offsets[3], object.hours);
   writer.writeBool(offsets[4], object.isPendingSync);
-  writer.writeString(offsets[5], object.name);
-  writer.writeLong(offsets[6], object.odooId);
-  writer.writeLong(offsets[7], object.orderOdooId);
+  writer.writeLong(offsets[5], object.localOwnerId);
+  writer.writeString(offsets[6], object.name);
+  writer.writeLong(offsets[7], object.odooId);
+  writer.writeLong(offsets[8], object.orderOdooId);
 }
 
 TimesheetEntry _timesheetEntryDeserialize(
@@ -131,9 +150,10 @@ TimesheetEntry _timesheetEntryDeserialize(
   object.hours = reader.readDouble(offsets[3]);
   object.id = id;
   object.isPendingSync = reader.readBool(offsets[4]);
-  object.name = reader.readString(offsets[5]);
-  object.odooId = reader.readLongOrNull(offsets[6]);
-  object.orderOdooId = reader.readLong(offsets[7]);
+  object.localOwnerId = reader.readLongOrNull(offsets[5]);
+  object.name = reader.readString(offsets[6]);
+  object.odooId = reader.readLongOrNull(offsets[7]);
+  object.orderOdooId = reader.readLong(offsets[8]);
   return object;
 }
 
@@ -155,10 +175,12 @@ P _timesheetEntryDeserializeProp<P>(
     case 4:
       return (reader.readBool(offset)) as P;
     case 5:
-      return (reader.readString(offset)) as P;
-    case 6:
       return (reader.readLongOrNull(offset)) as P;
+    case 6:
+      return (reader.readString(offset)) as P;
     case 7:
+      return (reader.readLongOrNull(offset)) as P;
+    case 8:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -190,6 +212,14 @@ extension TimesheetEntryQueryWhereSort
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'orderOdooId'),
+      );
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterWhere> anyLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'localOwnerId'),
       );
     });
   }
@@ -354,6 +384,121 @@ extension TimesheetEntryQueryWhere
         lower: [lowerOrderOdooId],
         includeLower: includeLower,
         upper: [upperOrderOdooId],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterWhereClause>
+      localOwnerIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'localOwnerId',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterWhereClause>
+      localOwnerIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterWhereClause>
+      localOwnerIdEqualTo(int? localOwnerId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'localOwnerId',
+        value: [localOwnerId],
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterWhereClause>
+      localOwnerIdNotEqualTo(int? localOwnerId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [],
+              upper: [localOwnerId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [localOwnerId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [localOwnerId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [],
+              upper: [localOwnerId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterWhereClause>
+      localOwnerIdGreaterThan(
+    int? localOwnerId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [localOwnerId],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterWhereClause>
+      localOwnerIdLessThan(
+    int? localOwnerId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [],
+        upper: [localOwnerId],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterWhereClause>
+      localOwnerIdBetween(
+    int? lowerLocalOwnerId,
+    int? upperLocalOwnerId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [lowerLocalOwnerId],
+        includeLower: includeLower,
+        upper: [upperLocalOwnerId],
         includeUpper: includeUpper,
       ));
     });
@@ -760,6 +905,80 @@ extension TimesheetEntryQueryFilter
   }
 
   QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      localOwnerIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'localOwnerId',
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      localOwnerIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'localOwnerId',
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      localOwnerIdEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      localOwnerIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      localOwnerIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      localOwnerIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'localOwnerId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
       nameEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1099,6 +1318,20 @@ extension TimesheetEntryQuerySortBy
     });
   }
 
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      sortByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      sortByLocalOwnerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.desc);
+    });
+  }
+
   QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1218,6 +1451,20 @@ extension TimesheetEntryQuerySortThenBy
     });
   }
 
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      thenByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      thenByLocalOwnerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.desc);
+    });
+  }
+
   QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1293,6 +1540,13 @@ extension TimesheetEntryQueryWhereDistinct
     });
   }
 
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QDistinct>
+      distinctByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'localOwnerId');
+    });
+  }
+
   QueryBuilder<TimesheetEntry, TimesheetEntry, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1350,6 +1604,12 @@ extension TimesheetEntryQueryProperty
   QueryBuilder<TimesheetEntry, bool, QQueryOperations> isPendingSyncProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isPendingSync');
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, int?, QQueryOperations> localOwnerIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'localOwnerId');
     });
   }
 

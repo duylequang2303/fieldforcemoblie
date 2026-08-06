@@ -1,5 +1,6 @@
 import 'package:odoo_rpc/odoo_rpc.dart';
 import 'dart:async';
+import 'package:meta/meta.dart' show visibleForTesting;
 import 'api_exception.dart';
 
 /// Wrapper xung quanh [OdooClient] của thư viện odoo_rpc.

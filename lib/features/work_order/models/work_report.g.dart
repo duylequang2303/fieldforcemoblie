@@ -47,48 +47,53 @@ const WorkReportSchema = CollectionSchema(
       name: r'isSignatureSynced',
       type: IsarType.bool,
     ),
-    r'odooId': PropertySchema(
+    r'localOwnerId': PropertySchema(
       id: 6,
+      name: r'localOwnerId',
+      type: IsarType.long,
+    ),
+    r'odooId': PropertySchema(
+      id: 7,
       name: r'odooId',
       type: IsarType.long,
     ),
     r'orderOdooId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'orderOdooId',
       type: IsarType.long,
     ),
     r'photoPaths': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'photoPaths',
       type: IsarType.stringList,
     ),
     r'problemsFound': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'problemsFound',
       type: IsarType.string,
     ),
     r'recommendation': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'recommendation',
       type: IsarType.string,
     ),
     r'signedAt': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'signedAt',
       type: IsarType.dateTime,
     ),
     r'syncedAttachmentEntries': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'syncedAttachmentEntries',
       type: IsarType.stringList,
     ),
     r'syncedPhotoPaths': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'syncedPhotoPaths',
       type: IsarType.stringList,
     ),
     r'workDone': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'workDone',
       type: IsarType.string,
     )
@@ -102,11 +107,24 @@ const WorkReportSchema = CollectionSchema(
     r'orderOdooId': IndexSchema(
       id: -73562086872608232,
       name: r'orderOdooId',
-      unique: true,
+      unique: false,
       replace: false,
       properties: [
         IndexPropertySchema(
           name: r'orderOdooId',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
+    r'localOwnerId': IndexSchema(
+      id: 8066245324207909689,
+      name: r'localOwnerId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'localOwnerId',
           type: IndexType.value,
           caseSensitive: false,
         )
@@ -188,15 +206,16 @@ void _workReportSerialize(
   writer.writeBool(offsets[3], object.isPendingSync);
   writer.writeBool(offsets[4], object.isResolutionSynced);
   writer.writeBool(offsets[5], object.isSignatureSynced);
-  writer.writeLong(offsets[6], object.odooId);
-  writer.writeLong(offsets[7], object.orderOdooId);
-  writer.writeStringList(offsets[8], object.photoPaths);
-  writer.writeString(offsets[9], object.problemsFound);
-  writer.writeString(offsets[10], object.recommendation);
-  writer.writeDateTime(offsets[11], object.signedAt);
-  writer.writeStringList(offsets[12], object.syncedAttachmentEntries);
-  writer.writeStringList(offsets[13], object.syncedPhotoPaths);
-  writer.writeString(offsets[14], object.workDone);
+  writer.writeLong(offsets[6], object.localOwnerId);
+  writer.writeLong(offsets[7], object.odooId);
+  writer.writeLong(offsets[8], object.orderOdooId);
+  writer.writeStringList(offsets[9], object.photoPaths);
+  writer.writeString(offsets[10], object.problemsFound);
+  writer.writeString(offsets[11], object.recommendation);
+  writer.writeDateTime(offsets[12], object.signedAt);
+  writer.writeStringList(offsets[13], object.syncedAttachmentEntries);
+  writer.writeStringList(offsets[14], object.syncedPhotoPaths);
+  writer.writeString(offsets[15], object.workDone);
 }
 
 WorkReport _workReportDeserialize(
@@ -213,15 +232,16 @@ WorkReport _workReportDeserialize(
   object.isPendingSync = reader.readBool(offsets[3]);
   object.isResolutionSynced = reader.readBool(offsets[4]);
   object.isSignatureSynced = reader.readBool(offsets[5]);
-  object.odooId = reader.readLongOrNull(offsets[6]);
-  object.orderOdooId = reader.readLong(offsets[7]);
-  object.photoPaths = reader.readStringList(offsets[8]) ?? [];
-  object.problemsFound = reader.readStringOrNull(offsets[9]);
-  object.recommendation = reader.readStringOrNull(offsets[10]);
-  object.signedAt = reader.readDateTimeOrNull(offsets[11]);
-  object.syncedAttachmentEntries = reader.readStringList(offsets[12]) ?? [];
-  object.syncedPhotoPaths = reader.readStringList(offsets[13]) ?? [];
-  object.workDone = reader.readString(offsets[14]);
+  object.localOwnerId = reader.readLongOrNull(offsets[6]);
+  object.odooId = reader.readLongOrNull(offsets[7]);
+  object.orderOdooId = reader.readLong(offsets[8]);
+  object.photoPaths = reader.readStringList(offsets[9]) ?? [];
+  object.problemsFound = reader.readStringOrNull(offsets[10]);
+  object.recommendation = reader.readStringOrNull(offsets[11]);
+  object.signedAt = reader.readDateTimeOrNull(offsets[12]);
+  object.syncedAttachmentEntries = reader.readStringList(offsets[13]) ?? [];
+  object.syncedPhotoPaths = reader.readStringList(offsets[14]) ?? [];
+  object.workDone = reader.readString(offsets[15]);
   return object;
 }
 
@@ -247,20 +267,22 @@ P _workReportDeserializeProp<P>(
     case 6:
       return (reader.readLongOrNull(offset)) as P;
     case 7:
-      return (reader.readLong(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 8:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readLong(offset)) as P;
     case 9:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readStringList(offset) ?? []) as P;
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readStringList(offset) ?? []) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 13:
       return (reader.readStringList(offset) ?? []) as P;
     case 14:
+      return (reader.readStringList(offset) ?? []) as P;
+    case 15:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -279,61 +301,6 @@ void _workReportAttach(IsarCollection<dynamic> col, Id id, WorkReport object) {
   object.id = id;
 }
 
-extension WorkReportByIndex on IsarCollection<WorkReport> {
-  Future<WorkReport?> getByOrderOdooId(int orderOdooId) {
-    return getByIndex(r'orderOdooId', [orderOdooId]);
-  }
-
-  WorkReport? getByOrderOdooIdSync(int orderOdooId) {
-    return getByIndexSync(r'orderOdooId', [orderOdooId]);
-  }
-
-  Future<bool> deleteByOrderOdooId(int orderOdooId) {
-    return deleteByIndex(r'orderOdooId', [orderOdooId]);
-  }
-
-  bool deleteByOrderOdooIdSync(int orderOdooId) {
-    return deleteByIndexSync(r'orderOdooId', [orderOdooId]);
-  }
-
-  Future<List<WorkReport?>> getAllByOrderOdooId(List<int> orderOdooIdValues) {
-    final values = orderOdooIdValues.map((e) => [e]).toList();
-    return getAllByIndex(r'orderOdooId', values);
-  }
-
-  List<WorkReport?> getAllByOrderOdooIdSync(List<int> orderOdooIdValues) {
-    final values = orderOdooIdValues.map((e) => [e]).toList();
-    return getAllByIndexSync(r'orderOdooId', values);
-  }
-
-  Future<int> deleteAllByOrderOdooId(List<int> orderOdooIdValues) {
-    final values = orderOdooIdValues.map((e) => [e]).toList();
-    return deleteAllByIndex(r'orderOdooId', values);
-  }
-
-  int deleteAllByOrderOdooIdSync(List<int> orderOdooIdValues) {
-    final values = orderOdooIdValues.map((e) => [e]).toList();
-    return deleteAllByIndexSync(r'orderOdooId', values);
-  }
-
-  Future<Id> putByOrderOdooId(WorkReport object) {
-    return putByIndex(r'orderOdooId', object);
-  }
-
-  Id putByOrderOdooIdSync(WorkReport object, {bool saveLinks = true}) {
-    return putByIndexSync(r'orderOdooId', object, saveLinks: saveLinks);
-  }
-
-  Future<List<Id>> putAllByOrderOdooId(List<WorkReport> objects) {
-    return putAllByIndex(r'orderOdooId', objects);
-  }
-
-  List<Id> putAllByOrderOdooIdSync(List<WorkReport> objects,
-      {bool saveLinks = true}) {
-    return putAllByIndexSync(r'orderOdooId', objects, saveLinks: saveLinks);
-  }
-}
-
 extension WorkReportQueryWhereSort
     on QueryBuilder<WorkReport, WorkReport, QWhere> {
   QueryBuilder<WorkReport, WorkReport, QAfterWhere> anyId() {
@@ -346,6 +313,14 @@ extension WorkReportQueryWhereSort
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'orderOdooId'),
+      );
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterWhere> anyLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'localOwnerId'),
       );
     });
   }
@@ -504,6 +479,118 @@ extension WorkReportQueryWhere
         lower: [lowerOrderOdooId],
         includeLower: includeLower,
         upper: [upperOrderOdooId],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterWhereClause> localOwnerIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'localOwnerId',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterWhereClause>
+      localOwnerIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterWhereClause> localOwnerIdEqualTo(
+      int? localOwnerId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'localOwnerId',
+        value: [localOwnerId],
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterWhereClause>
+      localOwnerIdNotEqualTo(int? localOwnerId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [],
+              upper: [localOwnerId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [localOwnerId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [localOwnerId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [],
+              upper: [localOwnerId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterWhereClause>
+      localOwnerIdGreaterThan(
+    int? localOwnerId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [localOwnerId],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterWhereClause> localOwnerIdLessThan(
+    int? localOwnerId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [],
+        upper: [localOwnerId],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterWhereClause> localOwnerIdBetween(
+    int? lowerLocalOwnerId,
+    int? upperLocalOwnerId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [lowerLocalOwnerId],
+        includeLower: includeLower,
+        upper: [upperLocalOwnerId],
         includeUpper: includeUpper,
       ));
     });
@@ -954,6 +1041,80 @@ extension WorkReportQueryFilter
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isSignatureSynced',
         value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      localOwnerIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'localOwnerId',
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      localOwnerIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'localOwnerId',
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      localOwnerIdEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      localOwnerIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      localOwnerIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterFilterCondition>
+      localOwnerIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'localOwnerId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -2362,6 +2523,18 @@ extension WorkReportQuerySortBy
     });
   }
 
+  QueryBuilder<WorkReport, WorkReport, QAfterSortBy> sortByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterSortBy> sortByLocalOwnerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.desc);
+    });
+  }
+
   QueryBuilder<WorkReport, WorkReport, QAfterSortBy> sortByOdooId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'odooId', Sort.asc);
@@ -2527,6 +2700,18 @@ extension WorkReportQuerySortThenBy
     });
   }
 
+  QueryBuilder<WorkReport, WorkReport, QAfterSortBy> thenByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<WorkReport, WorkReport, QAfterSortBy> thenByLocalOwnerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.desc);
+    });
+  }
+
   QueryBuilder<WorkReport, WorkReport, QAfterSortBy> thenByOdooId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'odooId', Sort.asc);
@@ -2644,6 +2829,12 @@ extension WorkReportQueryWhereDistinct
     });
   }
 
+  QueryBuilder<WorkReport, WorkReport, QDistinct> distinctByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'localOwnerId');
+    });
+  }
+
   QueryBuilder<WorkReport, WorkReport, QDistinct> distinctByOdooId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'odooId');
@@ -2748,6 +2939,12 @@ extension WorkReportQueryProperty
   QueryBuilder<WorkReport, bool, QQueryOperations> isSignatureSyncedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isSignatureSynced');
+    });
+  }
+
+  QueryBuilder<WorkReport, int?, QQueryOperations> localOwnerIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'localOwnerId');
     });
   }
 

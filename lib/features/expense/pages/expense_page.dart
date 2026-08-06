@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/locale/locale_service.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_overlay.dart';
+import '../../../shared/widgets/safe_image_file.dart';
 import '../models/expense.dart';
 import '../providers/expense_provider.dart';
 import '../widgets/expense_form.dart';
@@ -321,14 +321,12 @@ class _ExpenseCard extends StatelessWidget {
           children: [
             // Receipt image or category icon
             if (expense.receiptImagePath != null)
-              ClipRRect(
+              SafeImageFile(
+                path: expense.receiptImagePath!,
+                width: 64,
+                height: 64,
+                fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  File(expense.receiptImagePath!),
-                  width: 64,
-                  height: 64,
-                  fit: BoxFit.cover,
-                ),
               )
             else
               Container(

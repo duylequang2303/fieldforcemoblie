@@ -48,14 +48,18 @@ class WorkOrderService {
 
   /// Lấy hoặc tạo mới báo cáo cho đơn.
   Future<WorkReport> getOrCreateReport(int orderOdooId) async {
+    final currentUserId = _odoo.currentUserId;
     final existing = await _isar.db.workReports
         .filter()
         .orderOdooIdEqualTo(orderOdooId)
+        .and()
+        .localOwnerIdEqualTo(currentUserId)
         .findFirst();
 
     if (existing != null) return existing;
 
     final report = WorkReport.create(orderOdooId: orderOdooId);
+    report.localOwnerId = currentUserId;
     await _isar.db.writeTxn(() async {
       await _isar.db.workReports.put(report);
     });
@@ -63,13 +67,21 @@ class WorkOrderService {
   }
 
   /// Lưu nội dung báo cáo (local).
-  Future<void> saveReport(WorkReport report) async {
+  Future<void> saveReport(WorkReport report, [int? currentUserId]) async {
+    final ownerId = currentUserId ?? _odoo.currentUserId;
+    if (ownerId == null) {
+      throw const OdooAuthException('Không tìm thấy phiên làm việc hợp lệ.');
+    }
     final existing = await _isar.db.workReports
         .filter()
         .orderOdooIdEqualTo(report.orderOdooId)
+        .and()
+        .localOwnerIdEqualTo(ownerId)
         .findFirst();
 
+    report.localOwnerId = ownerId;
     if (existing != null) {
+      report.id = existing.id;
       if (existing.workDone != report.workDone) {
         report.isResolutionSynced = false;
       }
@@ -185,9 +197,12 @@ class WorkOrderService {
 
   /// Sync các báo cáo chưa push (isPendingSync = true) — SyncManager gọi khi online.
   Future<void> syncPending() async {
+    final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) return;
     final pending = await _isar.db.workReports
         .filter()
         .isPendingSyncEqualTo(true)
+        .localOwnerIdEqualTo(currentUserId)
         .findAll();
     for (final report in pending) {
       try {
@@ -204,32 +219,33 @@ class WorkOrderService {
   Future<void> uploadPhotos(WorkReport report) async {
     if (report.photoPaths.isEmpty) return;
 
-    try {
-      final updatedSyncedPaths = List<String>.from(report.syncedPhotoPaths);
-      final updatedEntries = List<String>.from(report.syncedAttachmentEntries);
+    final updatedSyncedPaths = List<String>.from(report.syncedPhotoPaths);
+    final updatedEntries = List<String>.from(report.syncedAttachmentEntries);
 
-      // Build lookup: path → attachmentId
-      final attIdByPath = <String, int>{};
-      for (final entry in updatedEntries) {
-        final parts = entry.split('|');
-        if (parts.length == 2) {
-          final val = int.tryParse(parts[1]);
-          if (val != null) {
-            attIdByPath[parts[0]] = val;
-          }
+    // Build lookup: path &gt; attachmentId
+    final attIdByPath = <String, int>{};
+    for (final entry in updatedEntries) {
+      final parts = entry.split('|');
+      if (parts.length == 2) {
+        final val = int.tryParse(parts[1]);
+        if (val != null) {
+          attIdByPath[parts[0]] = val;
         }
       }
+    }
 
-      for (final path in report.photoPaths) {
-        if (updatedSyncedPaths.contains(path)) {
-          continue; // Bỏ qua ảnh đã sync hoàn chỉnh
-        }
+    for (final path in report.photoPaths) {
+      if (updatedSyncedPaths.contains(path)) {
+        continue; // Bỏ qua ảnh đã sync hoàn chỉnh
+      }
 
-        final file = File(path);
-        if (!await file.exists()) continue;
+      final file = File(path);
+      if (!await file.exists()) continue;
 
-        final filename = file.uri.pathSegments.last;
+      final filename = file.uri.pathSegments.last;
 
+      // Wrap xử lý riêng từng tệp tin để tránh hỏng toàn bộ hàng đợi đẩy ảnh
+      try {
         // Check nếu đã có attachment ID persisted từ lần retry trước
         int attId;
         if (attIdByPath.containsKey(path) && attIdByPath[path] != null) {
@@ -253,7 +269,7 @@ class WorkOrderService {
             ],
           ) as int;
 
-          // Persist ngay "path|attId" — trước message_post để retry không tạo duplicate
+          // Persist ngay "path|attId" &#8212; trước message_post để retry không tạo duplicate
           updatedEntries.add('$path|$attId');
           report.syncedAttachmentEntries = updatedEntries;
           await _isar.db.writeTxn(() async {
@@ -276,20 +292,23 @@ class WorkOrderService {
           },
         );
 
-        // Cả attachment + message_post thành công → mới cập nhật syncedPhotoPaths
+        // Cả attachment + message_post thành công &gt; mới cập nhật syncedPhotoPaths
         updatedSyncedPaths.add(path);
         report.syncedPhotoPaths = updatedSyncedPaths;
         await _isar.db.writeTxn(() async {
           await _isar.db.workReports.put(report);
         });
+      } on OdooApiException catch (e) {
+        logger.w('WorkOrderService.uploadPhotos: Lỗi Odoo API cho ảnh $path',
+            error: e);
+      } on IOException catch (e) {
+        logger.w(
+            'WorkOrderService.uploadPhotos: Lỗi đọc file hoặc mạng cho ảnh $path',
+            error: e);
+      } catch (e) {
+        logger.e('WorkOrderService.uploadPhotos: Lỗi không xác định cho ảnh $path',
+            error: e);
       }
-    } on OdooApiException catch (e) {
-      logger.w('WorkOrderService.uploadPhotos: Lỗi Odoo API khi tải ảnh',
-          error: e);
-    } on IOException catch (e) {
-      logger.w(
-          'WorkOrderService.uploadPhotos: Lỗi đọc file hoặc mạng khi tải ảnh',
-          error: e);
     }
   }
 

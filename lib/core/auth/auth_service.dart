@@ -1,6 +1,8 @@
+import 'dart:async';
 import '../api/odoo_session_manager.dart';
 import '../database/sync_manager.dart';
 import '../database/isar_service.dart';
+import '../database/database_migration_service.dart';
 import '../locale/locale_service.dart';
 import 'secure_storage.dart';
 import 'biometric_service.dart';
@@ -39,11 +41,24 @@ class AuthService {
       userId: session.userId,
       locale: session.locale,
     );
+
+    // Chạy migration gán các bản ghi offline cũ (không localOwnerId) cho user hiện tại (Fix Thread #5)
+    final migrationSuccess = await DatabaseMigrationService.migrateLegacyRecords(session.userId);
+    if (!migrationSuccess) {
+      logger.w('DatabaseMigrationService: Legacy record migration failed during login.');
+    }
+    // Bắt đầu đồng bộ sau khi migration hoàn thành (đã giải quyết race condition)
+    unawaited(SyncManager.instance.syncAfterAuth());
   }
 
   /// Thử restore session từ secure storage khi app khởi động.
   /// Trả về [true] nếu có session đã lưu (optimistic — không verify RPC).
   Future<bool> tryRestoreSession() async {
+    // Xóa legacy password (odoo_password) sớm trong luồng khởi động
+    // để đảm bảo migration được thực hiện dù hasSavedSession trả false
+    // (Fix CodeRabbit PR#34 Thread #10)
+    await _storage.removeLegacyPassword();
+
     final hasSaved = await _storage.hasSavedSession;
     if (!hasSaved) return false;
 
@@ -72,8 +87,18 @@ class AuthService {
       locale: locale ?? 'vi_VN',
     );
 
-    if (restored && locale != null && locale.isNotEmpty) {
-      LocaleService.instance.setLocale(locale);
+    if (restored) {
+      // Chạy migration gán các bản ghi offline cũ (không localOwnerId) cho user hiện tại (Fix Thread #5)
+      final migrationSuccess = await DatabaseMigrationService.migrateLegacyRecords(userId);
+      if (!migrationSuccess) {
+        logger.w('DatabaseMigrationService: Legacy record migration failed during restore.');
+      }
+      if (locale != null && locale.isNotEmpty) {
+        // Fix Thread #11: Await setLocale to ensure locale is persisted before returning
+        await LocaleService.instance.setLocale(locale);
+      }
+      // Bắt đầu đồng bộ sau khi migration hoàn thành (đã giải quyết race condition)
+      unawaited(SyncManager.instance.syncAfterAuth());
     }
 
     return restored;

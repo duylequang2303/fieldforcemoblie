@@ -114,8 +114,6 @@ class OdooSessionManager {
         locale: userLang,
       );
 
-      unawaited(SyncManager.instance.syncAfterAuth());
-
       return _currentSession!;
     } on OdooSessionExpiredException {
       throw const OdooAuthException('Phiên đăng nhập đã hết hạn.');
@@ -175,7 +173,6 @@ class OdooSessionManager {
         sessionId: sessionId,
         locale: locale,
       );
-      unawaited(SyncManager.instance.syncAfterAuth());
       return true;
     } catch (_) {
       _currentSession = null;

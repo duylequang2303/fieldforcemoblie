@@ -29,6 +29,9 @@ class IsarService {
     return _db!;
   }
 
+  /// Trả về Isar instance dạng nullable (tránh ném StateError).
+  Isar? get dbOrNull => (_db != null && _db!.isOpen && _initError == null) ? _db : null;
+
   @visibleForTesting
   set dbForTest(Isar isarDB) {
     _db = isarDB;

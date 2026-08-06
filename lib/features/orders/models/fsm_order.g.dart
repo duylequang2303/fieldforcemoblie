@@ -62,119 +62,124 @@ const FsmOrderSchema = CollectionSchema(
       name: r'lastSyncAt',
       type: IsarType.dateTime,
     ),
-    r'locationAddress': PropertySchema(
+    r'localOwnerId': PropertySchema(
       id: 9,
+      name: r'localOwnerId',
+      type: IsarType.long,
+    ),
+    r'locationAddress': PropertySchema(
+      id: 10,
       name: r'locationAddress',
       type: IsarType.string,
     ),
     r'locationLat': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'locationLat',
       type: IsarType.double,
     ),
     r'locationLng': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'locationLng',
       type: IsarType.double,
     ),
     r'locationName': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'locationName',
       type: IsarType.string,
     ),
     r'name': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'name',
       type: IsarType.string,
     ),
     r'odooId': PropertySchema(
-      id: 14,
+      id: 15,
       name: r'odooId',
       type: IsarType.long,
     ),
     r'partnerId': PropertySchema(
-      id: 15,
+      id: 16,
       name: r'partnerId',
       type: IsarType.long,
     ),
     r'partnerName': PropertySchema(
-      id: 16,
+      id: 17,
       name: r'partnerName',
       type: IsarType.string,
     ),
     r'partnerPhone': PropertySchema(
-      id: 17,
+      id: 18,
       name: r'partnerPhone',
       type: IsarType.string,
     ),
     r'personId': PropertySchema(
-      id: 18,
+      id: 19,
       name: r'personId',
       type: IsarType.long,
     ),
     r'personName': PropertySchema(
-      id: 19,
+      id: 20,
       name: r'personName',
       type: IsarType.string,
     ),
     r'priority': PropertySchema(
-      id: 20,
+      id: 21,
       name: r'priority',
       type: IsarType.string,
     ),
     r'recurringId': PropertySchema(
-      id: 21,
+      id: 22,
       name: r'recurringId',
       type: IsarType.long,
     ),
     r'requireSignature': PropertySchema(
-      id: 22,
+      id: 23,
       name: r'requireSignature',
       type: IsarType.bool,
     ),
     r'routeId': PropertySchema(
-      id: 23,
+      id: 24,
       name: r'routeId',
       type: IsarType.long,
     ),
     r'routeSequence': PropertySchema(
-      id: 24,
+      id: 25,
       name: r'routeSequence',
       type: IsarType.long,
     ),
     r'routeState': PropertySchema(
-      id: 25,
+      id: 26,
       name: r'routeState',
       type: IsarType.string,
     ),
     r'scheduledDateEnd': PropertySchema(
-      id: 26,
+      id: 27,
       name: r'scheduledDateEnd',
       type: IsarType.dateTime,
     ),
     r'scheduledDateStart': PropertySchema(
-      id: 27,
+      id: 28,
       name: r'scheduledDateStart',
       type: IsarType.dateTime,
     ),
     r'stage': PropertySchema(
-      id: 28,
+      id: 29,
       name: r'stage',
       type: IsarType.string,
       enumMap: _FsmOrderstageEnumValueMap,
     ),
     r'stageId': PropertySchema(
-      id: 29,
+      id: 30,
       name: r'stageId',
       type: IsarType.long,
     ),
     r'stageName': PropertySchema(
-      id: 30,
+      id: 31,
       name: r'stageName',
       type: IsarType.string,
     ),
     r'warehouseId': PropertySchema(
-      id: 31,
+      id: 32,
       name: r'warehouseId',
       type: IsarType.long,
     )
@@ -193,6 +198,19 @@ const FsmOrderSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'odooId',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
+    r'localOwnerId': IndexSchema(
+      id: 8066245324207909689,
+      name: r'localOwnerId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'localOwnerId',
           type: IndexType.value,
           caseSensitive: false,
         )
@@ -282,29 +300,30 @@ void _fsmOrderSerialize(
   writer.writeBool(offsets[6], object.isRecurringProcessed);
   writer.writeBool(offsets[7], object.isSkipped);
   writer.writeDateTime(offsets[8], object.lastSyncAt);
-  writer.writeString(offsets[9], object.locationAddress);
-  writer.writeDouble(offsets[10], object.locationLat);
-  writer.writeDouble(offsets[11], object.locationLng);
-  writer.writeString(offsets[12], object.locationName);
-  writer.writeString(offsets[13], object.name);
-  writer.writeLong(offsets[14], object.odooId);
-  writer.writeLong(offsets[15], object.partnerId);
-  writer.writeString(offsets[16], object.partnerName);
-  writer.writeString(offsets[17], object.partnerPhone);
-  writer.writeLong(offsets[18], object.personId);
-  writer.writeString(offsets[19], object.personName);
-  writer.writeString(offsets[20], object.priority);
-  writer.writeLong(offsets[21], object.recurringId);
-  writer.writeBool(offsets[22], object.requireSignature);
-  writer.writeLong(offsets[23], object.routeId);
-  writer.writeLong(offsets[24], object.routeSequence);
-  writer.writeString(offsets[25], object.routeState);
-  writer.writeDateTime(offsets[26], object.scheduledDateEnd);
-  writer.writeDateTime(offsets[27], object.scheduledDateStart);
-  writer.writeString(offsets[28], object.stage.name);
-  writer.writeLong(offsets[29], object.stageId);
-  writer.writeString(offsets[30], object.stageName);
-  writer.writeLong(offsets[31], object.warehouseId);
+  writer.writeLong(offsets[9], object.localOwnerId);
+  writer.writeString(offsets[10], object.locationAddress);
+  writer.writeDouble(offsets[11], object.locationLat);
+  writer.writeDouble(offsets[12], object.locationLng);
+  writer.writeString(offsets[13], object.locationName);
+  writer.writeString(offsets[14], object.name);
+  writer.writeLong(offsets[15], object.odooId);
+  writer.writeLong(offsets[16], object.partnerId);
+  writer.writeString(offsets[17], object.partnerName);
+  writer.writeString(offsets[18], object.partnerPhone);
+  writer.writeLong(offsets[19], object.personId);
+  writer.writeString(offsets[20], object.personName);
+  writer.writeString(offsets[21], object.priority);
+  writer.writeLong(offsets[22], object.recurringId);
+  writer.writeBool(offsets[23], object.requireSignature);
+  writer.writeLong(offsets[24], object.routeId);
+  writer.writeLong(offsets[25], object.routeSequence);
+  writer.writeString(offsets[26], object.routeState);
+  writer.writeDateTime(offsets[27], object.scheduledDateEnd);
+  writer.writeDateTime(offsets[28], object.scheduledDateStart);
+  writer.writeString(offsets[29], object.stage.name);
+  writer.writeLong(offsets[30], object.stageId);
+  writer.writeString(offsets[31], object.stageName);
+  writer.writeLong(offsets[32], object.warehouseId);
 }
 
 FsmOrder _fsmOrderDeserialize(
@@ -324,31 +343,32 @@ FsmOrder _fsmOrderDeserialize(
   object.isRecurringProcessed = reader.readBool(offsets[6]);
   object.isSkipped = reader.readBool(offsets[7]);
   object.lastSyncAt = reader.readDateTime(offsets[8]);
-  object.locationAddress = reader.readStringOrNull(offsets[9]);
-  object.locationLat = reader.readDoubleOrNull(offsets[10]);
-  object.locationLng = reader.readDoubleOrNull(offsets[11]);
-  object.locationName = reader.readStringOrNull(offsets[12]);
-  object.name = reader.readString(offsets[13]);
-  object.odooId = reader.readLong(offsets[14]);
-  object.partnerId = reader.readLongOrNull(offsets[15]);
-  object.partnerName = reader.readStringOrNull(offsets[16]);
-  object.partnerPhone = reader.readStringOrNull(offsets[17]);
-  object.personId = reader.readLongOrNull(offsets[18]);
-  object.personName = reader.readStringOrNull(offsets[19]);
-  object.priority = reader.readStringOrNull(offsets[20]);
-  object.recurringId = reader.readLongOrNull(offsets[21]);
-  object.requireSignature = reader.readBool(offsets[22]);
-  object.routeId = reader.readLongOrNull(offsets[23]);
-  object.routeSequence = reader.readLongOrNull(offsets[24]);
-  object.routeState = reader.readStringOrNull(offsets[25]);
-  object.scheduledDateEnd = reader.readDateTimeOrNull(offsets[26]);
-  object.scheduledDateStart = reader.readDateTimeOrNull(offsets[27]);
+  object.localOwnerId = reader.readLongOrNull(offsets[9]);
+  object.locationAddress = reader.readStringOrNull(offsets[10]);
+  object.locationLat = reader.readDoubleOrNull(offsets[11]);
+  object.locationLng = reader.readDoubleOrNull(offsets[12]);
+  object.locationName = reader.readStringOrNull(offsets[13]);
+  object.name = reader.readString(offsets[14]);
+  object.odooId = reader.readLong(offsets[15]);
+  object.partnerId = reader.readLongOrNull(offsets[16]);
+  object.partnerName = reader.readStringOrNull(offsets[17]);
+  object.partnerPhone = reader.readStringOrNull(offsets[18]);
+  object.personId = reader.readLongOrNull(offsets[19]);
+  object.personName = reader.readStringOrNull(offsets[20]);
+  object.priority = reader.readStringOrNull(offsets[21]);
+  object.recurringId = reader.readLongOrNull(offsets[22]);
+  object.requireSignature = reader.readBool(offsets[23]);
+  object.routeId = reader.readLongOrNull(offsets[24]);
+  object.routeSequence = reader.readLongOrNull(offsets[25]);
+  object.routeState = reader.readStringOrNull(offsets[26]);
+  object.scheduledDateEnd = reader.readDateTimeOrNull(offsets[27]);
+  object.scheduledDateStart = reader.readDateTimeOrNull(offsets[28]);
   object.stage =
-      _FsmOrderstageValueEnumMap[reader.readStringOrNull(offsets[28])] ??
+      _FsmOrderstageValueEnumMap[reader.readStringOrNull(offsets[29])] ??
           FsmOrderStage.draft;
-  object.stageId = reader.readLong(offsets[29]);
-  object.stageName = reader.readString(offsets[30]);
-  object.warehouseId = reader.readLongOrNull(offsets[31]);
+  object.stageId = reader.readLong(offsets[30]);
+  object.stageName = reader.readString(offsets[31]);
+  object.warehouseId = reader.readLongOrNull(offsets[32]);
   return object;
 }
 
@@ -378,51 +398,53 @@ P _fsmOrderDeserializeProp<P>(
     case 8:
       return (reader.readDateTime(offset)) as P;
     case 9:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 10:
-      return (reader.readDoubleOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 11:
       return (reader.readDoubleOrNull(offset)) as P;
     case 12:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readDoubleOrNull(offset)) as P;
     case 13:
-      return (reader.readString(offset)) as P;
-    case 14:
-      return (reader.readLong(offset)) as P;
-    case 15:
-      return (reader.readLongOrNull(offset)) as P;
-    case 16:
       return (reader.readStringOrNull(offset)) as P;
+    case 14:
+      return (reader.readString(offset)) as P;
+    case 15:
+      return (reader.readLong(offset)) as P;
+    case 16:
+      return (reader.readLongOrNull(offset)) as P;
     case 17:
       return (reader.readStringOrNull(offset)) as P;
     case 18:
-      return (reader.readLongOrNull(offset)) as P;
-    case 19:
       return (reader.readStringOrNull(offset)) as P;
+    case 19:
+      return (reader.readLongOrNull(offset)) as P;
     case 20:
       return (reader.readStringOrNull(offset)) as P;
     case 21:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 22:
-      return (reader.readBool(offset)) as P;
-    case 23:
       return (reader.readLongOrNull(offset)) as P;
+    case 23:
+      return (reader.readBool(offset)) as P;
     case 24:
       return (reader.readLongOrNull(offset)) as P;
     case 25:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 26:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 27:
       return (reader.readDateTimeOrNull(offset)) as P;
     case 28:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 29:
       return (_FsmOrderstageValueEnumMap[reader.readStringOrNull(offset)] ??
           FsmOrderStage.draft) as P;
-    case 29:
-      return (reader.readLong(offset)) as P;
     case 30:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 31:
+      return (reader.readString(offset)) as P;
+    case 32:
       return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -519,6 +541,14 @@ extension FsmOrderQueryWhereSort on QueryBuilder<FsmOrder, FsmOrder, QWhere> {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'odooId'),
+      );
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterWhere> anyLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'localOwnerId'),
       );
     });
   }
@@ -675,6 +705,116 @@ extension FsmOrderQueryWhere on QueryBuilder<FsmOrder, FsmOrder, QWhereClause> {
         lower: [lowerOdooId],
         includeLower: includeLower,
         upper: [upperOdooId],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterWhereClause> localOwnerIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'localOwnerId',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterWhereClause> localOwnerIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterWhereClause> localOwnerIdEqualTo(
+      int? localOwnerId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'localOwnerId',
+        value: [localOwnerId],
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterWhereClause> localOwnerIdNotEqualTo(
+      int? localOwnerId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [],
+              upper: [localOwnerId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [localOwnerId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [localOwnerId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [],
+              upper: [localOwnerId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterWhereClause> localOwnerIdGreaterThan(
+    int? localOwnerId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [localOwnerId],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterWhereClause> localOwnerIdLessThan(
+    int? localOwnerId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [],
+        upper: [localOwnerId],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterWhereClause> localOwnerIdBetween(
+    int? lowerLocalOwnerId,
+    int? upperLocalOwnerId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [lowerLocalOwnerId],
+        includeLower: includeLower,
+        upper: [upperLocalOwnerId],
         includeUpper: includeUpper,
       ));
     });
@@ -1181,6 +1321,77 @@ extension FsmOrderQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.between(
         property: r'lastSyncAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> localOwnerIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'localOwnerId',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      localOwnerIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'localOwnerId',
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> localOwnerIdEqualTo(
+      int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition>
+      localOwnerIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> localOwnerIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterFilterCondition> localOwnerIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'localOwnerId',
         lower: lower,
         includeLower: includeLower,
         upper: upper,
@@ -3591,6 +3802,18 @@ extension FsmOrderQuerySortBy on QueryBuilder<FsmOrder, FsmOrder, QSortBy> {
     });
   }
 
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByLocalOwnerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.desc);
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> sortByLocationAddress() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'locationAddress', Sort.asc);
@@ -3994,6 +4217,18 @@ extension FsmOrderQuerySortThenBy
     });
   }
 
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByLocalOwnerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.desc);
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QAfterSortBy> thenByLocationAddress() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'locationAddress', Sort.asc);
@@ -4329,6 +4564,12 @@ extension FsmOrderQueryWhereDistinct
     });
   }
 
+  QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'localOwnerId');
+    });
+  }
+
   QueryBuilder<FsmOrder, FsmOrder, QDistinct> distinctByLocationAddress(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -4539,6 +4780,12 @@ extension FsmOrderQueryProperty
   QueryBuilder<FsmOrder, DateTime, QQueryOperations> lastSyncAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'lastSyncAt');
+    });
+  }
+
+  QueryBuilder<FsmOrder, int?, QQueryOperations> localOwnerIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'localOwnerId');
     });
   }
 

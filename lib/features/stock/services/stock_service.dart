@@ -103,9 +103,13 @@ class StockService {
 
   /// Lấy danh sách vật tư theo đơn dịch vụ.
   Future<List<StockMove>> getMovesForOrder(int orderOdooId) async {
+    final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) return const <StockMove>[];
     return _isar.db.stockMoves
         .filter()
         .orderOdooIdEqualTo(orderOdooId)
+        .and()
+        .localOwnerIdEqualTo(currentUserId)
         .findAll();
   }
 
@@ -118,6 +122,11 @@ class StockService {
     String? productBarcode,
     String? uomName,
   }) async {
+    final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) {
+      throw const OdooAuthException('Yêu cầu đăng nhập trước khi xuất kho.');
+    }
+
     // 1. Khôi phục hoặc tạo mới StockMove local
     var move = await _isar.db.stockMoves
         .filter()
@@ -126,6 +135,8 @@ class StockService {
         .productIdEqualTo(productId)
         .and()
         .isPendingSyncEqualTo(true)
+        .and()
+        .localOwnerIdEqualTo(currentUserId)
         .findFirst();
 
     if (move == null) {
@@ -138,6 +149,7 @@ class StockService {
         demandQty: qty,
         doneQty: qty,
       );
+      move.localOwnerId = currentUserId;
       move.isPendingSync = true;
       await _isar.db.writeTxn(() async {
         await _isar.db.stockMoves.put(move!);
@@ -168,8 +180,14 @@ class StockService {
 
   /// Sync các stock move pending (resume).
   Future<void> syncPending() async {
+    final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) return;
     final pending =
-        await _isar.db.stockMoves.filter().isPendingSyncEqualTo(true).findAll();
+        await _isar.db.stockMoves
+            .filter()
+            .isPendingSyncEqualTo(true)
+            .localOwnerIdEqualTo(currentUserId)
+            .findAll();
 
     for (final move in pending) {
       final order = await _isar.db.fsmOrders.getByOdooId(move.orderOdooId);

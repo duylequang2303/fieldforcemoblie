@@ -29,6 +29,7 @@ class ExpenseService {
     String? receiptImagePath,
     String? note,
   }) async {
+    final currentUserId = _odoo.currentUserId;
     final expense = Expense.create(
       orderOdooId: orderOdooId,
       name: name,
@@ -38,6 +39,7 @@ class ExpenseService {
       receiptImagePath: receiptImagePath,
       note: note,
     );
+    expense.localOwnerId = currentUserId;
 
     await _isar.db.writeTxn(() async {
       await _isar.db.expenses.put(expense);
@@ -77,8 +79,14 @@ class ExpenseService {
   }
 
   Future<void> syncPending() async {
+    final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) return;
     final pending =
-        await _isar.db.expenses.filter().isPendingSyncEqualTo(true).findAll();
+        await _isar.db.expenses
+            .filter()
+            .isPendingSyncEqualTo(true)
+            .localOwnerIdEqualTo(currentUserId)
+            .findAll();
 
     for (final expense in pending) {
       if (expense.odooId != null) {

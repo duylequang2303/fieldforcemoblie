@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/signature_pad.dart';
+import '../../../shared/widgets/safe_image_file.dart';
 
 /// Widget thu thập chữ ký khách hàng kèm tên xác nhận.
 class CustomerSignatureWidget extends StatefulWidget {
@@ -80,12 +81,10 @@ class _CustomerSignatureWidgetState extends State<CustomerSignatureWidget> {
               borderRadius: BorderRadius.circular(12),
               color: Colors.white,
             ),
-            child: ClipRRect(
+            child: SafeImageFile(
+              path: widget.existingSignaturePath!,
+              fit: BoxFit.contain,
               borderRadius: BorderRadius.circular(12),
-              child: Image.file(
-                File(widget.existingSignaturePath!),
-                fit: BoxFit.contain,
-              ),
             ),
           ),
           const SizedBox(height: 8),

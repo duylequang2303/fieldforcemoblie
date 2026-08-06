@@ -16,9 +16,13 @@ class TimesheetService {
 
   /// Tải danh sách giờ công cho một đơn từ Isar local.
   Future<List<TimesheetEntry>> getEntriesForOrder(int orderOdooId) async {
+    final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) return const <TimesheetEntry>[];
     return _isar.db.timesheetEntrys
         .filter()
         .orderOdooIdEqualTo(orderOdooId)
+        .and()
+        .localOwnerIdEqualTo(currentUserId)
         .sortByDateDesc()
         .findAll();
   }
@@ -35,6 +39,7 @@ class TimesheetService {
       throw const OdooBusinessException('Không tìm thấy đơn hàng cục bộ.');
     }
 
+    final currentUserId = _odoo.currentUserId;
     final entry = TimesheetEntry.create(
       orderOdooId: orderOdooId,
       date: date,
@@ -42,6 +47,7 @@ class TimesheetService {
       description: description,
       employeeName: _odoo.currentUserName,
     );
+    entry.localOwnerId = currentUserId;
 
     await _isar.db.writeTxn(() async {
       await _isar.db.timesheetEntrys.put(entry);
@@ -85,9 +91,12 @@ class TimesheetService {
 
   /// Sync các entry pending.
   Future<void> syncPending() async {
+    final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) return;
     final pending = await _isar.db.timesheetEntrys
         .filter()
         .isPendingSyncEqualTo(true)
+        .localOwnerIdEqualTo(currentUserId)
         .findAll();
 
     for (final entry in pending) {

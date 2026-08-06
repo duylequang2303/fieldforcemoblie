@@ -22,17 +22,17 @@ class AppProviders extends StatelessWidget {
         // Phase 6: Auth ✅
         ChangeNotifierProvider.value(value: AuthProvider.instance),
         // Phase 7: Orders ✅
-        ChangeNotifierProvider(create: (_) => OrdersProvider()),
+        ChangeNotifierProvider.value(value: OrdersProvider.instance),
         // Phase 8: Route Map ✅
         ChangeNotifierProvider(create: (_) => RouteProvider()),
         // Phase 9: Stock ✅
-        ChangeNotifierProvider(create: (_) => StockProvider()),
+        ChangeNotifierProvider.value(value: StockProvider.instance),
         // Phase 10: Timesheet ✅
-        ChangeNotifierProvider(create: (_) => TimesheetProvider()),
+        ChangeNotifierProvider.value(value: TimesheetProvider.instance),
         // Phase 11: Expense ✅
-        ChangeNotifierProvider(create: (_) => ExpenseProvider()),
+        ChangeNotifierProvider.value(value: ExpenseProvider.instance),
         // Phase 12: Work Order ✅
-        ChangeNotifierProvider(create: (_) => WorkOrderProvider()),
+        ChangeNotifierProvider.value(value: WorkOrderProvider.instance),
       ],
       child: child,
     );

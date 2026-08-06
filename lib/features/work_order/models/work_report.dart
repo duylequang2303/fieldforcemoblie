@@ -9,8 +9,12 @@ class WorkReport {
 
   int? odooId;
 
-  @Index(unique: true)
+  @Index()
   late int orderOdooId;
+
+  /// ID của user sở hữu dữ liệu offline này (cách ly dữ liệu giữa các user).
+  @Index()
+  int? localOwnerId;
 
   // Nội dung báo cáo
   late String workDone; // Công việc đã thực hiện

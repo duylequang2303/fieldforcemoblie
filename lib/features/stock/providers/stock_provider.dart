@@ -1,12 +1,17 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/utils/logger.dart';
+import '../../../core/api/odoo_session_manager.dart';
+import '../../../core/api/session_guard.dart';
 import '../models/product.dart';
 import '../models/stock_move.dart';
 import '../services/stock_service.dart';
 
 /// State management cho tính năng Stock / Vật tư.
-class StockProvider extends ChangeNotifier {
-  final _service = StockService.instance;
+class StockProvider extends ChangeNotifier with SessionGuard {
+  StockProvider._internal() : _service = StockService.instance;
+  static final StockProvider instance = StockProvider._internal();
+
+  final StockService _service;
 
   // Sản phẩm vừa quét được
   Product? _scannedProduct;
@@ -23,6 +28,7 @@ class StockProvider extends ChangeNotifier {
 
   /// Xử lý barcode sau khi quét.
   Future<void> onBarcodeScanned(String barcode) async {
+    final sessionToken = currentSessionToken;
     _isLoading = true;
     _scannedProduct = null;
     _scanSuccess = false;
@@ -31,6 +37,7 @@ class StockProvider extends ChangeNotifier {
 
     try {
       final product = await _service.findProductByBarcode(barcode);
+      if (!isSameSession(sessionToken)) return;
       if (product != null) {
         _scannedProduct = product;
         _scanSuccess = true;
@@ -38,11 +45,14 @@ class StockProvider extends ChangeNotifier {
         _errorMessage = 'Không tìm thấy sản phẩm với barcode: $barcode';
       }
     } catch (e) {
+      if (!isSameSession(sessionToken)) return;
       _errorMessage = 'Lỗi khi tìm sản phẩm: $e';
       logger.e('StockProvider.onBarcodeScanned', error: e);
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (isSameSession(sessionToken)) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -53,6 +63,7 @@ class StockProvider extends ChangeNotifier {
   }) async {
     if (_scannedProduct == null) return;
 
+    final sessionToken = currentSessionToken;
     _isLoading = true;
     notifyListeners();
 
@@ -65,21 +76,28 @@ class StockProvider extends ChangeNotifier {
         uomName: _scannedProduct!.uomName,
         qty: qty,
       );
+      if (!isSameSession(sessionToken)) return;
       _scannedProduct = null;
       _scanSuccess = false;
       await loadMoves(orderOdooId);
     } catch (e) {
+      if (!isSameSession(sessionToken)) return;
       _errorMessage = 'Lỗi xuất kho: $e';
       logger.e('StockProvider.recordOut', error: e);
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (isSameSession(sessionToken)) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   /// Tải danh sách vật tư đã xuất cho đơn.
   Future<void> loadMoves(int orderOdooId) async {
-    _moves = await _service.getMovesForOrder(orderOdooId);
+    final sessionToken = currentSessionToken;
+    final moves = await _service.getMovesForOrder(orderOdooId);
+    if (!isSameSession(sessionToken)) return;
+    _moves = moves;
     notifyListeners();
   }
 
@@ -92,6 +110,16 @@ class StockProvider extends ChangeNotifier {
 
   void clearError() {
     _errorMessage = null;
+    notifyListeners();
+  }
+
+  /// Clear all provider state (call on logout)
+  void clear() {
+    _scannedProduct = null;
+    _moves = [];
+    _isLoading = false;
+    _errorMessage = null;
+    _scanSuccess = false;
     notifyListeners();
   }
 }
