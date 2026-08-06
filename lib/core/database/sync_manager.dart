@@ -86,28 +86,48 @@ class SyncManager {
     return _connectivity.checkIsWifi();
   }
 
+  Future<void>? _activeSyncFuture;
+
   Future<void> syncPending() async {
-    if (_isSyncing) return;
-    _isSyncing = true;
-    try {
-      for (final handler in _syncHandlers) {
-        try {
-          await handler();
-        } catch (e, stackTrace) {
-          if (kDebugMode) {
-            debugPrint('SyncManager: handler failed: $e\n$stackTrace');
-          }
-          // Log error but continue with other handlers
-        }
+    if (_isSyncing) {
+      final active = _activeSyncFuture;
+      if (active != null) {
+        await active;
       }
+      return;
+    }
+    _isSyncing = true;
+    _activeSyncFuture = _runHandlers();
+    try {
+      await _activeSyncFuture;
     } finally {
       _isSyncing = false;
+      _activeSyncFuture = null;
+    }
+  }
+
+  Future<void> _runHandlers() async {
+    for (final handler in _syncHandlers) {
+      try {
+        await handler();
+      } catch (e, stackTrace) {
+        if (kDebugMode) {
+          debugPrint('SyncManager: handler failed: $e\n$stackTrace');
+        }
+        // Log error but continue with other handlers
+      }
     }
   }
 
   /// Gọi sau khi login/restore thành công: sync pending ngay, không đợi tick 15 phút.
   Future<void> syncAfterAuth() async {
-    if (_isSyncing) return;
+    if (_isSyncing) {
+      final active = _activeSyncFuture;
+      if (active != null) {
+        await active;
+      }
+      return;
+    }
     if (!await _connectivity.isOnline)
       return; // offline → đợi tick/connectivity sau
     if (!await _allowedByNetworkPref()) return;
@@ -131,7 +151,17 @@ class SyncManager {
     _connectivitySubscription = null;
     _autoSyncTimer?.cancel();
     _autoSyncTimer = null;
-    _syncHandlers.clear();
+    
+    // Đợi sync đang chạy hoàn thành trước khi dọn dẹp để tránh Isar DB bị xóa giữa chừng
+    final active = _activeSyncFuture;
+    if (active != null) {
+      try {
+        await active;
+      } catch (_) {}
+    }
+    
+    // KHÔNG xóa _syncHandlers để lưu giữ các handler đăng ký từ main.dart cho session sau
+    // _syncHandlers.clear();
     _isSyncing = false;
   }
 }

@@ -32,6 +32,27 @@ class _ScannerPageState extends State<ScannerPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.orderId <= 0) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Lỗi đơn hàng'),
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+        ),
+        backgroundColor: Colors.white,
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Mã đơn hàng dịch vụ không hợp lệ. Không thể thực hiện quét vật tư.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.red, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Consumer<StockProvider>(
       builder: (context, provider, _) {
         return Scaffold(

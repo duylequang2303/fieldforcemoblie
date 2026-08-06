@@ -1,4 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:async';
 
 /// Class khóa bất đồng bộ đơn giản để serialize các thao tác ghi dữ liệu.
 class _SimpleLock {
@@ -33,7 +34,7 @@ class SecureStorageService {
   static const _keyLocale = 'odoo_locale';
   static const _keyBiometricEnabled = 'biometric_enabled';
 
-  /// Lưu session (KHÔNG lưu password)
+  /// Lưu session (KHÔNG lưu password, xóa legacy password nếu có)
   Future<void> saveSession({
     required String serverUrl,
     required String database,
@@ -50,11 +51,16 @@ class SecureStorageService {
       await _storage.write(key: _keySessionId, value: sessionId);
       await _storage.write(key: _keyUserId, value: userId.toString());
       await _storage.write(key: _keyLocale, value: locale);
+      // Migration: Xoá odoo_password key nếu còn sót từ các session trước
+      await _storage.delete(key: 'odoo_password');
     });
   }
 
   /// Load session data (không bao gồm password)
   Future<Map<String, String?>> loadSession() async {
+    // Migration: Xoá legacy password bất đồng bộ khi app bắt đầu phục hồi session
+    unawaited(_storage.delete(key: 'odoo_password'));
+
     // Reads không cần lock
     final results = await Future.wait([
       _storage.read(key: _keyServerUrl),

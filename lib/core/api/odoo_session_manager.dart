@@ -239,6 +239,8 @@ class OdooSessionManager {
   /// KHÔNG dùng password để re-authenticate (đã gỡ save password).
   Future<bool> _tryReAuthenticate() async {
     logger.w('Silent re-auth not possible without stored password. User must login again.');
+    await logout();
+    await SecureStorageService.instance.clearSession();
     return false;
   }
 }
