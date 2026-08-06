@@ -77,7 +77,7 @@ class ScheduleCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 12,
                                 color: theme.colorScheme.onSurface
-                                    .withOpacity(0.8),
+                                    .withValues(alpha: 0.8),
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -90,7 +90,8 @@ class ScheduleCard extends StatelessWidget {
                         order.partnerName ?? 'Khách hàng ẩn',
                         style: TextStyle(
                           fontSize: 14,
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.6),
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -105,7 +106,7 @@ class ScheduleCard extends StatelessWidget {
                                 Icons.access_time,
                                 size: 14,
                                 color: theme.colorScheme.onSurface
-                                    .withOpacity(0.5),
+                                    .withValues(alpha: 0.5),
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -113,7 +114,7 @@ class ScheduleCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: theme.colorScheme.onSurface
-                                      .withOpacity(0.6),
+                                      .withValues(alpha: 0.6),
                                 ),
                               ),
                             ],
@@ -135,7 +136,7 @@ class ScheduleCard extends StatelessWidget {
                                   Icons.chat_bubble_outline,
                                   size: 20,
                                   color: theme.colorScheme.onSurface
-                                      .withOpacity(0.5),
+                                      .withValues(alpha: 0.5),
                                 ),
                               ),
                             ],

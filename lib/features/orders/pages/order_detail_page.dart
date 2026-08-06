@@ -136,7 +136,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               children: [
                 OrderStatusChip(stage: order.stage, isSkipped: order.isSkipped),
                 if (order.recurringId != null && order.recurringId! > 0)
-                  RecurringBadge(recurringId: order.recurringId!, showText: true),
+                  RecurringBadge(
+                      recurringId: order.recurringId!, showText: true),
               ],
             ),
           ],
@@ -267,7 +268,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           onTap: isClosed
               ? null
               : () => context.push(
-                    RouteNames.stockMoves.replaceFirst(':orderId', '${order.odooId}'),
+                    RouteNames.stockMoves
+                        .replaceFirst(':orderId', '${order.odooId}'),
                   ),
           color: theme.colorScheme.tertiary,
         ),
@@ -281,7 +283,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           onTap: isClosed
               ? null
               : () => context.push(
-                    RouteNames.timesheet.replaceFirst(':orderId', '${order.odooId}'),
+                    RouteNames.timesheet
+                        .replaceFirst(':orderId', '${order.odooId}'),
                   ),
           color: theme.colorScheme.secondary,
         ),
@@ -295,7 +298,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           onTap: isClosed
               ? null
               : () => context.push(
-                    RouteNames.expense.replaceFirst(':orderId', '${order.odooId}'),
+                    RouteNames.expense
+                        .replaceFirst(':orderId', '${order.odooId}'),
                   ),
           color: theme.colorScheme.error,
         ),
@@ -309,12 +313,15 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           onTap: isClosed
               ? null
               : () => context.push(
-                    RouteNames.workOrder.replaceFirst(':orderId', '${order.odooId}'),
+                    RouteNames.workOrder
+                        .replaceFirst(':orderId', '${order.odooId}'),
                   ),
           color: theme.colorScheme.primary,
           highlight: !isClosed,
         ),
-        if (order.isRecurringInstance && !isClosed && !order.isRecurringProcessed) ...[
+        if (order.isRecurringInstance &&
+            !isClosed &&
+            !order.isRecurringProcessed) ...[
           const Divider(height: 1, indent: 68),
           _ActionTile(
             icon: Icons.skip_next_outlined,
@@ -351,7 +358,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                   } else {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(provider.errorMessage ?? 'Không thể bỏ qua kỳ định kỳ này.'),
+                        content: Text(provider.errorMessage ??
+                            'Không thể bỏ qua kỳ định kỳ này.'),
                         backgroundColor: theme.colorScheme.error,
                       ),
                     );
@@ -396,7 +404,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 16,
               offset: const Offset(0, -4),
             ),
@@ -419,7 +427,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        (order.isSkipped || order.isRecurringProcessed && order.stage == FsmOrderStage.cancelled)
+                        (order.isSkipped ||
+                                order.isRecurringProcessed &&
+                                    order.stage == FsmOrderStage.cancelled)
                             ? Icons.next_plan_outlined
                             : (order.stage == FsmOrderStage.done
                                 ? Icons.check_circle
@@ -431,7 +441,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        (order.isSkipped || order.isRecurringProcessed && order.stage == FsmOrderStage.cancelled)
+                        (order.isSkipped ||
+                                order.isRecurringProcessed &&
+                                    order.stage == FsmOrderStage.cancelled)
                             ? 'Đã bỏ qua'
                             : (order.stage == FsmOrderStage.done
                                 ? 'Đã hoàn thành'
@@ -460,6 +472,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                               context, provider, order)) return;
 
                           await provider.checkIn(order.odooId);
+                          if (!context.mounted) return;
                           await context
                               .read<RouteProvider>()
                               .buildRoute(provider.orders);
@@ -520,6 +533,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                           if (!await _ensureRouteSequence(
                               context, provider, order)) return;
                           await provider.updateOrderToInProgress(order.odooId);
+                          if (!context.mounted) return;
                           await context
                               .read<RouteProvider>()
                               .buildRoute(provider.orders);
@@ -558,7 +572,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       ? null
                       : () async {
                           if (!await _ensureRouteSequence(
-                              context, provider, order)) return;
+                              context, provider, order)) {
+                            return;
+                          }
                           _confirmComplete(context, provider, order);
                         },
                   style: ElevatedButton.styleFrom(
@@ -640,6 +656,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
     if (confirmed == true && context.mounted) {
       await provider.updateOrderToDone(order.odooId);
+      if (!context.mounted) return;
       await context.read<RouteProvider>().buildRoute(provider.orders);
     }
   }
@@ -812,8 +829,10 @@ class _ActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final fallbackColor = highlight ? theme.colorScheme.primary : theme.colorScheme.secondary;
-    final effectiveColor = onTap == null ? theme.colorScheme.outline : (color ?? fallbackColor);
+    final fallbackColor =
+        highlight ? theme.colorScheme.primary : theme.colorScheme.secondary;
+    final effectiveColor =
+        onTap == null ? theme.colorScheme.outline : (color ?? fallbackColor);
 
     return InkWell(
       onTap: onTap,

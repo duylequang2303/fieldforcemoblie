@@ -4,6 +4,7 @@ import '../database/sync_manager.dart';
 import '../database/isar_service.dart';
 import '../database/database_migration_service.dart';
 import '../locale/locale_service.dart';
+import '../utils/logger.dart';
 import 'secure_storage.dart';
 import 'biometric_service.dart';
 
@@ -43,9 +44,11 @@ class AuthService {
     );
 
     // Chạy migration gán các bản ghi offline cũ (không localOwnerId) cho user hiện tại (Fix Thread #5)
-    final migrationSuccess = await DatabaseMigrationService.migrateLegacyRecords(session.userId);
+    final migrationSuccess =
+        await DatabaseMigrationService.migrateLegacyRecords(session.userId);
     if (!migrationSuccess) {
-      logger.w('DatabaseMigrationService: Legacy record migration failed during login.');
+      logger.w(
+          'DatabaseMigrationService: Legacy record migration failed during login.');
     }
     // Bắt đầu đồng bộ sau khi migration hoàn thành (đã giải quyết race condition)
     unawaited(SyncManager.instance.syncAfterAuth());
@@ -89,9 +92,11 @@ class AuthService {
 
     if (restored) {
       // Chạy migration gán các bản ghi offline cũ (không localOwnerId) cho user hiện tại (Fix Thread #5)
-      final migrationSuccess = await DatabaseMigrationService.migrateLegacyRecords(userId);
+      final migrationSuccess =
+          await DatabaseMigrationService.migrateLegacyRecords(userId);
       if (!migrationSuccess) {
-        logger.w('DatabaseMigrationService: Legacy record migration failed during restore.');
+        logger.w(
+            'DatabaseMigrationService: Legacy record migration failed during restore.');
       }
       if (locale != null && locale.isNotEmpty) {
         try {
@@ -107,7 +112,8 @@ class AuthService {
             await LocaleService.instance.setLocale('vi_VN');
           }
         } catch (e, stack) {
-          logger.e('Failed to set locale from restored session', error: e, stackTrace: stack);
+          logger.e('Failed to set locale from restored session',
+              error: e, stackTrace: stack);
           try {
             await LocaleService.instance.setLocale('vi_VN');
           } catch (_) {}
@@ -128,16 +134,20 @@ class AuthService {
     try {
       final userId = _sessionManager.currentUserId;
       if (userId == null) return;
-      
+
       await _sessionManager.callKw(
         model: 'res.users',
         method: 'read',
-        args: [[userId]],
-        kwargs: {'fields': ['id']},
+        args: [
+          [userId]
+        ],
+        kwargs: {
+          'fields': ['id']
+        },
       ).timeout(const Duration(seconds: 15));
     } catch (_) {
       // Bỏ qua lỗi kết nối vì app cho phép offline-first.
-      // Nếu session expired thực sự, callKw sẽ tự động trigger 
+      // Nếu session expired thực sự, callKw sẽ tự động trigger
       // event báo hết hạn session thông qua OdooSessionManager.
     }
   }
@@ -165,14 +175,15 @@ class AuthService {
   Future<void> logout() async {
     await _sessionManager.logout();
     await _storage.clearSession();
-    
+
     // FIX C04 + C05 + A30: Dispose SyncManager resources, KHÔNG dispose OdooApiClient singleton
     try {
       if (SyncManager.instance.isInitialized) {
         await SyncManager.instance.dispose();
       }
     } catch (e, stack) {
-      logger.e('SyncManager dispose failed on logout', error: e, stackTrace: stack);
+      logger.e('SyncManager dispose failed on logout',
+          error: e, stackTrace: stack);
     }
 
     // FIX C06: Xoá trắng database Isar cục bộ phòng chống lộ lọt thông tin ngoại tuyến của user cũ

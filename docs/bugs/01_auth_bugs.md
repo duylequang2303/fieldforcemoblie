@@ -1,4 +1,5 @@
-# Auth Module Bug Report - Fieldforce Worker
+# Auth Module Bug Report - Fieldforce Worker [L1-1375]
+**Trạng thái: Đã fixed ✅**
 
 > Phạm vi: `lib/features/auth/`, `lib/core/auth/`
 > Ngày review: 2026-08-06

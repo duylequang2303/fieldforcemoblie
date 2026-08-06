@@ -183,9 +183,10 @@ class OrdersProvider extends ChangeNotifier with SessionGuard {
       _orders = results;
     } on OdooApiException catch (e) {
       if (!isSameSession(sessionToken)) return;
-      _errorMessage = e.message;
       if (e is OdooConnectionException) {
         _isOffline = true;
+      } else {
+        _errorMessage = e.message;
       }
       _orders = await _service.loadCachedOrders();
     } catch (e) {
