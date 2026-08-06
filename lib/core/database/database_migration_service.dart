@@ -1,3 +1,4 @@
+import 'package:isar_community/isar.dart';
 import '../utils/logger.dart';
 import 'isar_service.dart';
 import '../../features/orders/models/fsm_order.dart';
@@ -19,7 +20,7 @@ class DatabaseMigrationService {
     try {
       await isar.writeTxn(() async {
         // 1. FsmOrder
-        final orders = await isar.fsmOrders.where().localOwnerIdIsNull().findAll();
+        final orders = await isar.fsmOrders.filter().localOwnerIdIsNull().findAll();
         if (orders.isNotEmpty) {
           logger.i('DatabaseMigrationService: Migrating ${orders.length} legacy FsmOrders to owner $currentUserId');
           for (final order in orders) {
@@ -29,7 +30,7 @@ class DatabaseMigrationService {
         }
 
         // 2. StockMove
-        final stockMoves = await isar.stockMoves.where().localOwnerIdIsNull().findAll();
+        final stockMoves = await isar.stockMoves.filter().localOwnerIdIsNull().findAll();
         if (stockMoves.isNotEmpty) {
           logger.i('DatabaseMigrationService: Migrating ${stockMoves.length} legacy StockMoves to owner $currentUserId');
           for (final move in stockMoves) {
@@ -39,7 +40,7 @@ class DatabaseMigrationService {
         }
 
         // 3. TimesheetEntry
-        final timesheets = await isar.timesheetEntrys.where().localOwnerIdIsNull().findAll();
+        final timesheets = await isar.timesheetEntrys.filter().localOwnerIdIsNull().findAll();
         if (timesheets.isNotEmpty) {
           logger.i('DatabaseMigrationService: Migrating ${timesheets.length} legacy TimesheetEntries to owner $currentUserId');
           for (final entry in timesheets) {
@@ -49,7 +50,7 @@ class DatabaseMigrationService {
         }
 
         // 4. Expense
-        final expenses = await isar.expenses.where().localOwnerIdIsNull().findAll();
+        final expenses = await isar.expenses.filter().localOwnerIdIsNull().findAll();
         if (expenses.isNotEmpty) {
           logger.i('DatabaseMigrationService: Migrating ${expenses.length} legacy Expenses to owner $currentUserId');
           for (final expense in expenses) {
@@ -59,7 +60,7 @@ class DatabaseMigrationService {
         }
 
         // 5. WorkReport
-        final reports = await isar.workReports.where().localOwnerIdIsNull().findAll();
+        final reports = await isar.workReports.filter().localOwnerIdIsNull().findAll();
         if (reports.isNotEmpty) {
           logger.i('DatabaseMigrationService: Migrating ${reports.length} legacy WorkReports to owner $currentUserId');
           for (final report in reports) {
