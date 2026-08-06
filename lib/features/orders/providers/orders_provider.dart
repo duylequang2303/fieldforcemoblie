@@ -7,14 +7,19 @@ import '../services/recurring_service.dart';
 
 /// State management cho danh sách fsm.order.
 class OrdersProvider extends ChangeNotifier {
-  OrdersProvider({OrdersService? service, ConnectivityService? connectivity})
-      : _service = service ?? OrdersService.instance,
-        _connectivity = connectivity ?? ConnectivityService.instance {
+  OrdersProvider({
+    OrdersService? service,
+    ConnectivityService? connectivity,
+    RecurringService? recurringService,
+  })  : _service = service ?? OrdersService.instance,
+        _connectivity = connectivity ?? ConnectivityService.instance,
+        _recurringService = recurringService ?? RecurringService.instance {
     _listenConnectivity();
   }
 
   final OrdersService _service;
   final ConnectivityService _connectivity;
+  final RecurringService _recurringService;
 
   List<FsmOrder> _orders = [];
   bool _isLoading = false;
@@ -166,7 +171,7 @@ class OrdersProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
     try {
-      final success = await RecurringService.instance.skipOccurrence(order);
+      final success = await _recurringService.skipOccurrence(order);
       if (success) {
         _orders = await _service.loadCachedOrders();
         return true;

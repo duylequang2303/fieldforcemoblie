@@ -14,6 +14,7 @@ class RecurringService {
   final _odoo = OdooSessionManager.instance;
   final _isar = IsarService.instance;
   bool _isGenerating = false;
+  bool _pendingRegeneration = false;
 
   /// Fetch fsm.recurring và fsm.frequency.set từ Odoo về Isar.
   Future<void> fetchRecurringRules() async {
@@ -137,7 +138,8 @@ class RecurringService {
   /// Gọi khi app khởi động hoặc định kỳ.
   Future<void> generateOfflineInstances() async {
     if (_isGenerating) {
-      logger.i('RecurringService: Generation already in progress, skipping overlapping call.');
+      _pendingRegeneration = true;
+      logger.i('RecurringService: Generation already in progress, setting pending regeneration flag.');
       return;
     }
     _isGenerating = true;
@@ -257,6 +259,10 @@ class RecurringService {
           error: e, stackTrace: stackTrace);
     } finally {
       _isGenerating = false;
+      if (_pendingRegeneration) {
+        _pendingRegeneration = false;
+        Future.microtask(() => generateOfflineInstances());
+      }
     }
   }
 
@@ -494,9 +500,11 @@ class RecurringService {
     }
 
     // Tránh double-skip khi retry
-    if (order.isRecurringProcessed || order.isSkipped) {
-      logger.w('Order ${order.odooId} is already marked as skipped or processed. Skipping retry skipOccurrence.');
-      return false;
+    if (order.isSkipped) {
+      throw StateError('Đơn hàng đã được bỏ qua.');
+    }
+    if (order.isRecurringProcessed) {
+      throw StateError('Chu kỳ của đơn hàng này đã được thực hiện.');
     }
 
     FsmRecurring? updatedRule;
@@ -507,8 +515,11 @@ class RecurringService {
       if (freshOrder == null) {
         throw StateError('Order not found under local database.');
       }
-      if (freshOrder.isRecurringProcessed || freshOrder.isSkipped) {
-        return;
+      if (freshOrder.isSkipped) {
+        throw StateError('Đơn hàng đã được bỏ qua trên DB cục bộ.');
+      }
+      if (freshOrder.isRecurringProcessed) {
+        throw StateError('Chu kỳ của đơn hàng này đã được thực hiện trên DB cục bộ.');
       }
 
       // Đọc recurring rule inside transaction

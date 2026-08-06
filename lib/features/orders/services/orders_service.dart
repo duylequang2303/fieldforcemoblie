@@ -400,26 +400,20 @@ class OrdersService {
   /// Helper mapper từ stageId sang FsmOrderStage và tên tương ứng.
   void _updateStageFields(FsmOrder local, int newStageId) {
     local.stageId = newStageId;
-    final name = (_stageNames[newStageId] ?? '').toLowerCase().trim();
+    final name = _stageNames[newStageId] ?? '';
+    local.stage = FsmOrder.parseStageName(name);
 
-    local.stage = switch (name) {
-      'new' || 'draft' || 'scheduled' || 'mới' || 'nháp' || 'đã lên lịch' || 'lên lịch' || 'hold' || 'on hold' || 'on_hold' => FsmOrderStage.draft,
-      'ready' || 'in_progress' || 'in progress' || 'sẵn sàng' || 'đang thực hiện' || 'thực hiện' => FsmOrderStage.inProgress,
-      'done' || 'completed' || 'hoàn thành' || 'hoàn' => FsmOrderStage.done,
-      'cancelled' || 'cancel' || 'huỷ' || 'hủy' || 'đã huỷ' || 'đã hủy' => FsmOrderStage.cancelled,
-      // fallback checks matching exact substring patterns
-      _ when name.contains('progress') || name.contains('thực hiện') || name.contains('ready') || name.contains('sẵn sàng') => FsmOrderStage.inProgress,
-      _ when name.contains('done') || name.contains('completed') || name.contains('hoàn') => FsmOrderStage.done,
-      _ when name.contains('cancel') || name.contains('huỷ') || name.contains('hủy') => FsmOrderStage.cancelled,
-      _ => FsmOrderStage.draft,
-    };
-
-    local.stageName = switch (local.stage) {
-      FsmOrderStage.inProgress => 'In Progress',
-      FsmOrderStage.done => 'Completed',
-      FsmOrderStage.cancelled => 'Cancelled',
-      FsmOrderStage.draft => 'New',
-    };
+    // Giữ nguyên nhãn Odoo gốc nếu có, chỉ fallback sang tiếng Anh mặc định nếu rỗng
+    if (name.isNotEmpty) {
+      local.stageName = name;
+    } else {
+      local.stageName = switch (local.stage) {
+        FsmOrderStage.inProgress => 'In Progress',
+        FsmOrderStage.done => 'Completed',
+        FsmOrderStage.cancelled => 'Cancelled',
+        FsmOrderStage.draft => 'New',
+      };
+    }
   }
 
   /// Cập nhật stage của một đơn dịch vụ (Offline-First).
