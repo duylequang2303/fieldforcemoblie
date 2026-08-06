@@ -49,15 +49,12 @@ final Set<String> _publicRoutes = {
   RouteNames.login,
 };
 
-/// Kiểm tra xem route có cần auth không
-bool _isRouteProtected(String location) {
-  return !_publicRoutes.contains(location);
-}
-
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: RouteNames.splash,
   debugLogDiagnostics: true,
+  // Refresh router when AuthProvider notifies (handles session expiration)
+  refreshListenable: AuthProvider.instance,
   // Redirect guard cho authentication
   redirect: (context, state) {
     final authProvider = context.read<AuthProvider>();
