@@ -19,6 +19,9 @@ class SyncManager {
 
   final _connectivity = ConnectivityService.instance;
 
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
+
   bool _isSyncing = false;
   bool get isSyncing => _isSyncing;
 
@@ -26,6 +29,7 @@ class SyncManager {
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   void startListening() {
+    _isInitialized = true;
     _connectivitySubscription?.cancel();
     _connectivitySubscription = _connectivity.onConnectivityChanged.listen((results) async {
       final isOnline = await _connectivity.isOnline;
@@ -38,6 +42,7 @@ class SyncManager {
 
   /// Bật auto-sync định kỳ. Gọi 1 lần khi khởi động (sau startListening).
   Future<void> startAutoSync() async {
+    _isInitialized = true;
     await SettingsRepository.instance.loadAll();
     _restartTimer();
   }
@@ -130,9 +135,12 @@ class SyncManager {
       }
       return;
     }
-    if (!await _connectivity.isOnline)
+    if (!await _connectivity.isOnline) {
       return; // offline → đợi tick/connectivity sau
-    if (!await _allowedByNetworkPref()) return;
+    }
+    if (!await _allowedByNetworkPref()) {
+      return;
+    }
     await syncPending();
   }
 

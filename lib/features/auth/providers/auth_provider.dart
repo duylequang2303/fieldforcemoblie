@@ -12,7 +12,7 @@ import '../../../features/work_order/providers/work_order_provider.dart';
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
 /// Provider quản lý trạng thái xác thực toàn app.
-class AuthProvider extends ChangeNotifier {
+class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
   static final AuthProvider instance = AuthProvider._internal();
   AuthProvider._internal();
 
@@ -30,8 +30,7 @@ class AuthProvider extends ChangeNotifier {
   bool get isBiometricAvailable => _isBiometricAvailable;
 
   Future<void> initialize() async {
-    _isBiometricAvailable = await _authService.isBiometricAvailable;
-    notifyListeners();
+    WidgetsBinding.instance.addObserver(this);
 
     // Subscribe TRƯỚC khi restore để không bỏ sót session expiry event
     // nếu syncAfterAuth() phát hiện session expired ngay trong lúc restore
@@ -45,6 +44,8 @@ class AuthProvider extends ChangeNotifier {
       }
     });
 
+    _isBiometricAvailable = await _authService.isBiometricAvailable;
+
     // Thử restore session khi app khởi động
     final restored = await _authService.tryRestoreSession();
     // Sau restore, kiểm tra lại isAuthenticated vì listener có thể đã
@@ -52,7 +53,23 @@ class AuthProvider extends ChangeNotifier {
     _status = (restored && _sessionManager.isAuthenticated)
         ? AuthStatus.authenticated
         : AuthStatus.unauthenticated;
-    notifyListeners();
+    
+    notifyListeners(); // Gom notify để tránh flash UI khi khởi tạo (A29)
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      refreshBiometricAvailability();
+    }
+  }
+
+  Future<void> refreshBiometricAvailability() async {
+    final available = await _authService.isBiometricAvailable;
+    if (_isBiometricAvailable != available) {
+      _isBiometricAvailable = available;
+      notifyListeners();
+    }
   }
 
   Future<void> login({
@@ -88,11 +105,23 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> loginWithBiometric() async {
     _status = AuthStatus.loading;
+    _errorMessage = null; // Clear error cũ trước khi thực hiện biometric login (A14)
     notifyListeners();
 
-    final success = await _authService.loginWithBiometric();
-    _status = success ? AuthStatus.authenticated : AuthStatus.unauthenticated;
-    if (!success) _errorMessage = 'Xác thực sinh trắc học thất bại.';
+    try {
+      final success = await _authService.loginWithBiometric();
+      _status = success ? AuthStatus.authenticated : AuthStatus.unauthenticated;
+      if (!success) _errorMessage = 'Xác thực sinh trắc học thất bại.';
+    } on BiometricLockoutException catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = e.message;
+    } on BiometricCredentialsInvalidatedException catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = e.message;
+    } catch (e) {
+      _status = AuthStatus.error;
+      _errorMessage = 'Xác thực sinh trắc học thất bại: $e';
+    }
     notifyListeners();
   }
 
@@ -115,12 +144,16 @@ class AuthProvider extends ChangeNotifier {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _sessionExpiredSubscription?.cancel();
     super.dispose();
   }
 
   void clearError() {
     _errorMessage = null;
+    if (_status == AuthStatus.error) {
+      _status = AuthStatus.unauthenticated;
+    }
     notifyListeners();
   }
 }

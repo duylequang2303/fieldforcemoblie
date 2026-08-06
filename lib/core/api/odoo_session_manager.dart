@@ -33,6 +33,9 @@ class OdooSessionManager {
 
   static final OdooSessionManager instance = OdooSessionManager._();
 
+  static const Duration _authTimeout = Duration(seconds: 30);
+  static const Duration _rpcTimeout = Duration(seconds: 30);
+
   OdooSessionData? _currentSession;
 
   bool get isAuthenticated => _currentSession != null;
@@ -54,7 +57,7 @@ class OdooSessionManager {
       // odoo_rpc authenticate signature: (db, login, password)
       final session = await client
           .authenticate(database, username, password)
-          .timeout(const Duration(seconds: 30), onTimeout: () {
+          .timeout(_authTimeout, onTimeout: () {
         throw const OdooConnectionException('Kết nối đăng nhập quá hạn sau 30 giây.');
       });
 
@@ -67,7 +70,7 @@ class OdooSessionManager {
           kwargs: {
             'fields': ['lang']
           },
-        );
+        ).timeout(_rpcTimeout);
         if (userData is List && userData.isNotEmpty) {
           userLang = (userData.first['lang'] as String?) ?? 'vi_VN';
         }
@@ -91,7 +94,7 @@ class OdooSessionManager {
             'fields': ['id'],
             'limit': 1
           },
-        );
+        ).timeout(_rpcTimeout);
         if (employeeData is List && employeeData.isNotEmpty) {
           employeeId = employeeData.first['id'] as int?;
         }
@@ -174,7 +177,8 @@ class OdooSessionManager {
         locale: locale,
       );
       return true;
-    } catch (_) {
+    } catch (e, stack) {
+      logger.e('Failed to restore session optimistic', error: e, stackTrace: stack);
       _currentSession = null;
       return false;
     }
@@ -212,7 +216,9 @@ class OdooSessionManager {
         method: method,
         args: args,
         kwargs: kwargs,
-      );
+      ).timeout(const Duration(seconds: 60));
+    } on TimeoutException {
+      throw const OdooConnectionException('Yêu cầu kết nối tới server quá hạn sau 60 giây.');
     } on OdooAuthException {
       // Session expired → try to re-authenticate silently
       if (_isReAuthenticating) {

@@ -21,6 +21,12 @@ class BiometricLockoutException implements Exception {
   );
 }
 
+/// Exception khi cấu hình sinh trắc học trên thiết bị thay đổi (A04)
+class BiometricCredentialsInvalidatedException implements Exception {
+  final String message = 'Xác thực sinh trắc học trên thiết bị đã thay đổi. Vui lòng sử dụng mật khẩu đăng nhập để thiết lập lại.';
+  const BiometricCredentialsInvalidatedException();
+}
+
 /// Service xử lý xác thực sinh trắc học: FaceID hoặc Vân tay.
 class BiometricService {
   BiometricService._();
@@ -68,6 +74,12 @@ class BiometricService {
           // Auto-disable biometric login trong app
           await SecureStorageService.instance.setBiometricEnabled(enabled: false);
           throw BiometricLockoutException.permanent();
+        case 'PermanentlyInvalidated':
+        case 'KeyPermanentlyInvalidated':
+          logger.e('Biometric credentials invalidated due to device changes');
+          // Tự động tắt tính năng và yêu cầu login bằng pass
+          await SecureStorageService.instance.setBiometricEnabled(enabled: false);
+          throw const BiometricCredentialsInvalidatedException();
         case 'LockoutTemporary':
           logger.w('Biometric temporarily locked out');
           throw BiometricLockoutException.temporary();

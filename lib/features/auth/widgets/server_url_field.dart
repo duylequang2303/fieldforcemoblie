@@ -1,23 +1,22 @@
 import 'package:flutter/material.dart';
 
 /// TextField chuyên dụng để nhập Odoo Server URL.
-/// Tự động thêm 'https://' prefix và validate format URL.
-class ServerUrlField extends StatefulWidget {
+/// Tự động validate format URL và chỉ cho phép HTTPS.
+class ServerUrlField extends StatelessWidget {
   const ServerUrlField({
     super.key,
     required this.controller,
     this.onChanged,
+    this.focusNode,
+    this.textInputAction,
+    this.onFieldSubmitted,
   });
 
   final TextEditingController controller;
   final ValueChanged<String>? onChanged;
-
-  @override
-  State<ServerUrlField> createState() => _ServerUrlFieldState();
-}
-
-class _ServerUrlFieldState extends State<ServerUrlField> {
-  String? _error;
+  final FocusNode? focusNode;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onFieldSubmitted;
 
   String? _validate(String? value) {
     if (value == null || value.isEmpty) return 'Vui lòng nhập URL server';
@@ -40,20 +39,20 @@ class _ServerUrlFieldState extends State<ServerUrlField> {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
-      controller: widget.controller,
+      controller: controller,
+      focusNode: focusNode,
       keyboardType: TextInputType.url,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
       autocorrect: false,
-      decoration: InputDecoration(
+      decoration: const InputDecoration(
         labelText: 'URL Server Odoo',
         hintText: 'https://your-odoo.com',
-        prefixIcon: const Icon(Icons.cloud_outlined),
-        errorText: _error,
+        prefixIcon: Icon(Icons.cloud_outlined),
       ),
-      onChanged: (val) {
-        setState(() => _error = _validate(val));
-        widget.onChanged?.call(val);
-      },
+      onChanged: onChanged,
       validator: _validate,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
     );
   }
 }

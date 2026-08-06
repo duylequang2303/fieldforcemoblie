@@ -27,20 +27,28 @@ class _LoginPageState extends State<LoginPage> {
   final _passwordCtrl = TextEditingController();
   bool _obscurePassword = true;
 
+  // FocusNodes để điều hướng keyboard mượt mà (A01)
+  final _serverUrlFocus = FocusNode();
+  final _databaseFocus = FocusNode();
+  final _usernameFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+
   @override
   void initState() {
     super.initState();
     _loadSavedCredentials();
-    // Tự redirect khi auth chuyển sang authenticated (cover cả biometric)
-    context.read<AuthProvider>().addListener(_redirectIfAuthed);
+    
+    // Tự động clear error cũ khi người dùng bắt đầu sửa thông tin form (A13)
+    _serverUrlCtrl.addListener(_onFormFieldChanged);
+    _databaseCtrl.addListener(_onFormFieldChanged);
+    _usernameCtrl.addListener(_onFormFieldChanged);
+    _passwordCtrl.addListener(_onFormFieldChanged);
   }
 
-  void _redirectIfAuthed() {
-    if (!mounted) return;
-    final goRouter = GoRouter.of(context);
+  void _onFormFieldChanged() {
     final auth = context.read<AuthProvider>();
-    if (auth.isAuthenticated) {
-      goRouter.go(RouteNames.shellSchedule);
+    if (auth.errorMessage != null) {
+      auth.clearError();
     }
   }
 
@@ -56,11 +64,21 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   void dispose() {
-    context.read<AuthProvider>().removeListener(_redirectIfAuthed);
+    _serverUrlCtrl.removeListener(_onFormFieldChanged);
+    _databaseCtrl.removeListener(_onFormFieldChanged);
+    _usernameCtrl.removeListener(_onFormFieldChanged);
+    _passwordCtrl.removeListener(_onFormFieldChanged);
+
     _serverUrlCtrl.dispose();
     _databaseCtrl.dispose();
     _usernameCtrl.dispose();
     _passwordCtrl.dispose();
+
+    _serverUrlFocus.dispose();
+    _databaseFocus.dispose();
+    _usernameFocus.dispose();
+    _passwordFocus.dispose();
+
     super.dispose();
   }
 
@@ -71,14 +89,25 @@ class _LoginPageState extends State<LoginPage> {
     final authProvider = context.read<AuthProvider>();
 
     await authProvider.login(
-          serverUrl: _serverUrlCtrl.text.trim(),
-          database: _databaseCtrl.text.trim(),
-          username: _usernameCtrl.text.trim(),
-          password: _passwordCtrl.text,
-        );
+      serverUrl: _serverUrlCtrl.text.trim(),
+      database: _databaseCtrl.text.trim(),
+      username: _usernameCtrl.text.trim(),
+      password: _passwordCtrl.text,
+    );
 
-    // Redirect được handle bởi _redirectIfAuthed listener
-    // nhưng vẫn giữ để đảm bảo chuyển trang ngay lập tức sau login thành công
+    // Chuyển trang trực tiếp sau khi đăng nhập thành công (giải quyết A07/A11/A19)
+    if (!mounted) return;
+    if (authProvider.isAuthenticated) {
+      goRouter.go(RouteNames.shellSchedule);
+    }
+  }
+
+  Future<void> _onLoginWithBiometric() async {
+    final goRouter = GoRouter.of(context);
+    final authProvider = context.read<AuthProvider>();
+    
+    await authProvider.loginWithBiometric();
+    
     if (!mounted) return;
     if (authProvider.isAuthenticated) {
       goRouter.go(RouteNames.shellSchedule);
@@ -140,31 +169,50 @@ class _LoginPageState extends State<LoginPage> {
                       key: _formKey,
                       child: Column(
                         children: [
-                          ServerUrlField(controller: _serverUrlCtrl),
+                          ServerUrlField(
+                            controller: _serverUrlCtrl,
+                            focusNode: _serverUrlFocus,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) =>
+                                FocusScope.of(context).requestFocus(_databaseFocus),
+                          ),
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: _databaseCtrl,
+                            focusNode: _databaseFocus,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) =>
+                                FocusScope.of(context).requestFocus(_usernameFocus),
                             decoration: const InputDecoration(
                               labelText: 'Tên Database',
                               prefixIcon: Icon(Icons.storage_outlined),
                             ),
                             validator: (v) =>
                                 v!.isEmpty ? 'Nhập tên database' : null,
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
                           ),
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: _usernameCtrl,
+                            focusNode: _usernameFocus,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) =>
+                                FocusScope.of(context).requestFocus(_passwordFocus),
                             decoration: const InputDecoration(
                               labelText: 'Tên đăng nhập',
                               prefixIcon: Icon(Icons.person_outline),
                             ),
                             validator: (v) =>
                                 v!.isEmpty ? 'Nhập tên đăng nhập' : null,
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
                           ),
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: _passwordCtrl,
+                            focusNode: _passwordFocus,
                             obscureText: _obscurePassword,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _onLogin(),
                             decoration: InputDecoration(
                               labelText: 'Mật khẩu',
                               prefixIcon: const Icon(Icons.lock_outline),
@@ -178,6 +226,7 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             validator: (v) =>
                                 v!.isEmpty ? 'Nhập mật khẩu' : null,
+                            autovalidateMode: AutovalidateMode.onUserInteraction,
                           ),
                           const SizedBox(height: 24),
                           ElevatedButton(
@@ -189,7 +238,9 @@ class _LoginPageState extends State<LoginPage> {
                           if (auth.isBiometricAvailable) ...[
                             const SizedBox(height: 16),
                             OutlinedButton.icon(
-                              onPressed: auth.loginWithBiometric,
+                              onPressed: auth.status == AuthStatus.loading
+                                  ? null
+                                  : _onLoginWithBiometric, // Disable khi loading (A03)
                               icon: const Icon(Icons.fingerprint),
                               label: const Text(
                                   'Đăng nhập bằng vân tay / Face ID'),
