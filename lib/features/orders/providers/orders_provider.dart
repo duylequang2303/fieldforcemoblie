@@ -36,9 +36,12 @@ class OrdersProvider extends ChangeNotifier {
       _isOffline = !isOnline;
       notifyListeners();
       if (isOnline) {
-        // Tự động sync khi mạng trở lại
-        syncPending();
-        fetchOrders();
+        // Tự động sync khi mạng trở lại, CHỈ nếu session còn hợp lệ
+        // Fix Thread #1: Gate connectivity auto-sync on authentication
+        if (OdooSessionManager.instance.isAuthenticated) {
+          syncPending();
+          fetchOrders();
+        }
       }
     });
   }

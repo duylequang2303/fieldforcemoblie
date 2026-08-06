@@ -92,6 +92,7 @@ class WorkOrderProvider extends ChangeNotifier {
   Future<void> saveLocally() async {
     if (_report == null) return;
     final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
+    if (sessionToken == null) return;
     try {
       await _service.saveReport(_report!);
     } catch (e) {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import '../api/odoo_session_manager.dart';
 import '../database/sync_manager.dart';
 import '../database/isar_service.dart';
@@ -43,6 +44,8 @@ class AuthService {
 
     // Chạy migration gán các bản ghi offline cũ (không localOwnerId) cho user hiện tại (Fix Thread #5)
     await DatabaseMigrationService.migrateLegacyRecords(session.userId);
+    // Bắt đầu đồng bộ sau khi migration hoàn thành (đã giải quyết race condition)
+    unawaited(SyncManager.instance.syncAfterAuth());
   }
 
   /// Thử restore session từ secure storage khi app khởi động.
@@ -85,8 +88,11 @@ class AuthService {
       // Chạy migration gán các bản ghi offline cũ (không localOwnerId) cho user hiện tại (Fix Thread #5)
       await DatabaseMigrationService.migrateLegacyRecords(userId);
       if (locale != null && locale.isNotEmpty) {
-        LocaleService.instance.setLocale(locale);
+        // Fix Thread #11: Await setLocale to ensure locale is persisted before returning
+        await LocaleService.instance.setLocale(locale);
       }
+      // Bắt đầu đồng bộ sau khi migration hoàn thành (đã giải quyết race condition)
+      unawaited(SyncManager.instance.syncAfterAuth());
     }
 
     return restored;

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../connectivity/connectivity_service.dart';
 import '../settings/settings_repository.dart';
+import '../api/odoo_session_manager.dart';
 
 /// Điều phối đồng bộ local (Isar) → Odoo.
 /// Hai cơ chế: (1) event-driven khi mạng về [startListening];
@@ -28,7 +29,8 @@ class SyncManager {
     _connectivitySubscription?.cancel();
     _connectivitySubscription = _connectivity.onConnectivityChanged.listen((results) async {
       final isOnline = await _connectivity.isOnline;
-      if (isOnline && !_isSyncing && await _allowedByNetworkPref()) {
+      // Fix Thread #1: Gate sync on authentication
+      if (isOnline && !_isSyncing && await _allowedByNetworkPref() && OdooSessionManager.instance.isAuthenticated) {
         await syncPending();
       }
     });

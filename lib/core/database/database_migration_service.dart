@@ -13,6 +13,13 @@ class DatabaseMigrationService {
 
   /// Di chuyển các bản ghi offline không có localOwnerId (phiên bản cũ)
   /// sang localOwnerId của user hiện tại vừa đăng nhập thành công.
+  ///
+  /// ⚠️ SECURITY NOTE (Thread #12 - IDOR/CWE-639):
+  /// This migration assumes ONE device = ONE user (single-user device model).
+  /// If multiple Odoo users can share one device, this would allow the first
+  /// post-upgrade login to claim another user's legacy records.
+  /// In a single-user device context (field force mobile), this is acceptable.
+  /// For multi-user devices, legacy records should be discarded instead.
   static Future<void> migrateLegacyRecords(int currentUserId) async {
     if (!IsarService.instance.isInitialized) return;
     final isar = IsarService.instance.db;
