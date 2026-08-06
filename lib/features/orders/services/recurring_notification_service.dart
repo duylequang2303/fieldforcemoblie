@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart'; // kIsWeb
 import 'package:isar_community/isar.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:fieldforce_mobile/core/database/isar_service.dart';
 import 'package:fieldforce_mobile/core/utils/logger.dart';
 import 'package:fieldforce_mobile/features/orders/models/fsm_order.dart';
@@ -23,9 +25,19 @@ class RecurringNotificationService {
   Future<void> init() async {
     if (_initialized) return;
 
-    // Initialize timezone
+    // Initialize timezone dynamically
     tz.initializeTimeZones();
-    tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
+    
+    String timeZoneName = 'Asia/Ho_Chi_Minh'; // Fallback
+    if (!kIsWeb) {
+      try {
+        final tzInfo = await FlutterTimezone.getLocalTimezone();
+        timeZoneName = tzInfo.identifier;
+      } catch (e) {
+        logger.w('Failed to get local timezone dynamically, fallback to Asia/Ho_Chi_Minh', error: e);
+      }
+    }
+    tz.setLocalLocation(tz.getLocation(timeZoneName));
 
     // Android initialization settings
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -60,8 +72,8 @@ class RecurringNotificationService {
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
     await androidPlugin?.requestNotificationsPermission();
 
-    // Android 12+ exact alarm permission (for exactAllowWhileIdle)
-    if (Platform.isAndroid) {
+    /// Android 12+ exact alarm permission (for exactAllowWhileIdle)
+    if (!kIsWeb) {
       try {
         await androidPlugin?.requestExactAlarmsPermission();
       } catch (e) {

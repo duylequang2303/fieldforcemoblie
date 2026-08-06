@@ -239,7 +239,6 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _buildActionsCard(
-      Widget _buildRelatedActions(
       BuildContext context, OrdersProvider provider, FsmOrder order) {
     final isClosed = order.stage == FsmOrderStage.done ||
         order.stage == FsmOrderStage.cancelled ||

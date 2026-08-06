@@ -599,6 +599,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
     final onSurfaceMuted = theme.colorScheme.onSurface.withOpacity(0.6);
     final onSurfaceFaint = theme.colorScheme.onSurface.withOpacity(0.5);
     final isClosed = _isClosed;
+    final currentOrder = _freshOrder ?? widget.order;
 
     return Card(
       margin: EdgeInsets.zero,

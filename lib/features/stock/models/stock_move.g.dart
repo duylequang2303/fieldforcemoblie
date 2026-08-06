@@ -37,54 +37,59 @@ const StockMoveSchema = CollectionSchema(
       name: r'isPendingSync',
       type: IsarType.bool,
     ),
-    r'moveOdooId': PropertySchema(
+    r'localOwnerId': PropertySchema(
       id: 4,
+      name: r'localOwnerId',
+      type: IsarType.long,
+    ),
+    r'moveOdooId': PropertySchema(
+      id: 5,
       name: r'moveOdooId',
       type: IsarType.long,
     ),
     r'moveType': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'moveType',
       type: IsarType.string,
       enumMap: _StockMovemoveTypeEnumValueMap,
     ),
     r'orderOdooId': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'orderOdooId',
       type: IsarType.long,
     ),
     r'pickingOdooId': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'pickingOdooId',
       type: IsarType.long,
     ),
     r'pickingState': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'pickingState',
       type: IsarType.string,
     ),
     r'productBarcode': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'productBarcode',
       type: IsarType.string,
     ),
     r'productCode': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'productCode',
       type: IsarType.string,
     ),
     r'productId': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'productId',
       type: IsarType.long,
     ),
     r'productName': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'productName',
       type: IsarType.string,
     ),
     r'uomName': PropertySchema(
-      id: 13,
+      id: 14,
       name: r'uomName',
       type: IsarType.string,
     )
@@ -103,6 +108,19 @@ const StockMoveSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'orderOdooId',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
+    r'localOwnerId': IndexSchema(
+      id: 8066245324207909689,
+      name: r'localOwnerId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'localOwnerId',
           type: IndexType.value,
           caseSensitive: false,
         )
@@ -162,16 +180,17 @@ void _stockMoveSerialize(
   writer.writeDouble(offsets[1], object.demandQty);
   writer.writeDouble(offsets[2], object.doneQty);
   writer.writeBool(offsets[3], object.isPendingSync);
-  writer.writeLong(offsets[4], object.moveOdooId);
-  writer.writeString(offsets[5], object.moveType.name);
-  writer.writeLong(offsets[6], object.orderOdooId);
-  writer.writeLong(offsets[7], object.pickingOdooId);
-  writer.writeString(offsets[8], object.pickingState);
-  writer.writeString(offsets[9], object.productBarcode);
-  writer.writeString(offsets[10], object.productCode);
-  writer.writeLong(offsets[11], object.productId);
-  writer.writeString(offsets[12], object.productName);
-  writer.writeString(offsets[13], object.uomName);
+  writer.writeLong(offsets[4], object.localOwnerId);
+  writer.writeLong(offsets[5], object.moveOdooId);
+  writer.writeString(offsets[6], object.moveType.name);
+  writer.writeLong(offsets[7], object.orderOdooId);
+  writer.writeLong(offsets[8], object.pickingOdooId);
+  writer.writeString(offsets[9], object.pickingState);
+  writer.writeString(offsets[10], object.productBarcode);
+  writer.writeString(offsets[11], object.productCode);
+  writer.writeLong(offsets[12], object.productId);
+  writer.writeString(offsets[13], object.productName);
+  writer.writeString(offsets[14], object.uomName);
 }
 
 StockMove _stockMoveDeserialize(
@@ -186,18 +205,19 @@ StockMove _stockMoveDeserialize(
   object.doneQty = reader.readDouble(offsets[2]);
   object.id = id;
   object.isPendingSync = reader.readBool(offsets[3]);
-  object.moveOdooId = reader.readLongOrNull(offsets[4]);
+  object.localOwnerId = reader.readLongOrNull(offsets[4]);
+  object.moveOdooId = reader.readLongOrNull(offsets[5]);
   object.moveType =
-      _StockMovemoveTypeValueEnumMap[reader.readStringOrNull(offsets[5])] ??
+      _StockMovemoveTypeValueEnumMap[reader.readStringOrNull(offsets[6])] ??
           MoveType.out;
-  object.orderOdooId = reader.readLong(offsets[6]);
-  object.pickingOdooId = reader.readLongOrNull(offsets[7]);
-  object.pickingState = reader.readStringOrNull(offsets[8]);
-  object.productBarcode = reader.readStringOrNull(offsets[9]);
-  object.productCode = reader.readStringOrNull(offsets[10]);
-  object.productId = reader.readLong(offsets[11]);
-  object.productName = reader.readString(offsets[12]);
-  object.uomName = reader.readStringOrNull(offsets[13]);
+  object.orderOdooId = reader.readLong(offsets[7]);
+  object.pickingOdooId = reader.readLongOrNull(offsets[8]);
+  object.pickingState = reader.readStringOrNull(offsets[9]);
+  object.productBarcode = reader.readStringOrNull(offsets[10]);
+  object.productCode = reader.readStringOrNull(offsets[11]);
+  object.productId = reader.readLong(offsets[12]);
+  object.productName = reader.readString(offsets[13]);
+  object.uomName = reader.readStringOrNull(offsets[14]);
   return object;
 }
 
@@ -219,23 +239,25 @@ P _stockMoveDeserializeProp<P>(
     case 4:
       return (reader.readLongOrNull(offset)) as P;
     case 5:
+      return (reader.readLongOrNull(offset)) as P;
+    case 6:
       return (_StockMovemoveTypeValueEnumMap[reader.readStringOrNull(offset)] ??
           MoveType.out) as P;
-    case 6:
-      return (reader.readLong(offset)) as P;
     case 7:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 8:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 9:
       return (reader.readStringOrNull(offset)) as P;
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readLong(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 12:
-      return (reader.readString(offset)) as P;
+      return (reader.readLong(offset)) as P;
     case 13:
+      return (reader.readString(offset)) as P;
+    case 14:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -275,6 +297,14 @@ extension StockMoveQueryWhereSort
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'orderOdooId'),
+      );
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterWhere> anyLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'localOwnerId'),
       );
     });
   }
@@ -432,6 +462,117 @@ extension StockMoveQueryWhere
         lower: [lowerOrderOdooId],
         includeLower: includeLower,
         upper: [upperOrderOdooId],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterWhereClause> localOwnerIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'localOwnerId',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterWhereClause>
+      localOwnerIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterWhereClause> localOwnerIdEqualTo(
+      int? localOwnerId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'localOwnerId',
+        value: [localOwnerId],
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterWhereClause> localOwnerIdNotEqualTo(
+      int? localOwnerId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [],
+              upper: [localOwnerId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [localOwnerId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [localOwnerId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [],
+              upper: [localOwnerId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterWhereClause> localOwnerIdGreaterThan(
+    int? localOwnerId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [localOwnerId],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterWhereClause> localOwnerIdLessThan(
+    int? localOwnerId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [],
+        upper: [localOwnerId],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterWhereClause> localOwnerIdBetween(
+    int? lowerLocalOwnerId,
+    int? upperLocalOwnerId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [lowerLocalOwnerId],
+        includeLower: includeLower,
+        upper: [upperLocalOwnerId],
         includeUpper: includeUpper,
       ));
     });
@@ -678,6 +819,79 @@ extension StockMoveQueryFilter
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isPendingSync',
         value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      localOwnerIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'localOwnerId',
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      localOwnerIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'localOwnerId',
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition> localOwnerIdEqualTo(
+      int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      localOwnerIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition>
+      localOwnerIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterFilterCondition> localOwnerIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'localOwnerId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -1862,6 +2076,18 @@ extension StockMoveQuerySortBy on QueryBuilder<StockMove, StockMove, QSortBy> {
     });
   }
 
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> sortByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> sortByLocalOwnerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.desc);
+    });
+  }
+
   QueryBuilder<StockMove, StockMove, QAfterSortBy> sortByMoveOdooId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'moveOdooId', Sort.asc);
@@ -2045,6 +2271,18 @@ extension StockMoveQuerySortThenBy
     });
   }
 
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> thenByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<StockMove, StockMove, QAfterSortBy> thenByLocalOwnerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.desc);
+    });
+  }
+
   QueryBuilder<StockMove, StockMove, QAfterSortBy> thenByMoveOdooId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'moveOdooId', Sort.asc);
@@ -2192,6 +2430,12 @@ extension StockMoveQueryWhereDistinct
     });
   }
 
+  QueryBuilder<StockMove, StockMove, QDistinct> distinctByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'localOwnerId');
+    });
+  }
+
   QueryBuilder<StockMove, StockMove, QDistinct> distinctByMoveOdooId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'moveOdooId');
@@ -2289,6 +2533,12 @@ extension StockMoveQueryProperty
   QueryBuilder<StockMove, bool, QQueryOperations> isPendingSyncProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isPendingSync');
+    });
+  }
+
+  QueryBuilder<StockMove, int?, QQueryOperations> localOwnerIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'localOwnerId');
     });
   }
 

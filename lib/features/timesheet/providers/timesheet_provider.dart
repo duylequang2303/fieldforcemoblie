@@ -4,7 +4,10 @@ import '../models/timesheet_entry.dart';
 import '../services/timesheet_service.dart';
 
 class TimesheetProvider extends ChangeNotifier {
-  final _service = TimesheetService.instance;
+  TimesheetProvider._internal() : _service = TimesheetService.instance;
+  static final TimesheetProvider instance = TimesheetProvider._internal();
+
+  final TimesheetService _service;
 
   List<TimesheetEntry> _entries = [];
   bool _isLoading = false;
@@ -55,6 +58,14 @@ class TimesheetProvider extends ChangeNotifier {
   }
 
   void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  /// Clear all provider state (call on logout)
+  void clear() {
+    _entries = [];
+    _isLoading = false;
     _errorMessage = null;
     notifyListeners();
   }

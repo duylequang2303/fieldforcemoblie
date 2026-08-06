@@ -3,6 +3,11 @@ import 'dart:async';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/api/odoo_session_manager.dart';
+import '../../../features/orders/providers/orders_provider.dart';
+import '../../../features/stock/providers/stock_provider.dart';
+import '../../../features/timesheet/providers/timesheet_provider.dart';
+import '../../../features/expense/providers/expense_provider.dart';
+import '../../../features/work_order/providers/work_order_provider.dart';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
@@ -92,6 +97,12 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     await _authService.logout();
+    // Clear all feature providers to prevent data retention leak (H09)
+    OrdersProvider.instance.clear();
+    StockProvider.instance.clear();
+    TimesheetProvider.instance.clear();
+    ExpenseProvider.instance.clear();
+    WorkOrderProvider.instance.clear();
     _status = AuthStatus.unauthenticated;
     _errorMessage = null;
     notifyListeners();

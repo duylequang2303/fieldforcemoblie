@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/safe_image_file.dart';
 
 /// Widget chụp và hiển thị nhiều ảnh hiện trường.
 class PhotoCaptureWidget extends StatelessWidget {
@@ -152,14 +153,12 @@ class _PhotoThumbnail extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          ClipRRect(
+          SafeImageFile(
+            file: File(path),
+            width: 88,
+            height: 88,
+            fit: BoxFit.cover,
             borderRadius: BorderRadius.circular(12),
-            child: Image.file(
-              File(path),
-              width: 88,
-              height: 88,
-              fit: BoxFit.cover,
-            ),
           ),
           Positioned(
             top: -6,

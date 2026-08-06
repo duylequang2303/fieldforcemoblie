@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/safe_image_file.dart';
 
 /// Widget chụp/chọn ảnh hoá đơn từ camera hoặc gallery.
 class ReceiptImagePicker extends StatelessWidget {
@@ -36,14 +37,12 @@ class ReceiptImagePicker extends StatelessWidget {
         child: imagePath != null
             ? Stack(
                 children: [
-                  ClipRRect(
+                  SafeImageFile(
+                    file: File(imagePath!),
+                    width: double.infinity,
+                    height: 120,
+                    fit: BoxFit.cover,
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.file(
-                      File(imagePath!),
-                      width: double.infinity,
-                      height: 120,
-                      fit: BoxFit.cover,
-                    ),
                   ),
                   if (onRemove != null)
                     Positioned(

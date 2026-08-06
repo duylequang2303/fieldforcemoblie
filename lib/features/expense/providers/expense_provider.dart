@@ -4,7 +4,10 @@ import '../models/expense.dart';
 import '../services/expense_service.dart';
 
 class ExpenseProvider extends ChangeNotifier {
-  final _service = ExpenseService.instance;
+  ExpenseProvider._internal() : _service = ExpenseService.instance;
+  static final ExpenseProvider instance = ExpenseProvider._internal();
+
+  final ExpenseService _service;
 
   List<Expense> _expenses = [];
   bool _isLoading = false;
@@ -61,6 +64,14 @@ class ExpenseProvider extends ChangeNotifier {
   }
 
   void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  /// Clear all provider state (call on logout)
+  void clear() {
+    _expenses = [];
+    _isLoading = false;
     _errorMessage = null;
     notifyListeners();
   }

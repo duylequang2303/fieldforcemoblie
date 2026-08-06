@@ -394,7 +394,13 @@ class OrdersService {
 
   /// Đọc orders từ Isar (khi offline).
   Future<List<FsmOrder>> loadCachedOrders() async {
-    return _isar.db.fsmOrders.where().anyId().findAll();
+    final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) return [];
+    // Lọc theo user chính xác để tránh leak dữ liệu offline giữa các phiên
+    return _isar.db.fsmOrders
+        .filter()
+        .localOwnerIdEqualTo(currentUserId)
+        .findAll();
   }
 
   /// Helper mapper từ stageId sang FsmOrderStage và tên tương ứng.
@@ -735,7 +741,11 @@ class OrdersService {
   /// Resolve conflict giữa local-only recurring instances (sinh offline, odooId < 0)
   /// và các instances thật tải từ Odoo. Lưu dữ liệu sạch vào Isar.
   Future<List<FsmOrder>> _resolveConflictsAndSave(List<FsmOrder> fetchedOrders) async {
-    final cleanOrders = List<FsmOrder>.from(fetchedOrders);
+    final currentUserId = _odoo.currentUserId;
+    final cleanOrders = fetchedOrders.map((order) {
+      order.localOwnerId = currentUserId; // Stamp local owner!
+      return order;
+    }).toList();
     final isar = _isar.db;
 
     await isar.writeTxn(() async {

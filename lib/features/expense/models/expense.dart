@@ -22,6 +22,10 @@ class Expense {
   @Index()
   late int orderOdooId;
 
+  /// ID của user sở hữu dữ liệu offline này (cách ly dữ liệu giữa các user).
+  @Index()
+  int? localOwnerId;
+
   late String name; // Mô tả chi phí
   late double amount; // Số tiền (VND)
   late DateTime date;

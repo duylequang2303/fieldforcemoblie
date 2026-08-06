@@ -16,6 +16,10 @@ class StockMove {
   @Index()
   late int orderOdooId; // ID của fsm.order
 
+  /// ID của user sở hữu dữ liệu offline này (cách ly dữ liệu giữa các user).
+  @Index()
+  int? localOwnerId;
+
   late int productId; // product.product.id
   late String productName;
   String? productCode;

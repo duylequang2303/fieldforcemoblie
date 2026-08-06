@@ -6,7 +6,10 @@ import '../services/stock_service.dart';
 
 /// State management cho tính năng Stock / Vật tư.
 class StockProvider extends ChangeNotifier {
-  final _service = StockService.instance;
+  StockProvider._internal() : _service = StockService.instance;
+  static final StockProvider instance = StockProvider._internal();
+
+  final StockService _service;
 
   // Sản phẩm vừa quét được
   Product? _scannedProduct;
@@ -92,6 +95,16 @@ class StockProvider extends ChangeNotifier {
 
   void clearError() {
     _errorMessage = null;
+    notifyListeners();
+  }
+
+  /// Clear all provider state (call on logout)
+  void clear() {
+    _scannedProduct = null;
+    _moves = [];
+    _isLoading = false;
+    _errorMessage = null;
+    _scanSuccess = false;
     notifyListeners();
   }
 }

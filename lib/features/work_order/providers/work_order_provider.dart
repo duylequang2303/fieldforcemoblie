@@ -6,8 +6,9 @@ import '../services/work_order_service.dart';
 import '../../orders/models/fsm_order.dart';
 
 class WorkOrderProvider extends ChangeNotifier {
-  WorkOrderProvider({WorkOrderService? service})
-      : _service = service ?? WorkOrderService.instance;
+  WorkOrderProvider._internal()
+      : _service = WorkOrderService.instance;
+  static final WorkOrderProvider instance = WorkOrderProvider._internal();
 
   final WorkOrderService _service;
 
@@ -110,6 +111,16 @@ class WorkOrderProvider extends ChangeNotifier {
 
   void clearError() {
     _errorMessage = null;
+    notifyListeners();
+  }
+
+  /// Clear all provider state (call on logout)
+  void clear() {
+    _report = null;
+    _order = null;
+    _isLoading = false;
+    _errorMessage = null;
+    _isSubmitting = false;
     notifyListeners();
   }
 }

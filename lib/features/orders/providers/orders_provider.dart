@@ -7,15 +7,13 @@ import '../services/recurring_service.dart';
 
 /// State management cho danh sách fsm.order.
 class OrdersProvider extends ChangeNotifier {
-  OrdersProvider({
-    OrdersService? service,
-    ConnectivityService? connectivity,
-    RecurringService? recurringService,
-  })  : _service = service ?? OrdersService.instance,
-        _connectivity = connectivity ?? ConnectivityService.instance,
-        _recurringService = recurringService ?? RecurringService.instance {
+  OrdersProvider._internal()
+      : _service = OrdersService.instance,
+        _connectivity = ConnectivityService.instance,
+        _recurringService = RecurringService.instance {
     _listenConnectivity();
   }
+  static final OrdersProvider instance = OrdersProvider._internal();
 
   final OrdersService _service;
   final ConnectivityService _connectivity;
@@ -194,6 +192,15 @@ class OrdersProvider extends ChangeNotifier {
 
   void clearError() {
     _errorMessage = null;
+    notifyListeners();
+  }
+
+  /// Clear all provider state (call on logout)
+  void clear() {
+    _orders = [];
+    _isLoading = false;
+    _errorMessage = null;
+    _isOffline = false;
     notifyListeners();
   }
 }

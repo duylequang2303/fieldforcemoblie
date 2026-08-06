@@ -129,6 +129,7 @@ class StockService {
         .findFirst();
 
     if (move == null) {
+      final currentUserId = _odoo.currentUserId;
       move = StockMove.create(
         orderOdooId: orderOdooId,
         productId: productId,
@@ -138,6 +139,7 @@ class StockService {
         demandQty: qty,
         doneQty: qty,
       );
+      move.localOwnerId = currentUserId;
       move.isPendingSync = true;
       await _isar.db.writeTxn(() async {
         await _isar.db.stockMoves.put(move!);
@@ -168,8 +170,14 @@ class StockService {
 
   /// Sync các stock move pending (resume).
   Future<void> syncPending() async {
+    final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) return;
     final pending =
-        await _isar.db.stockMoves.filter().isPendingSyncEqualTo(true).findAll();
+        await _isar.db.stockMoves
+            .filter()
+            .isPendingSyncEqualTo(true)
+            .localOwnerIdEqualTo(currentUserId)
+            .findAll();
 
     for (final move in pending) {
       final order = await _isar.db.fsmOrders.getByOdooId(move.orderOdooId);

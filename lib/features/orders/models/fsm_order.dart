@@ -19,6 +19,10 @@ class FsmOrder {
   @Index(unique: true)
   late int odooId;
 
+  /// ID của user sở hữu dữ liệu offline này (cách ly dữ liệu giữa các user).
+  @Index()
+  int? localOwnerId;
+
   late String name; // Tên đơn, VD: "WO/2024/001"
   String? description; // Mô tả công việc
 

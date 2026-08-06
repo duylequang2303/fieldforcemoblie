@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 
 import '../connectivity/connectivity_service.dart';
@@ -21,7 +22,7 @@ class SyncManager {
   bool get isSyncing => _isSyncing;
 
   Timer? _autoSyncTimer;
-  StreamSubscription? _connectivitySubscription;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   void startListening() {
     _connectivitySubscription?.cancel();

@@ -48,28 +48,33 @@ const ExpenseSchema = CollectionSchema(
       name: r'isPendingSync',
       type: IsarType.bool,
     ),
-    r'name': PropertySchema(
+    r'localOwnerId': PropertySchema(
       id: 6,
+      name: r'localOwnerId',
+      type: IsarType.long,
+    ),
+    r'name': PropertySchema(
+      id: 7,
       name: r'name',
       type: IsarType.string,
     ),
     r'note': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'note',
       type: IsarType.string,
     ),
     r'odooId': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'odooId',
       type: IsarType.long,
     ),
     r'orderOdooId': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'orderOdooId',
       type: IsarType.long,
     ),
     r'receiptImagePath': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'receiptImagePath',
       type: IsarType.string,
     )
@@ -88,6 +93,19 @@ const ExpenseSchema = CollectionSchema(
       properties: [
         IndexPropertySchema(
           name: r'orderOdooId',
+          type: IndexType.value,
+          caseSensitive: false,
+        )
+      ],
+    ),
+    r'localOwnerId': IndexSchema(
+      id: 8066245324207909689,
+      name: r'localOwnerId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'localOwnerId',
           type: IndexType.value,
           caseSensitive: false,
         )
@@ -138,11 +156,12 @@ void _expenseSerialize(
   writer.writeDateTime(offsets[3], object.createdAt);
   writer.writeDateTime(offsets[4], object.date);
   writer.writeBool(offsets[5], object.isPendingSync);
-  writer.writeString(offsets[6], object.name);
-  writer.writeString(offsets[7], object.note);
-  writer.writeLong(offsets[8], object.odooId);
-  writer.writeLong(offsets[9], object.orderOdooId);
-  writer.writeString(offsets[10], object.receiptImagePath);
+  writer.writeLong(offsets[6], object.localOwnerId);
+  writer.writeString(offsets[7], object.name);
+  writer.writeString(offsets[8], object.note);
+  writer.writeLong(offsets[9], object.odooId);
+  writer.writeLong(offsets[10], object.orderOdooId);
+  writer.writeString(offsets[11], object.receiptImagePath);
 }
 
 Expense _expenseDeserialize(
@@ -160,11 +179,12 @@ Expense _expenseDeserialize(
   object.date = reader.readDateTime(offsets[4]);
   object.id = id;
   object.isPendingSync = reader.readBool(offsets[5]);
-  object.name = reader.readString(offsets[6]);
-  object.note = reader.readStringOrNull(offsets[7]);
-  object.odooId = reader.readLongOrNull(offsets[8]);
-  object.orderOdooId = reader.readLong(offsets[9]);
-  object.receiptImagePath = reader.readStringOrNull(offsets[10]);
+  object.localOwnerId = reader.readLongOrNull(offsets[6]);
+  object.name = reader.readString(offsets[7]);
+  object.note = reader.readStringOrNull(offsets[8]);
+  object.odooId = reader.readLongOrNull(offsets[9]);
+  object.orderOdooId = reader.readLong(offsets[10]);
+  object.receiptImagePath = reader.readStringOrNull(offsets[11]);
   return object;
 }
 
@@ -189,14 +209,16 @@ P _expenseDeserializeProp<P>(
     case 5:
       return (reader.readBool(offset)) as P;
     case 6:
-      return (reader.readString(offset)) as P;
-    case 7:
-      return (reader.readStringOrNull(offset)) as P;
-    case 8:
       return (reader.readLongOrNull(offset)) as P;
+    case 7:
+      return (reader.readString(offset)) as P;
+    case 8:
+      return (reader.readStringOrNull(offset)) as P;
     case 9:
-      return (reader.readLong(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 10:
+      return (reader.readLong(offset)) as P;
+    case 11:
       return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -241,6 +263,14 @@ extension ExpenseQueryWhereSort on QueryBuilder<Expense, Expense, QWhere> {
     return QueryBuilder.apply(this, (query) {
       return query.addWhereClause(
         const IndexWhereClause.any(indexName: r'orderOdooId'),
+      );
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterWhere> anyLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        const IndexWhereClause.any(indexName: r'localOwnerId'),
       );
     });
   }
@@ -397,6 +427,116 @@ extension ExpenseQueryWhere on QueryBuilder<Expense, Expense, QWhereClause> {
         lower: [lowerOrderOdooId],
         includeLower: includeLower,
         upper: [upperOrderOdooId],
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterWhereClause> localOwnerIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'localOwnerId',
+        value: [null],
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterWhereClause> localOwnerIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [null],
+        includeLower: false,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterWhereClause> localOwnerIdEqualTo(
+      int? localOwnerId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.equalTo(
+        indexName: r'localOwnerId',
+        value: [localOwnerId],
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterWhereClause> localOwnerIdNotEqualTo(
+      int? localOwnerId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [],
+              upper: [localOwnerId],
+              includeUpper: false,
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [localOwnerId],
+              includeLower: false,
+              upper: [],
+            ));
+      } else {
+        return query
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [localOwnerId],
+              includeLower: false,
+              upper: [],
+            ))
+            .addWhereClause(IndexWhereClause.between(
+              indexName: r'localOwnerId',
+              lower: [],
+              upper: [localOwnerId],
+              includeUpper: false,
+            ));
+      }
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterWhereClause> localOwnerIdGreaterThan(
+    int? localOwnerId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [localOwnerId],
+        includeLower: include,
+        upper: [],
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterWhereClause> localOwnerIdLessThan(
+    int? localOwnerId, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [],
+        upper: [localOwnerId],
+        includeUpper: include,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterWhereClause> localOwnerIdBetween(
+    int? lowerLocalOwnerId,
+    int? upperLocalOwnerId, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(IndexWhereClause.between(
+        indexName: r'localOwnerId',
+        lower: [lowerLocalOwnerId],
+        includeLower: includeLower,
+        upper: [upperLocalOwnerId],
         includeUpper: includeUpper,
       ));
     });
@@ -893,6 +1033,76 @@ extension ExpenseQueryFilter
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isPendingSync',
         value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> localOwnerIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'localOwnerId',
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition>
+      localOwnerIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'localOwnerId',
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> localOwnerIdEqualTo(
+      int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> localOwnerIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> localOwnerIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'localOwnerId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition> localOwnerIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'localOwnerId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -1528,6 +1738,18 @@ extension ExpenseQuerySortBy on QueryBuilder<Expense, Expense, QSortBy> {
     });
   }
 
+  QueryBuilder<Expense, Expense, QAfterSortBy> sortByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterSortBy> sortByLocalOwnerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Expense, Expense, QAfterSortBy> sortByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1675,6 +1897,18 @@ extension ExpenseQuerySortThenBy
     });
   }
 
+  QueryBuilder<Expense, Expense, QAfterSortBy> thenByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterSortBy> thenByLocalOwnerIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'localOwnerId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Expense, Expense, QAfterSortBy> thenByName() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.asc);
@@ -1777,6 +2011,12 @@ extension ExpenseQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Expense, Expense, QDistinct> distinctByLocalOwnerId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'localOwnerId');
+    });
+  }
+
   QueryBuilder<Expense, Expense, QDistinct> distinctByName(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1853,6 +2093,12 @@ extension ExpenseQueryProperty
   QueryBuilder<Expense, bool, QQueryOperations> isPendingSyncProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isPendingSync');
+    });
+  }
+
+  QueryBuilder<Expense, int?, QQueryOperations> localOwnerIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'localOwnerId');
     });
   }
 
