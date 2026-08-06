@@ -28,12 +28,9 @@ class AuthProvider extends ChangeNotifier {
     _isBiometricAvailable = await _authService.isBiometricAvailable;
     notifyListeners();
 
-    // Thử restore session khi app khởi động
-    final restored = await _authService.tryRestoreSession();
-    _status = restored ? AuthStatus.authenticated : AuthStatus.unauthenticated;
-    notifyListeners();
-
-    // Listen for session expiration from OdooSessionManager
+    // Subscribe TRƯỚC khi restore để không bỏ sót session expiry event
+    // nếu syncAfterAuth() phát hiện session expired ngay trong lúc restore
+    // (Fix CodeRabbit PR#34 Thread #14)
     _sessionExpiredSubscription = _sessionManager.onSessionExpired.listen((_) {
       if (_status == AuthStatus.authenticated) {
         _status = AuthStatus.unauthenticated;
@@ -41,6 +38,15 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
       }
     });
+
+    // Thử restore session khi app khởi động
+    final restored = await _authService.tryRestoreSession();
+    // Sau restore, kiểm tra lại isAuthenticated vì listener có thể đã
+    // set unauthenticated nếu session expired ngay trong quá trình restore
+    _status = (restored && _sessionManager.isAuthenticated)
+        ? AuthStatus.authenticated
+        : AuthStatus.unauthenticated;
+    notifyListeners();
   }
 
   Future<void> login({
