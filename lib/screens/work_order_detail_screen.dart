@@ -45,6 +45,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
   final List<Map<String, dynamic>> _materialsUsed = [];
   final List<String> _photoPaths = [];
   FsmOrder? _freshOrder;
+  bool _isProcessing = false;
 
   String _repeatText = '(Không lặp)';
 
@@ -437,6 +438,10 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
   }
 
   Future<void> _onComplete() async {
+    if (_isProcessing) return;
+    setState(() {
+      _isProcessing = true;
+    });
     try {
       final report = await WorkOrderService.instance
           .getOrCreateReport(widget.order.odooId);
@@ -497,10 +502,20 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
     } catch (e) {
       if (!mounted) return;
       _showSnackBar('Failed to complete order: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 
   Future<void> _onSkipConfirm() async {
+    if (_isProcessing) return;
+    setState(() {
+      _isProcessing = true;
+    });
     try {
       final currentOrder = _freshOrder ?? widget.order;
       if (currentOrder.recurringId != null && currentOrder.recurringId! > 0) {
@@ -525,6 +540,12 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
     } catch (e) {
       if (!mounted) return;
       _showSnackBar('Failed to skip order: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 
@@ -711,7 +732,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                   Expanded(
                     child: FilledButton(
                       key: const Key('btn_mark_complete'),
-                      onPressed: _onComplete,
+                      onPressed: _isProcessing ? null : _onComplete,
                       style: FilledButton.styleFrom(
                         backgroundColor: theme.colorScheme.primary,
                         foregroundColor: theme.colorScheme.onPrimary,
@@ -727,7 +748,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                   Expanded(
                     child: OutlinedButton(
                       key: const Key('btn_skip'),
-                      onPressed: _askSkip,
+                      onPressed: _isProcessing ? null : _askSkip,
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         side: BorderSide(color: theme.dividerColor),
@@ -983,13 +1004,15 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                           ),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Signature(
-                              key: const Key('signature_pad'),
-                              controller: _signatureController,
-                              height: 150,
-                              backgroundColor:
-                                  theme.colorScheme.surfaceContainerHighest,
-                              disabled: isClosed,
+                            child: AbsorbPointer(
+                              absorbing: isClosed,
+                              child: Signature(
+                                key: const Key('signature_pad'),
+                                controller: _signatureController,
+                                height: 150,
+                                backgroundColor:
+                                    theme.colorScheme.surfaceContainerHighest,
+                              ),
                             ),
                           ),
                         ),

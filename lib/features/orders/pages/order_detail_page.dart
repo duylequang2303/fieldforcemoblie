@@ -242,7 +242,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       BuildContext context, OrdersProvider provider, FsmOrder order) {
     final isClosed = order.stage == FsmOrderStage.done ||
         order.stage == FsmOrderStage.cancelled ||
-        order.isSkipped;
+        order.isSkipped ||
+        order.isRecurringProcessed;
 
     return _SectionCard(
       title: 'CÔNG VIỆC LIÊN QUAN',
@@ -267,7 +268,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               : () => context.push(
                     RouteNames.stockMoves.replaceFirst(':orderId', '${order.odooId}'),
                   ),
-          color: isClosed ? Colors.grey : AppColors.warning,
+          color: AppColors.warning,
         ),
         const Divider(height: 1, indent: 68),
         _ActionTile(
@@ -281,7 +282,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               : () => context.push(
                     RouteNames.timesheet.replaceFirst(':orderId', '${order.odooId}'),
                   ),
-          color: isClosed ? Colors.grey : AppColors.info,
+          color: AppColors.info,
         ),
         const Divider(height: 1, indent: 68),
         _ActionTile(
@@ -295,7 +296,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               : () => context.push(
                     RouteNames.expense.replaceFirst(':orderId', '${order.odooId}'),
                   ),
-          color: isClosed ? Colors.grey : AppColors.error,
+          color: AppColors.error,
         ),
         const Divider(height: 1, indent: 68),
         _ActionTile(
@@ -309,10 +310,10 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               : () => context.push(
                     RouteNames.workOrder.replaceFirst(':orderId', '${order.odooId}'),
                   ),
-          color: isClosed ? Colors.grey : AppColors.success,
+          color: AppColors.success,
           highlight: !isClosed,
         ),
-        if (order.isRecurringInstance && !isClosed) ...[
+        if (order.isRecurringInstance && !isClosed && !order.isRecurringProcessed) ...[
           const Divider(height: 1, indent: 68),
           _ActionTile(
             icon: Icons.skip_next_outlined,
@@ -395,7 +396,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           children: [
             if (order.stage == FsmOrderStage.done ||
                 order.stage == FsmOrderStage.cancelled ||
-                order.isSkipped)
+                order.isSkipped ||
+                order.isRecurringProcessed)
               Expanded(
                 child: Container(
                   height: 56,
@@ -407,7 +409,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        order.isSkipped
+                        (order.isSkipped || order.isRecurringProcessed && order.stage == FsmOrderStage.cancelled)
                             ? Icons.next_plan_outlined
                             : (order.stage == FsmOrderStage.done
                                 ? Icons.check_circle
@@ -419,7 +421,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                       ),
                       const SizedBox(width: 10),
                       Text(
-                        order.isSkipped
+                        (order.isSkipped || order.isRecurringProcessed && order.stage == FsmOrderStage.cancelled)
                             ? 'Đã bỏ qua'
                             : (order.stage == FsmOrderStage.done
                                 ? 'Đã hoàn thành'

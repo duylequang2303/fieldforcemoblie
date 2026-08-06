@@ -190,6 +190,33 @@ class RecurringService {
           if (existInstance == null) {
             await _generateLocalInstance(rule, freqSet);
             count++;
+          } else if (existInstance.isSkipped) {
+            // Nếu đơn hàng trước đó đã được sinh nhưng bị skip, ta cần chắc chắn rule.nextDate
+            // được chuyển tiếp bình thường thay vì bị kẹt liên tiếp ở đây.
+            // Điều này giải quyết lỗi: Skip order xong vẫn bị sinh loop hoặc không tiến tới kỳ tiếp theo.
+            if (rule.ruleType == 'completion') {
+              // Đối với completion-based, nextDate được cập nhật tại skipOccurrence của order đó rồi.
+              // Nhưng nếu nextDate vẫn chỉ vào ngày này, ta cần reset/null để tránh loop.
+              if (rule.nextDate == existInstance.scheduledDateStart) {
+                await _isar.db.writeTxn(() async {
+                  rule.nextDate = null;
+                  await _isar.db.fsmRecurrings.put(rule);
+                });
+                break;
+              }
+            } else {
+              // Đối với date-based, tiến thêm một kỳ
+              final nextDate = calculateNextOccurrence(
+                rule.nextDate!,
+                freqSet,
+                targetDay: rule.startDate.day,
+              );
+              await _isar.db.writeTxn(() async {
+                rule.nextDate = nextDate;
+                await _isar.db.fsmRecurrings.put(rule);
+              });
+              continue;
+            }
           }
 
           // Với completion-based, chỉ sinh duy nhất 1 đơn rồi reset nextDate = null
@@ -228,6 +255,9 @@ class RecurringService {
     }
   }
 
+  // Tạo odooId âm duy nhất dựa trên local id và counter tăng dần để tránh trùng lặp unique index trong cùng một microgiây
+  static int _tempOdooIdCounter = 0;
+
   /// Sinh một order instance local từ rule và frequency set
   Future<void> _generateLocalInstance(FsmRecurring rule, FsmFrequencySet freqSet) async {
     try {
@@ -235,6 +265,8 @@ class RecurringService {
         logger.w('RecurringRule ${rule.odooId} has no order template.');
         return;
       }
+      
+      // ... (code fetch template ...)
 
       // 1. Tìm order template. 
       // Nếu chưa có local, ta download tạm từ Odoo (nếu online) hoặc clone từ một order cũ.
@@ -287,8 +319,9 @@ class RecurringService {
       final scheduledStart = rule.nextDate!;
       final scheduledEnd = scheduledStart.add(const Duration(minutes: 120));
       
-      // Tạo odooId âm duy nhất dựa trên micro giây để tránh trùng lặp unique index
-      final tempOdooId = -DateTime.now().microsecondsSinceEpoch;
+      // Tạo odooId âm duy nhất dựa trên micro giây + counter để tránh trùng lặp unique index
+      _tempOdooIdCounter++;
+      final tempOdooId = -(DateTime.now().microsecondsSinceEpoch + _tempOdooIdCounter);
 
       final localOrder = FsmOrder()
         ..odooId = tempOdooId

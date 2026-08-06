@@ -218,6 +218,9 @@ class _OrdersListPageState extends State<OrdersListPage> {
 
   List<FsmOrder> _applyFilter(List<FsmOrder> orders) {
     return orders.where((o) {
+      // Ẩn các đơn hàng đã bị skip khỏi UI chính
+      if (o.isSkipped) return false;
+
       final matchStage = _filterStage == null || o.stage == _filterStage;
       final q = _searchQuery.toLowerCase();
       final matchSearch = q.isEmpty ||
