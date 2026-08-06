@@ -1,4 +1,4 @@
-# HĐ/2026/08/05 - BỐ CÁO LỖI LOGIC HỆ THỐNG ORDER & RECURRING CỦA MOBILE FIELD FORCE
+# BÁO CÁO LỖI LOGIC HỆ THỐNG ORDER & RECURRING CỦA MOBILE FIELD FORCE
 
 ## 1. MAPPING TRẠNG THÁI ĐƠN (STAGE MACHINE) KHÔNG CHÍNH XÁC
 **File:** `fieldforcemoblie/lib/features/orders/models/fsm_order.dart`

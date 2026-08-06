@@ -18,7 +18,7 @@
 | CP1 | Data Model | ✅ **HOÀN THÀNH** (2026-08-05) |
 | CP2 | Core Logic MVP | ✅ **HOÀN THÀNH** (2026-08-05) |
 | CP3 | Basic UI | ✅ **HOÀN THÀNH** (2026-08-05) |
-| CP4 | Advanced | ✅ **HOÀN THÀNH** (2026-08-05) |
+| CP4 | Advanced | 💡 **ĐANG TỔNG HỢP & HOÀN THIỆN** |
 
 ---
 

@@ -11,24 +11,25 @@ class OrderStatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bgColor = _getBgColor(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: _bgColor.withValues(alpha: 0.15),
-        border: Border.all(color: _bgColor, width: 1),
+        color: bgColor.withValues(alpha: 0.15),
+        border: Border.all(color: bgColor, width: 1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(_icon, size: 12, color: _bgColor),
+          Icon(_icon, size: 12, color: bgColor),
           const SizedBox(width: 4),
           Text(
             _label,
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: _bgColor,
+              color: bgColor,
               letterSpacing: 0.3,
             ),
           ),
@@ -37,9 +38,9 @@ class OrderStatusChip extends StatelessWidget {
     );
   }
 
-  Color get _bgColor {
+  Color _getBgColor(BuildContext context) {
     if (isSkipped) {
-      return Colors.grey.shade600;
+      return Theme.of(context).colorScheme.outline;
     }
     switch (stage) {
       case FsmOrderStage.draft:

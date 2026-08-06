@@ -239,11 +239,13 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   }
 
   Widget _buildActionsCard(
+      Widget _buildRelatedActions(
       BuildContext context, OrdersProvider provider, FsmOrder order) {
     final isClosed = order.stage == FsmOrderStage.done ||
         order.stage == FsmOrderStage.cancelled ||
         order.isSkipped ||
         order.isRecurringProcessed;
+    final theme = Theme.of(context);
 
     return _SectionCard(
       title: 'CÔNG VIỆC LIÊN QUAN',
@@ -254,7 +256,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           label: 'Xem bản đồ tuyến đường',
           subtitle: 'Xem vị trí và chỉ đường',
           onTap: () => context.push(RouteNames.routeMap),
-          color: AppColors.info,
+          color: theme.colorScheme.secondary,
         ),
         const Divider(height: 1, indent: 68),
         _ActionTile(
@@ -268,7 +270,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               : () => context.push(
                     RouteNames.stockMoves.replaceFirst(':orderId', '${order.odooId}'),
                   ),
-          color: AppColors.warning,
+          color: theme.colorScheme.tertiary,
         ),
         const Divider(height: 1, indent: 68),
         _ActionTile(
@@ -282,7 +284,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               : () => context.push(
                     RouteNames.timesheet.replaceFirst(':orderId', '${order.odooId}'),
                   ),
-          color: AppColors.info,
+          color: theme.colorScheme.secondary,
         ),
         const Divider(height: 1, indent: 68),
         _ActionTile(
@@ -296,7 +298,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               : () => context.push(
                     RouteNames.expense.replaceFirst(':orderId', '${order.odooId}'),
                   ),
-          color: AppColors.error,
+          color: theme.colorScheme.error,
         ),
         const Divider(height: 1, indent: 68),
         _ActionTile(
@@ -310,7 +312,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               : () => context.push(
                     RouteNames.workOrder.replaceFirst(':orderId', '${order.odooId}'),
                   ),
-          color: AppColors.success,
+          color: theme.colorScheme.primary,
           highlight: !isClosed,
         ),
         if (order.isRecurringInstance && !isClosed && !order.isRecurringProcessed) ...[
@@ -349,7 +351,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 }
               }
             },
-            color: AppColors.warning,
+            color: theme.colorScheme.error,
           ),
         ],
       ],
@@ -801,8 +803,9 @@ class _ActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor =
-        color ?? (highlight ? AppColors.accent : AppColors.primary);
+    final theme = Theme.of(context);
+    final fallbackColor = highlight ? theme.colorScheme.primary : theme.colorScheme.secondary;
+    final effectiveColor = onTap == null ? theme.colorScheme.outline : (color ?? fallbackColor);
 
     return InkWell(
       onTap: onTap,

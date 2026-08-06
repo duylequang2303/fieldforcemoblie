@@ -160,17 +160,27 @@ class OrdersProvider extends ChangeNotifier {
     }
   }
 
-  /// Đánh dấu bỏ qua kì định kỳ này (Skip)
-  Future<void> skipOccurrence(FsmOrder order) async {
+  /// Đánh dấu bỏ qua kì định kỳ này (Skip), trả về true nếu thành công
+  Future<bool> skipOccurrence(FsmOrder order) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
-      await RecurringService.instance.skipOccurrence(order);
-      _orders = await _service.loadCachedOrders();
+      final success = await RecurringService.instance.skipOccurrence(order);
+      if (success) {
+        _orders = await _service.loadCachedOrders();
+        return true;
+      }
+      return false;
+    } on ArgumentError catch (e) {
+      _errorMessage = 'Lỗi tham số: ${e.message}';
+      return false;
+    } on StateError catch (e) {
+      _errorMessage = e.message;
+      return false;
     } catch (e) {
       _errorMessage = 'Lỗi không xác định khi bỏ qua đơn: $e';
-      _orders = await _service.loadCachedOrders();
+      return false;
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -400,23 +400,26 @@ class OrdersService {
   /// Helper mapper từ stageId sang FsmOrderStage và tên tương ứng.
   void _updateStageFields(FsmOrder local, int newStageId) {
     local.stageId = newStageId;
-    final name = _stageNames[newStageId] ?? '';
+    final name = (_stageNames[newStageId] ?? '').toLowerCase().trim();
 
-    if (name.contains('progress') || name.contains('thực hiện')) {
-      local.stageName = 'In Progress';
-      local.stage = FsmOrderStage.inProgress;
-    } else if (name.contains('completed') ||
-        name.contains('done') ||
-        name.contains('hoàn')) {
-      local.stageName = 'Completed';
-      local.stage = FsmOrderStage.done;
-    } else if (name.contains('cancel') || name.contains('huỷ')) {
-      local.stageName = 'Cancelled';
-      local.stage = FsmOrderStage.cancelled;
-    } else {
-      local.stageName = 'New';
-      local.stage = FsmOrderStage.draft;
-    }
+    local.stage = switch (name) {
+      'new' || 'draft' || 'scheduled' || 'mới' || 'nháp' || 'đã lên lịch' || 'lên lịch' || 'hold' || 'on hold' || 'on_hold' => FsmOrderStage.draft,
+      'ready' || 'in_progress' || 'in progress' || 'sẵn sàng' || 'đang thực hiện' || 'thực hiện' => FsmOrderStage.inProgress,
+      'done' || 'completed' || 'hoàn thành' || 'hoàn' => FsmOrderStage.done,
+      'cancelled' || 'cancel' || 'huỷ' || 'hủy' || 'đã huỷ' || 'đã hủy' => FsmOrderStage.cancelled,
+      // fallback checks matching exact substring patterns
+      _ when name.contains('progress') || name.contains('thực hiện') || name.contains('ready') || name.contains('sẵn sàng') => FsmOrderStage.inProgress,
+      _ when name.contains('done') || name.contains('completed') || name.contains('hoàn') => FsmOrderStage.done,
+      _ when name.contains('cancel') || name.contains('huỷ') || name.contains('hủy') => FsmOrderStage.cancelled,
+      _ => FsmOrderStage.draft,
+    };
+
+    local.stageName = switch (local.stage) {
+      FsmOrderStage.inProgress => 'In Progress',
+      FsmOrderStage.done => 'Completed',
+      FsmOrderStage.cancelled => 'Cancelled',
+      FsmOrderStage.draft => 'New',
+    };
   }
 
   /// Cập nhật stage của một đơn dịch vụ (Offline-First).

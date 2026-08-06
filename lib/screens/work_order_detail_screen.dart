@@ -47,6 +47,14 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
   FsmOrder? _freshOrder;
   bool _isProcessing = false;
 
+  bool get _isClosed {
+    final currentOrder = _freshOrder ?? widget.order;
+    return currentOrder.stage == FsmOrderStage.done ||
+        currentOrder.stage == FsmOrderStage.cancelled ||
+        currentOrder.isSkipped ||
+        currentOrder.isRecurringProcessed;
+  }
+
   String _repeatText = '(Không lặp)';
 
   Future<void> _initRepeatText() async {
@@ -518,8 +526,9 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
     });
     try {
       final currentOrder = _freshOrder ?? widget.order;
+      bool success = false;
       if (currentOrder.recurringId != null && currentOrder.recurringId! > 0) {
-        await RecurringService.instance.skipOccurrence(currentOrder);
+        success = await RecurringService.instance.skipOccurrence(currentOrder);
       } else {
         final stageId = await OrdersService.instance
             .getStageIdByKeywords(['cancel', 'huỷ', 'cancelled']);
@@ -529,10 +538,15 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
           return;
         }
         await OrdersService.instance.updateStage(widget.order.odooId, stageId);
+        success = true;
       }
       if (!mounted) return;
-      _showSnackBar('Order skipped.');
-      Navigator.of(context).pop(true);
+      if (success) {
+        _showSnackBar('Order skipped.');
+        Navigator.of(context).pop(true);
+      } else {
+        _showSnackBar('Order was not skipped (it may already be processed).');
+      }
     } on OdooApiException {
       if (!mounted) return;
       _showSnackBar('Skipped locally — will sync when online.');
@@ -584,10 +598,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
     final theme = Theme.of(context);
     final onSurfaceMuted = theme.colorScheme.onSurface.withOpacity(0.6);
     final onSurfaceFaint = theme.colorScheme.onSurface.withOpacity(0.5);
-    final currentOrder = _freshOrder ?? widget.order;
-    final isClosed = currentOrder.stage == FsmOrderStage.done ||
-        currentOrder.stage == FsmOrderStage.cancelled ||
-        currentOrder.isSkipped;
+    final isClosed = _isClosed;
 
     return Card(
       margin: EdgeInsets.zero,
@@ -772,16 +783,13 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
 
   Widget _photoThumb(int index, String path) {
     final theme = Theme.of(context);
-    final currentOrder = _freshOrder ?? widget.order;
-    final isClosed = currentOrder.stage == FsmOrderStage.done ||
-        currentOrder.stage == FsmOrderStage.cancelled ||
-        currentOrder.isSkipped;
+    final isClosed = _isClosed;
 
     return Container(
       width: 88,
       height: 88,
       decoration: BoxDecoration(
-        color: Colors.grey.shade200,
+        color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: theme.dividerColor),
       ),
@@ -822,10 +830,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
 
   Widget _buildAttachments() {
     final theme = Theme.of(context);
-    final currentOrder = _freshOrder ?? widget.order;
-    final isClosed = currentOrder.stage == FsmOrderStage.done ||
-        currentOrder.stage == FsmOrderStage.cancelled ||
-        currentOrder.isSkipped;
+    final isClosed = _isClosed;
 
     return ExpandableSection(
       title: 'ATTACHMENTS',
@@ -871,9 +876,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final currentOrder = _freshOrder ?? widget.order;
-    final isClosed = currentOrder.stage == FsmOrderStage.done ||
-        currentOrder.stage == FsmOrderStage.cancelled ||
-        currentOrder.isSkipped;
+    final isClosed = _isClosed;
 
     return Scaffold(
       appBar: AppBar(

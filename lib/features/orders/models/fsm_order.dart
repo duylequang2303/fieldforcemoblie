@@ -155,40 +155,18 @@ class FsmOrder {
   static DateTime? _dateOrNull(dynamic v) =>
       (v == null || v == false) ? null : DateTime.tryParse(v as String);
 
-  static const Map<String, FsmOrderStage> STAGE_MAP = {
-    // English
-    'new': FsmOrderStage.draft,
-    'draft': FsmOrderStage.draft,
-    'scheduled': FsmOrderStage.draft, // Có thể map với draft hoặc state tùy chỉnh khác
-    'ready': FsmOrderStage.inProgress, // Đã sẵn sàng làm có thể hiển thị như inProgress hoặc tùy thiết kế
-    'in_progress': FsmOrderStage.inProgress,
-    'in progress': FsmOrderStage.inProgress,
-    'done': FsmOrderStage.done,
-    'cancelled': FsmOrderStage.cancelled,
-    'cancel': FsmOrderStage.cancelled,
-    // Vietnamese
-    'mới': FsmOrderStage.draft,
-    'nháp': FsmOrderStage.draft,
-    'đã lên lịch': FsmOrderStage.draft,
-    'sẵn sàng': FsmOrderStage.inProgress,
-    'đang thực hiện': FsmOrderStage.inProgress,
-    'thực hiện': FsmOrderStage.inProgress,
-    'hoàn thành': FsmOrderStage.done,
-    'hoàn': FsmOrderStage.done,
-    'huỷ': FsmOrderStage.cancelled,
-    'hủy': FsmOrderStage.cancelled,
-  };
-
   static FsmOrderStage _parseStage(dynamic stageField) {
     final name = _nameFromMany(stageField).toLowerCase().trim();
-    
-    // Tìm tương đối hoặc tuyệt đối từ bảng mapping
-    for (final entry in STAGE_MAP.entries) {
-      if (name == entry.key || name.contains(entry.key)) {
-        return entry.value;
-      }
-    }
-    
-    return FsmOrderStage.draft;
+    return switch (name) {
+      'new' || 'draft' || 'scheduled' || 'mới' || 'nháp' || 'đã lên lịch' || 'lên lịch' || 'hold' || 'on hold' || 'on_hold' => FsmOrderStage.draft,
+      'ready' || 'in_progress' || 'in progress' || 'sẵn sàng' || 'đang thực hiện' || 'thực hiện' => FsmOrderStage.inProgress,
+      'done' || 'completed' || 'hoàn thành' || 'hoàn' => FsmOrderStage.done,
+      'cancelled' || 'cancel' || 'huỷ' || 'hủy' || 'đã huỷ' || 'đã hủy' => FsmOrderStage.cancelled,
+      // fallback checks matching exact substring patterns
+      _ when name.contains('progress') || name.contains('thực hiện') || name.contains('ready') || name.contains('sẵn sàng') => FsmOrderStage.inProgress,
+      _ when name.contains('done') || name.contains('completed') || name.contains('hoàn') => FsmOrderStage.done,
+      _ when name.contains('cancel') || name.contains('huỷ') || name.contains('hủy') => FsmOrderStage.cancelled,
+      _ => FsmOrderStage.draft,
+    };
   }
 }
