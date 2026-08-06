@@ -19,8 +19,11 @@ class SyncManager {
 
   final _connectivity = ConnectivityService.instance;
 
-  Completer<void>? _initCompleter;
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
+
   bool _disposed = false;
+  Completer<void>? _initCompleter;
 
   Future<void> _waitForInitialization() async {
     if (_disposed) throw StateError('SyncManager has been disposed');
@@ -29,6 +32,7 @@ class SyncManager {
       try {
         await SettingsRepository.instance.loadAll();
         if (!_disposed) {
+          _isInitialized = true;
           _initCompleter!.complete();
         } else {
           _initCompleter!.completeError(StateError('SyncManager was disposed during initialization'));
@@ -149,10 +153,14 @@ class SyncManager {
 
   /// Gọi sau khi login/restore thành công: sync pending ngay, không đợi tick 15 phút.
   Future<void> syncAfterAuth() async {
-    // Nếu chưa được khởi tạo hoặc vừa login lại sau khi logout, khởi động lại listener và timer
+    // Nếu đã bị dispose (ví dụ sau logout), reset lại để cho phép khởi tạo lại
+    if (_disposed) {
+      reset();
+    }
+    // Nếu chưa được khởi tạo, khởi động lại listener và timer
     if (!_isInitialized) {
-      startListening();
-      unawaited(startAutoSync());
+      await startListening();
+      await startAutoSync();
     }
 
     if (_isSyncing) {
@@ -183,8 +191,18 @@ class SyncManager {
   }
 
   /// Cleanup resources on logout/app terminate
+  /// Reset để cho phép khởi tạo lại sau khi logout
+  void reset() {
+    _disposed = false;
+    _isInitialized = false;
+    _initCompleter = null;
+  }
+
   Future<void> dispose() async {
     _disposed = true;
+    if (_initCompleter != null && !_initCompleter!.isCompleted) {
+      _initCompleter!.completeError(StateError('SyncManager was disposed during initialization'));
+    }
     _initCompleter = null;
 
     final subscription = _connectivitySubscription;
@@ -204,5 +222,6 @@ class SyncManager {
     }
 
     _isSyncing = false;
+    _isInitialized = false;
   }
 }

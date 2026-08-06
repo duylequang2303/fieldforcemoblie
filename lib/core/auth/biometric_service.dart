@@ -69,22 +69,19 @@ class BiometricService {
       );
     } on PlatformException catch (e) {
       switch (e.code) {
-        case 'LockoutPermanent':
+        case 'PermanentlyLockedOut':
           logger.e('Biometric permanently locked out');
           // Auto-disable biometric login trong app
           await SecureStorageService.instance.setBiometricEnabled(enabled: false);
           throw BiometricLockoutException.permanent();
-        case 'NotAvailable':
-        case 'BiometricNotAvailable':
-          logger.w('Biometric hardware not available or biometrics not enrolled');
-          return false;
+        case 'LockedOut':
+          logger.w('Biometric temporarily locked out');
+          throw BiometricLockoutException.temporary();
         case 'KeyPermanentlyInvalidated':
           logger.e('Biometric credentials invalidated due to device changes');
           // Tự động tắt tính năng và yêu cầu login bằng pass
           await SecureStorageService.instance.setBiometricEnabled(enabled: false);
           throw const BiometricCredentialsInvalidatedException();
-          logger.w('Biometric temporarily locked out');
-          throw BiometricLockoutException.temporary();
         case 'UserFallback':
           logger.i('User chose fallback (PIN/Pattern)');
           // Không throw - coi như user cancel
