@@ -82,7 +82,7 @@ class FsmOrder {
   factory FsmOrder.fromJson(Map<String, dynamic> json,
       {Map<int, Map<String, dynamic>>? locationCoordinates}) {
     final order = FsmOrder()
-      ..odooId = (json['id'] as int)
+      ..odooId = (json['id'] as num).toInt()
       ..name = _strOrNull(json['name']) ?? ''
       ..description = _strOrNull(json['description'])
       ..stageId = _idFromMany(json['stage_id'])
@@ -114,6 +114,7 @@ class FsmOrder {
     // Parse location coordinates & additional data if available
     if (json['location_id'] != null &&
         json['location_id'] is List &&
+        (json['location_id'] as List).isNotEmpty &&
         locationCoordinates != null) {
       final locationId = (json['location_id'] as List)[0] as int;
       final locationData = locationCoordinates[locationId];
@@ -134,31 +135,71 @@ class FsmOrder {
   }
 
   // ── Helpers ──────────────────────────────────────────────
-  static String? _strOrNull(dynamic v) =>
-      (v == null || v == false) ? null : v as String;
+  static String? _strOrNull(dynamic v) {
+    if (v == null || v == false) return null;
+    return v.toString();
+  }
 
-  static int? _intOrNull(dynamic v) =>
-      (v == null || v == false) ? null : v as int;
+  static int? _intOrNull(dynamic v) {
+    if (v == null || v == false) return null;
+    if (v is int) return v;
+    if (v is double) return v.toInt();
+    if (v is String) return int.tryParse(v);
+    return null;
+  }
 
-  static double? _doubleOrNull(dynamic v) =>
-      (v == null || v == false) ? null : (v as num).toDouble();
+  static double? _doubleOrNull(dynamic v) {
+    if (v == null || v == false) return null;
+    if (v is num) return v.toDouble();
+    if (v is String) return double.tryParse(v);
+    return null;
+  }
 
-  static int _idFromMany(dynamic v) =>
-      (v == null || v == false) ? 0 : (v as List)[0] as int;
+  static int _idFromMany(dynamic v) {
+    if (v == null || v == false) return 0;
+    if (v case num n) return n.toInt();
+    if (v case List l when l.isNotEmpty) {
+      final first = l[0];
+      if (first case num n) return n.toInt();
+      return int.tryParse(first.toString()) ?? 0;
+    }
+    if (v case String s) return int.tryParse(s) ?? 0;
+    return 0;
+  }
 
-  static int? _idOrNull(dynamic v) =>
-      (v == null || v == false) ? null : (v as List)[0] as int;
+  static int? _idOrNull(dynamic v) {
+    if (v == null || v == false) return null;
+    if (v case num n) return n.toInt();
+    if (v case List l when l.isNotEmpty) {
+      final first = l[0];
+      if (first case num n) return n.toInt();
+      return int.tryParse(first.toString());
+    }
+    if (v case String s) return int.tryParse(s);
+    return null;
+  }
 
-  static String _nameFromMany(dynamic v) =>
-      (v == null || v == false) ? '' : (v as List)[1] as String;
+  static String _nameFromMany(dynamic v) {
+    if (v == null || v == false) return '';
+    if (v is String) return v;
+    if (v is List && v.length >= 2) return v[1].toString();
+    if (v is List && v.isNotEmpty) return v[0].toString();
+    return v.toString();
+  }
 
-  static DateTime? _dateOrNull(dynamic v) =>
-      (v == null || v == false) ? null : DateTime.tryParse(v as String);
+  static DateTime? _dateOrNull(dynamic v) {
+    if (v == null || v == false) return null;
+    try {
+      return DateTime.tryParse(v.toString());
+    } catch (_) {
+      return null;
+    }
+  }
 
   static FsmOrderStage parseStageName(String name) {
     final normalized = name.toLowerCase().trim();
     return switch (normalized) {
-      'new' || 'draft' || 'scheduled' || 'mới' || 'nháp' || 'đã lên lịch' || 'lên lịch' || 'hold' || 'on hold' || 'on_hold' => FsmOrderStage.draft,
+      'new' || 'draft' || 'scheduled' || 'assigned' || 'mới' || 'nháp' || 'đã lên lịch' || 'lên lịch' || 'đã phân công' || 'phân công' || 'hold' || 'on hold' || 'on_hold' || 'tạm dừng' => FsmOrderStage.draft,
       'ready' || 'in_progress' || 'in progress' || 'sẵn sàng' || 'đang thực hiện' || 'thực hiện' => FsmOrderStage.inProgress,
       'done' || 'completed' || 'hoàn thành' || 'hoàn' => FsmOrderStage.done,
       'cancelled' || 'cancel' || 'huỷ' || 'hủy' || 'đã huỷ' || 'đã hủy' => FsmOrderStage.cancelled,

@@ -341,13 +341,22 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 ),
               );
               if (confirm == true) {
-                await provider.skipOccurrence(order);
+                final success = await provider.skipOccurrence(order);
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Đã đánh dấu bỏ qua kỳ định kỳ này.')),
-                  );
-                  context.pop(); // Quay lại trang trước
+                  if (success) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Đã đánh dấu bỏ qua kỳ định kỳ này.')),
+                    );
+                    context.pop(); // Quay lại trang trước
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(provider.errorMessage ?? 'Không thể bỏ qua kỳ định kỳ này.'),
+                        backgroundColor: theme.colorScheme.error,
+                      ),
+                    );
+                  }
                 }
               }
             },
