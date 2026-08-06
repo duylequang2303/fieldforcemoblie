@@ -33,20 +33,21 @@ class _ScannerPageState extends State<ScannerPage> {
   @override
   Widget build(BuildContext context) {
     if (widget.orderId <= 0) {
+      final colorScheme = Theme.of(context).colorScheme;
       return Scaffold(
         appBar: AppBar(
           title: const Text('Lỗi đơn hàng'),
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
+          backgroundColor: colorScheme.surface,
+          foregroundColor: colorScheme.onSurface,
         ),
-        backgroundColor: Colors.white,
-        body: const Center(
+        backgroundColor: colorScheme.surface,
+        body: Center(
           child: Padding(
-            padding: EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
             child: Text(
               'Mã đơn hàng dịch vụ không hợp lệ. Không thể thực hiện quét vật tư.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: Colors.red, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 16, color: colorScheme.error, fontWeight: FontWeight.w600),
             ),
           ),
         ),

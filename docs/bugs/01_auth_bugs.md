@@ -10,29 +10,29 @@
 | ID | Tiêu đề | Loại | Mức độ | File(s) | Trạng thái |
 |----|---------|------|--------|---------|------------|
 | A01 | **Missing FocusNode / Keyboard overflow handling** | UI/UX | High | `login_page.dart` | 🔴 Open |
-| A02 | **ServerUrlField: `Uri.tryParse(value)!` có thể throw null exception** | Crash/Logic | Critical | `server_url_field.dart` | 🔴 Open |
+| A02 | **ServerUrlField: `Uri.tryParse(value)!` có thể throw null exception** | Crash/Logic | Critical | `server_url_field.dart` | ✅ Fixed |
 | A03 | **Login button không disable khi loading (race condition)** | UI/Logic | Medium | `login_page.dart`, `auth_provider.dart` | 🔴 Open |
 | A04 | **Biometric: không handle key invalidated / device credential change** | Security | High | `biometric_service.dart`, `auth_service.dart` | 🔴 Open |
-| A05 | **Biometric: `biometricOnly: false` cho phép fallback PIN - security risk** | Security | Medium | `biometric_service.dart` | 🔴 Open |
+| A05 | **Biometric: `biometricOnly: false` cho phép fallback PIN - security risk** | Security | Medium | `biometric_service.dart` | ✅ Fixed |
 | A06 | **AuthProvider: `clearError()` không reset status về `unauthenticated`** | Logic | Medium | `auth_provider.dart` | 🔴 Open |
 | A07 | **Login flow: redirect race giữa listener `_redirectIfAuthed` và `_onLogin`** | Logic | Medium | `login_page.dart` | 🔴 Open |
 | A08 | **`tryRestoreSession()` optimistic - không verify session validity** | Offline/Logic | High | `auth_service.dart`, `odoo_session_manager.dart` | 🔴 Open |
-| A09 | **Password lưu plaintext trong SecureStorage** | Security | Critical | `secure_storage.dart`, `auth_service.dart` | 🔴 Open |
+| A09 | **Password lưu plaintext trong SecureStorage** | Security | Critical | `secure_storage.dart`, `auth_service.dart` | ✅ Fixed |
 | A10 | **SplashPage: không handle error khi `auth.initialize()` throw exception** | Crash/UX | Medium | `splash_page.dart` | 🔴 Open |
 | A11 | **Memory leak: `AuthProvider.addListener` không remove khi dispose (edge case)** | Memory | Low | `login_page.dart` | 🔴 Open |
 | A12 | **ServerUrlField: validator không chạy khi user paste/autofill** | UI/Validation | Medium | `server_url_field.dart` | 🔴 Open |
 | A13 | **AuthProvider: status chuyển `error` nhưng không auto-clear khi user sửa form** | UX | Low | `auth_provider.dart`, `login_page.dart` | 🔴 Open |
 | A14 | **Biometric login: không clear error message khi biometric fail** | UX | Low | `auth_provider.dart` | 🔴 Open |
 | A15 | **Logout: clear Isar DB có thể crash nếu Isar chưa init / đang dùng** | Crash/Logic | Medium | `auth_service.dart` | 🔴 Open |
-| A16 | **Biometric: không handle lockout (LockoutPermanent/Temporary) → user bị khóa vĩnh viễn** | Security/Crash | Critical | `biometric_service.dart`, `auth_service.dart` | 🔴 Open |
-| A17 | **SecureStorage race condition: concurrent writes không synchronized** | Data Integrity | High | `secure_storage.dart` | 🔴 Open |
+| A16 | **Biometric: không handle lockout (LockoutPermanent/Temporary) → user bị khóa vĩnh viễn** | Security/Crash | Critical | `biometric_service.dart`, `auth_service.dart` | ✅ Fixed |
+| A17 | **SecureStorage race condition: concurrent writes không synchronized** | Data Integrity | High | `secure_storage.dart` | ✅ Fixed |
 | A18 | **Locale load failure khi restore session → app dùng locale sai / crash** | Crash/Logic | Medium | `auth_service.dart`, `locale_service.dart` | 🔴 Open |
-| A19 | **BuildContext async gap: `context.go()` sau `await` không check `mounted` ở mọi nơi** | Crash/Logic | Medium | `login_page.dart`, `splash_page.dart` | 🔴 Open |
+| A19 | **BuildContext async gap: `context.go()` sau `await` không check `mounted` ở mọi nơi** | Crash/Logic | Medium | `login_page.dart`, `splash_page.dart` | ✅ Fixed |
 | A20 | **Animation controller leak: `LoadingOverlay` dùng `flutter_spinkit` không dispose** | Memory | Low | `loading_overlay.dart` | 🔴 Open |
 | A21 | **Biometric `stickyAuth: true` gây rò rỉ context khi app background** | UX/Logic | Medium | `biometric_service.dart` | 🔴 Open |
 | A22 | **Silent re-auth (`_tryReAuthenticate`) swallow exception, không log chi tiết** | Observability | Medium | `odoo_session_manager.dart` | 🔴 Open |
 | A23 | **ServerUrlField validator không chạy initial validation (form validate lần đầu)** | Validation | Medium | `server_url_field.dart`, `login_page.dart` | 🔴 Open |
-| A24 | **Login API không có timeout → treo vô hạn khi network chậm/mất kết nối** | Reliability | High | `odoo_session_manager.dart`, `odoo_client.dart` | 🔴 Open |
+| A24 | **Login API không có timeout → treo vô hạn khi network chậm/mất kết nối** | Reliability | High | `odoo_session_manager.dart`, `odoo_client.dart` | ✅ Fixed |
 | A25 | **Biometric availability không refresh sau khi user bật trong Settings** | UX/Logic | Low | `auth_provider.dart`, `biometric_service.dart` | 🔴 Open |
 | A26 | **`restoreSession()` catch-all exception → silent fail, khó debug** | Observability | Medium | `odoo_session_manager.dart` | 🔴 Open |
 | A27 | **Biometric login success không clear error message từ lần fail trước** | UX | Low | `auth_provider.dart` | 🔴 Open |

@@ -56,7 +56,8 @@ Các vấn đề mới được phát hiện bổ sung bao gồm các lỗi logi
     2. Khi ghi nhận lưu vào Isar tại `_resolveConflictsAndSave`, stamp ID user hiện tại vào `localOwnerId`.
     3. Khi đọc offline, lọc `.localOwnerIdEqualTo(currentUserId)`.
     4. Gọi `await _isar.db.writeTxn(() => _isar.db.clear())` (hoặc dọn dẹp các table nhạy cảm) trong quá trình xử lý logout của `AuthService`.
-*   **Trạng thái**: ✅ **FIXED** - Gọi clear local DB khi logout trong `AuthService` giúp dọn dẹp toàn bộ dữ liệu offline của user cũ, đảm bảo cách ly dữ liệu tuyệt đối giữa các user.
+*   **Trạng thái**: ✅ **FIXED (PARTIAL)** - Gọi `isar.clear()` khi logout (`AuthService.logout()`) + khi session hết hạn (`_tryReAuthenticate()` trong `OdooSessionManager`). `SyncManager.instance.dispose()` được gọi trước `isar.clear()` trong cả 2 luồng để tránh race condition ghi/xóa đồng thời.
+    > **CodeRabbit PR#34 note**: Ban đầu chỉ clear ở `AuthService.logout()`, bỏ sót luồng session expiration qua `_tryReAuthenticate()`. Đã fix thêm trong commit `7894fda`.
 
 #### C07 (NEW): Sử dụng Navigator sai cách gây Crash App & Hardcode orderOdooId=0 ở màn Scanner
 *   **File**: `lib/features/stock/pages/stock_moves_page.dart:98`, `lib/features/stock/pages/scanner_page.dart:108`

@@ -245,7 +245,11 @@ class OdooSessionManager {
     logger.w('Silent re-auth not possible without stored password. User must login again.');
     await logout();
     await SecureStorageService.instance.clearSession();
-    
+
+    // Stop any active sync before clearing Isar to avoid race condition
+    // where a sync handler writes to DB after clear() (Fix Thread #12 CodeRabbit PR#34)
+    await SyncManager.instance.dispose();
+
     // Clear local database on session expiration to isolate data (Fix C06)
     if (IsarService.instance.isInitialized) {
       final isar = IsarService.instance.db;
