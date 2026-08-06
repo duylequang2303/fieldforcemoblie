@@ -19,8 +19,21 @@ class SyncManager {
 
   final _connectivity = ConnectivityService.instance;
 
-  bool _isInitialized = false;
-  bool get isInitialized => _isInitialized;
+  Completer<void>? _initCompleter;
+
+  Future<void> _waitForInitialization() async {
+    if (_initCompleter == null) {
+      _initCompleter = Completer<void>();
+      try {
+        await SettingsRepository.instance.loadAll();
+        _initCompleter!.complete();
+      } catch (e) {
+        _initCompleter!.completeError(e);
+        _initCompleter = null;
+      }
+    }
+    return _initCompleter!.future;
+  }
 
   bool _isSyncing = false;
   bool get isSyncing => _isSyncing;
@@ -28,8 +41,8 @@ class SyncManager {
   Timer? _autoSyncTimer;
   StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
-  void startListening() {
-    _isInitialized = true;
+  Future<void> startListening() async {
+    await _waitForInitialization();
     _connectivitySubscription?.cancel();
     _connectivitySubscription = _connectivity.onConnectivityChanged.listen((results) async {
       final isOnline = await _connectivity.isOnline;
@@ -42,8 +55,7 @@ class SyncManager {
 
   /// Bật auto-sync định kỳ. Gọi 1 lần khi khởi động (sau startListening).
   Future<void> startAutoSync() async {
-    _isInitialized = true;
-    await SettingsRepository.instance.loadAll();
+    await _waitForInitialization();
     _restartTimer();
   }
 
@@ -52,14 +64,15 @@ class SyncManager {
     _restartTimer();
   }
 
-  void _restartTimer() {
+  Future<void> _restartTimer() async {
+    await _waitForInitialization();
     _autoSyncTimer?.cancel();
     _autoSyncTimer = null;
     final minutes = SettingsRepository.instance.autoSyncMinutes;
     if (minutes <= 0) return; // 0 = tắt
     _autoSyncTimer = Timer.periodic(
       Duration(minutes: minutes),
-      (_) => _autoTick(),
+      (_) async => await _autoTick(),
     );
     if (kDebugMode) {
       debugPrint(
@@ -163,11 +176,14 @@ class SyncManager {
 
   /// Cleanup resources on logout/app terminate
   Future<void> dispose() async {
-    _connectivitySubscription?.cancel();
-    _connectivitySubscription = null;
+    final subscription = _connectivitySubscription;
+    if (subscription != null) {
+      await subscription.cancel();
+      _connectivitySubscription = null;
+    }
     _autoSyncTimer?.cancel();
     _autoSyncTimer = null;
-    
+
     // Đợi sync đang chạy hoàn thành trước khi dọn dẹp để tránh Isar DB bị xóa giữa chừng
     final active = _activeSyncFuture;
     if (active != null) {
@@ -175,10 +191,14 @@ class SyncManager {
         await active;
       } catch (_) {}
     }
-    
+
+    if (_initCompleter != null) {
+      _initCompleter!.complete();
+      _initCompleter = null;
+    }
+
     // KHÔNG xóa _syncHandlers để lưu giữ các handler đăng ký từ main.dart cho session sau
     // _syncHandlers.clear();
     _isSyncing = false;
-    _isInitialized = false;
   }
 }

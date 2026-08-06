@@ -76,11 +76,13 @@ class BiometricService {
           throw BiometricLockoutException.permanent();
         case 'NotAvailable':
         case 'BiometricNotAvailable':
-          logger.e('Biometric credentials invalidated due to device changes or not available');
+          logger.w('Biometric hardware not available or biometrics not enrolled');
+          return false;
+        case 'KeyPermanentlyInvalidated':
+          logger.e('Biometric credentials invalidated due to device changes');
           // Tự động tắt tính năng và yêu cầu login bằng pass
           await SecureStorageService.instance.setBiometricEnabled(enabled: false);
           throw const BiometricCredentialsInvalidatedException();
-        case 'LockoutTemporary':
           logger.w('Biometric temporarily locked out');
           throw BiometricLockoutException.temporary();
         case 'UserFallback':
