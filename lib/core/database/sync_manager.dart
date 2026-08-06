@@ -83,7 +83,14 @@ class SyncManager {
     _autoSyncTimer = Timer.periodic(
       Duration(minutes: minutes),
       (_) async {
-        if (!_disposed) await _autoTick();
+        if (_disposed) return;
+        try {
+          await _autoTick();
+        } catch (e, stack) {
+          if (kDebugMode) {
+            debugPrint('SyncManager: auto-sync tick error: $e\n$stack');
+          }
+        }
       },
     );
     if (kDebugMode) {
