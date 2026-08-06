@@ -128,6 +128,12 @@ class SyncManager {
 
   /// Gọi sau khi login/restore thành công: sync pending ngay, không đợi tick 15 phút.
   Future<void> syncAfterAuth() async {
+    // Nếu chưa được khởi tạo hoặc vừa login lại sau khi logout, khởi động lại listener và timer
+    if (!_isInitialized) {
+      startListening();
+      unawaited(startAutoSync());
+    }
+
     if (_isSyncing) {
       final active = _activeSyncFuture;
       if (active != null) {
@@ -173,5 +179,6 @@ class SyncManager {
     // KHÔNG xóa _syncHandlers để lưu giữ các handler đăng ký từ main.dart cho session sau
     // _syncHandlers.clear();
     _isSyncing = false;
+    _isInitialized = false;
   }
 }

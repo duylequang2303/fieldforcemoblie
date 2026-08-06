@@ -74,9 +74,9 @@ class BiometricService {
           // Auto-disable biometric login trong app
           await SecureStorageService.instance.setBiometricEnabled(enabled: false);
           throw BiometricLockoutException.permanent();
-        case 'PermanentlyInvalidated':
-        case 'KeyPermanentlyInvalidated':
-          logger.e('Biometric credentials invalidated due to device changes');
+        case 'NotAvailable':
+        case 'BiometricNotAvailable':
+          logger.e('Biometric credentials invalidated due to device changes or not available');
           // Tự động tắt tính năng và yêu cầu login bằng pass
           await SecureStorageService.instance.setBiometricEnabled(enabled: false);
           throw const BiometricCredentialsInvalidatedException();

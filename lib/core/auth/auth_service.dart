@@ -98,7 +98,10 @@ class AuthService {
           final parts = locale.split('_');
           if (parts.length == 2) {
             // Fix Thread #11: Await setLocale to ensure locale is persisted before returning
-            await LocaleService.instance.setLocale(locale);
+            final persisted = await LocaleService.instance.setLocale(locale);
+            if (!persisted) {
+              await LocaleService.instance.setLocale('vi_VN');
+            }
           } else {
             logger.w('Invalid locale format from storage: $locale');
             await LocaleService.instance.setLocale('vi_VN');

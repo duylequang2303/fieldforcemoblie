@@ -2,20 +2,27 @@
 
 ## Server Info
 - **URL**: http://localhost:20128
-- **Process**: `omniroute` (PID ~104223, running from `/home/duyle/.npm-global/lib/node_modules/omniroute/dist`)
-- **Config**: `.env` at `/home/duyle/.npm-global/lib/node_modules/omniroute/.env`
+- **Process**: `omniroute` (Discover PID using `pgrep omniroute`, usually runs from npm global modules)
+- **Config**: `.env` located at your npm global modules directory of `omniroute`
 
 ## Credentials
 - **Email**: `admin@local`
-- **Password**: `CHANGEME` (from `INITIAL_PASSWORD` in .env)
+- **Password**: Non-default password configured in `.env` (specified via `INITIAL_PASSWORD`)
 
 ## Login via CLI (curl)
 
 ```bash
-# 1. Login and save cookies
+# 1. Login and save cookies (Replace <YOUR_PASSWORD> with your actual INITIAL_PASSWORD config)
 curl -s -c /tmp/omniroute_cookies.txt -X POST "http://localhost:20128/api/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"email": "admin@local", "password": "CHANGEME"}'
+  -d '{"email": "admin@local", "password": "<YOUR_PASSWORD>"}'
+
+# Alternatively, enter password interactively to avoid writing it in bash history:
+read -sp "Enter password: " PASSWORD
+echo
+curl -s -c /tmp/omniroute_cookies.txt -X POST "http://localhost:20128/api/auth/login" \
+  -H "Content-Type: application/json" \
+  -d "{\"email\": \"admin@local\", \"password\": \"$PASSWORD\"}"
 
 # 2. Access dashboard pages
 curl -s -b /tmp/omniroute_cookies.txt "http://localhost:20128/dashboard/free-tiers"
@@ -25,11 +32,13 @@ curl -s -b /tmp/omniroute_cookies.txt "http://localhost:20128/api/free-tier/summ
 ```
 
 ## Key API Endpoints (authenticated)
+
 | Endpoint | Description |
 |----------|-------------|
 | `/api/free-tier/summary` | Free tier model limits summary (523 models, 43 pools) |
 | `/dashboard/free-tiers` | Dashboard UI page |
 | `/api/auth/login` | POST login (returns `auth_token` cookie) |
+
 
 ## Quick Test
 ```bash
