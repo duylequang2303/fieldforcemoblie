@@ -19,6 +19,7 @@ Agent TỰ ĐỘNG quyết định khi nào cần subagent — người dùng KH
 2. Subagent đọc `git diff` → trả bảng `SEVERITY | FILE:LINE | ISSUE | FIX` — KHÔNG sửa file
 3. Nếu pass (không có lỗi `BLOCKER`/`HIGH`) → subagent ghi `.cline/review-marker` (thời gian hiện tại, hợp lệ 10 phút)
 4. Nếu có lỗi nghiêm trọng → FIX code trước, rồi chạy `/review` lại cho tới khi pass, rồi mới commit
+5. **TUYỆT ĐỐI KHÔNG** sử dụng cờ `--no-verify` khi thực hiện `git commit` hoặc `git push` nhằm mục đích bỏ qua (bypass) kiểm tra chất lượng của git hook hoặc kết quả phân tích (`flutter analyze`). Mọi lỗi biên dịch (`error •`) bắt buộc phải được giải quyết triệt để ở tầng mã nguồn trước khi đẩy mã nguồn lên PR.
 
 ### C. Think (brainstorm nhiều góc nhìn)
 **Trigger tự động — Khi có bất kỳ dấu hiệu nào sau:**
