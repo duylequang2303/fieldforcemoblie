@@ -42,7 +42,11 @@ class RecurringService {
             'start_date',
             'end_date',
             'next_date',
-            'active'
+            'active',
+            'recurrence_rule_type',
+            'recurrence_completion_interval',
+            'recurrence_completed_count',
+            'recurrence_skipped_count'
           ]
         },
       ) as List<dynamic>;
@@ -94,10 +98,13 @@ class RecurringService {
             if (existing.ruleType != 'completion') {
               existing.nextDate = rule.nextDate;
             }
-            // NEVER overwrite local generatedCount, completedCount, skippedCount
-            // Stop recurring series sync check: preserve local false isActive state if pending sync
+            // NEVER overwrite local generatedCount
             if (!existing.isPendingSync) {
               existing.isActive = rule.isActive;
+              existing.ruleType = rule.ruleType;
+              existing.completionInterval = rule.completionInterval;
+              existing.completedCount = rule.completedCount;
+              existing.skippedCount = rule.skippedCount;
             }
             existing.lastSyncAt = DateTime.now();
             await _isar.db.fsmRecurrings.put(existing);
@@ -377,10 +384,7 @@ class RecurringService {
 
         // Lọc ngày nextDate và update
         rule.generatedCount++;
-        if (rule.ruleType == 'completion') {
-          // Completion-based: set nextDate to null (will be set upon completion/skip of this order)
-          rule.nextDate = null;
-        } else {
+        if (rule.ruleType != 'completion') {
           rule.nextDate = calculateNextOccurrence(scheduledStart, freqSet, targetDay: rule.startDate.day);
           if (rule.endDate != null) {
             final endLimit = DateTime(rule.endDate!.year, rule.endDate!.month, rule.endDate!.day, 23, 59, 59);

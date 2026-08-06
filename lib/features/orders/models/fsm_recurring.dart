@@ -100,27 +100,25 @@ class FsmRecurring {
   // Helper parse
   static int _idFromMany(dynamic value) {
     if (value == null || value == false) return 0;
-    if (value is int) return value;
-    if (value is List && value.isNotEmpty) {
-      final first = value[0];
-      if (first is int) return first;
-      if (first is num) return first.toInt();
+    if (value case num n) return n.toInt();
+    if (value case List l when l.isNotEmpty) {
+      final first = l[0];
+      if (first case num n) return n.toInt();
       return int.tryParse(first.toString()) ?? 0;
     }
-    if (value is String) return int.tryParse(value) ?? 0;
+    if (value case String s) return int.tryParse(s) ?? 0;
     return 0;
   }
 
   static int? _idOrNull(dynamic value) {
     if (value == null || value == false) return null;
-    if (value is int) return value;
-    if (value is List && value.isNotEmpty) {
-      final first = value[0];
-      if (first is int) return first;
-      if (first is num) return first.toInt();
+    if (value case num n) return n.toInt();
+    if (value case List l when l.isNotEmpty) {
+      final first = l[0];
+      if (first case num n) return n.toInt();
       return int.tryParse(first.toString());
     }
-    if (value is String) return int.tryParse(value);
+    if (value case String s) return int.tryParse(s);
     return null;
   }
 

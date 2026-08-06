@@ -4,9 +4,8 @@ import 'package:fieldforce_mobile/features/orders/models/fsm_recurring.dart';
 import 'package:fieldforce_mobile/features/orders/models/fsm_frequency_set.dart';
 
 void main() {
-  group('Odoo RPC Deserialization Compatibility Tests', () {
-    
-    test('FsmOrder.fromJson should handle normal and false/empty values safely', () {
+  group('FsmOrder', () {
+    test('fromJson should handle normal and false/empty values safely', () {
       final jsonPayload = {
         'id': 123,
         'name': 'WO/2024/001',
@@ -61,7 +60,7 @@ void main() {
       expect(order.warehouseId, isNull);
     });
 
-    test('FsmOrder.fromJson should handle raw inputs and type variations safely (no crash)', () {
+    test('fromJson should handle raw inputs and type variations safely (no crash)', () {
       final jsonPayload = {
         'id': 123.0, // double ID parsed safe
         'name': 'WO/2024/002',
@@ -96,7 +95,6 @@ void main() {
         }
       };
 
-      // Ensure stage_id is resolved as direct flat integer, location_id handles string, partner lat/long is robust
       final order = FsmOrder.fromJson(jsonPayload, locationCoordinates: locationCoordinates);
       
       expect(order.odooId, 123);
@@ -123,9 +121,6 @@ void main() {
       expect(order.requireSignature, isTrue);
       expect(order.warehouseId, 500);
 
-      // locationCoordinates check (with partner_id translation etc)
-      // Note locationCoordinates lookup is done via json['location_id'][0] if it is a list
-      // Since json['location_id'] was a string above, it didn't trigger coords lookup. Let's test coordinates lookup with list:
       final jsonPayloadWithListLocation = Map<String, dynamic>.from(jsonPayload)
         ..['location_id'] = [12, 'Location A'];
       final orderWithCoords = FsmOrder.fromJson(jsonPayloadWithListLocation, locationCoordinates: locationCoordinates);
@@ -135,8 +130,10 @@ void main() {
       expect(orderWithCoords.partnerName, 'Partner 50');
       expect(orderWithCoords.inventoryLocationId, 200);
     });
+  });
 
-    test('FsmRecurring.fromJson should handle false and template/company fields', () {
+  group('FsmRecurring', () {
+    test('fromJson should handle false and template/company fields', () {
       final jsonPayload = {
         'id': 10,
         'name': 'Weekly Recurring Test',
@@ -171,8 +168,10 @@ void main() {
       expect(recurring.completedCount, 3);
       expect(recurring.skippedCount, 1);
     });
+  });
 
-    test('FsmFrequencySet.fromJson should handle false and null fields', () {
+  group('FsmFrequencySet', () {
+    test('fromJson should handle false and null fields', () {
       final jsonPayload = {
         'id': 5,
         'name': 'Bi-Weekly',

@@ -157,27 +157,25 @@ class FsmOrder {
 
   static int _idFromMany(dynamic v) {
     if (v == null || v == false) return 0;
-    if (v is int) return v;
-    if (v is List && v.isNotEmpty) {
-      final first = v[0];
-      if (first is int) return first;
-      if (first is num) return first.toInt();
+    if (v case num n) return n.toInt();
+    if (v case List l when l.isNotEmpty) {
+      final first = l[0];
+      if (first case num n) return n.toInt();
       return int.tryParse(first.toString()) ?? 0;
     }
-    if (v is String) return int.tryParse(v) ?? 0;
+    if (v case String s) return int.tryParse(s) ?? 0;
     return 0;
   }
 
   static int? _idOrNull(dynamic v) {
     if (v == null || v == false) return null;
-    if (v is int) return v;
-    if (v is List && v.isNotEmpty) {
-      final first = v[0];
-      if (first is int) return first;
-      if (first is num) return first.toInt();
+    if (v case num n) return n.toInt();
+    if (v case List l when l.isNotEmpty) {
+      final first = l[0];
+      if (first case num n) return n.toInt();
       return int.tryParse(first.toString());
     }
-    if (v is String) return int.tryParse(v);
+    if (v case String s) return int.tryParse(s);
     return null;
   }
 
