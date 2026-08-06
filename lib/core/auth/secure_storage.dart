@@ -1,7 +1,20 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:async';
+import '../utils/logger.dart';
+
+/// Class khóa bất đồng bộ đơn giản để serialize các thao tác ghi dữ liệu.
+class _SimpleLock {
+  Future<void> _last = Future.value();
+  Future<T> synchronized<T>(Future<T> Function() action) {
+    final next = _last.then((_) => action(), onError: (_) => action());
+    _last = next.then((_) {}, onError: (_) {});
+    return next;
+  }
+}
 
 /// Service lưu trữ thông tin nhạy cảm an toàn bằng Keychain (iOS) / Keystore (Android).
 /// Sử dụng cho: server URL, database, username, session ID.
+/// KHÔNG LƯU PASSWORD - chỉ lưu session token.
 class SecureStorageService {
   SecureStorageService._();
   static final SecureStorageService instance = SecureStorageService._();
@@ -10,16 +23,19 @@ class SecureStorageService {
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
-  // Keys
+  // Lock để serialize tất cả write operations - tránh race condition
+  final _writeLock = _SimpleLock();
+
+  // Keys - KHÔNG CÓ _keyPassword
   static const _keyServerUrl = 'odoo_server_url';
   static const _keyDatabase = 'odoo_database';
   static const _keyUsername = 'odoo_username';
   static const _keySessionId = 'odoo_session_id';
   static const _keyUserId = 'odoo_user_id';
   static const _keyLocale = 'odoo_locale';
-  static const _keyPassword = 'odoo_password';
   static const _keyBiometricEnabled = 'biometric_enabled';
 
+  /// Lưu session (KHÔNG lưu password, xóa legacy password nếu có)
   Future<void> saveSession({
     required String serverUrl,
     required String database,
@@ -27,23 +43,38 @@ class SecureStorageService {
     required String sessionId,
     required int userId,
     String locale = 'vi_VN',
-    String? password,
   }) async {
-    final writes = <Future<void>>[
-      _storage.write(key: _keyServerUrl, value: serverUrl),
-      _storage.write(key: _keyDatabase, value: database),
-      _storage.write(key: _keyUsername, value: username),
-      _storage.write(key: _keySessionId, value: sessionId),
-      _storage.write(key: _keyUserId, value: userId.toString()),
-      _storage.write(key: _keyLocale, value: locale),
-    ];
-    if (password != null) {
-      writes.add(_storage.write(key: _keyPassword, value: password));
-    }
-    await Future.wait(writes);
+    // Serialize writes với lock
+    await _writeLock.synchronized(() async {
+      await _storage.write(key: _keyServerUrl, value: serverUrl);
+      await _storage.write(key: _keyDatabase, value: database);
+      await _storage.write(key: _keyUsername, value: username);
+      await _storage.write(key: _keySessionId, value: sessionId);
+      await _storage.write(key: _keyUserId, value: userId.toString());
+      await _storage.write(key: _keyLocale, value: locale);
+      // Migration: Xoá odoo_password key nếu còn sót từ các session trước
+      try {
+        await _storage.delete(key: 'odoo_password');
+      } catch (e, stack) {
+        logger.e('Failed to delete legacy password in saveSession', error: e, stackTrace: stack);
+      }
+    });
   }
 
+  /// Xóa odoo_password cũ phát hành ở phiên bản cũ (Migration) có tuần tự hóa ghi
+  Future<void> removeLegacyPassword() async {
+    await _writeLock.synchronized(() async {
+      try {
+        await _storage.delete(key: 'odoo_password');
+      } catch (e, stack) {
+        logger.e('Failed to delete legacy password in removeLegacyPassword', error: e, stackTrace: stack);
+      }
+    });
+  }
+
+  /// Load session data (không bao gồm password)
   Future<Map<String, String?>> loadSession() async {
+    // Reads không cần lock
     final results = await Future.wait([
       _storage.read(key: _keyServerUrl),
       _storage.read(key: _keyDatabase),
@@ -51,7 +82,6 @@ class SecureStorageService {
       _storage.read(key: _keySessionId),
       _storage.read(key: _keyUserId),
       _storage.read(key: _keyLocale),
-      _storage.read(key: _keyPassword),
     ]);
     return {
       'serverUrl': results[0],
@@ -60,7 +90,6 @@ class SecureStorageService {
       'sessionId': results[3],
       'userId': results[4],
       'locale': results[5],
-      'password': results[6],
     };
   }
 
@@ -80,15 +109,17 @@ class SecureStorageService {
   }
 
   Future<void> clearSession() async {
-    await Future.wait([
-      _storage.delete(key: _keyServerUrl),
-      _storage.delete(key: _keyDatabase),
-      _storage.delete(key: _keyUsername),
-      _storage.delete(key: _keySessionId),
-      _storage.delete(key: _keyUserId),
-      _storage.delete(key: _keyLocale),
-      _storage.delete(key: _keyPassword),
-    ]);
+    await _writeLock.synchronized(() async {
+      await Future.wait([
+        _storage.delete(key: _keyServerUrl),
+        _storage.delete(key: _keyDatabase),
+        _storage.delete(key: _keyUsername),
+        _storage.delete(key: _keySessionId),
+        _storage.delete(key: _keyUserId),
+        _storage.delete(key: _keyLocale),
+        _storage.delete(key: 'odoo_password'), // Xóa legacy key (password cũ) nếu có
+      ]);
+    });
   }
 
   Future<bool> get hasSavedSession async {
@@ -97,7 +128,9 @@ class SecureStorageService {
   }
 
   Future<void> setBiometricEnabled({required bool enabled}) async {
-    await _storage.write(key: _keyBiometricEnabled, value: enabled.toString());
+    await _writeLock.synchronized(() async {
+      await _storage.write(key: _keyBiometricEnabled, value: enabled.toString());
+    });
   }
 
   Future<bool> get isBiometricEnabled async {

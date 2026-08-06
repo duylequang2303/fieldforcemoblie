@@ -12,10 +12,15 @@ class IsarService {
   static final IsarService instance = IsarService._();
 
   Isar? _db;
+  Object? _initError;
+  StackTrace? _initStackTrace;
 
   /// Trả về Isar instance đang hoạt động.
-  /// Throw [StateError] nếu chưa gọi [init()].
+  /// Throw [StateError] nếu chưa gọi [init()] hoặc init thất bại.
   Isar get db {
+    if (_initError != null) {
+      throw IsarInitializationException(_initError!, _initStackTrace);
+    }
     if (_db == null || !_db!.isOpen) {
       throw StateError(
         'IsarService chưa được khởi tạo. Gọi IsarService.instance.init() trước.',
@@ -27,12 +32,19 @@ class IsarService {
   @visibleForTesting
   set dbForTest(Isar isarDB) {
     _db = isarDB;
+    _initError = null;
+    _initStackTrace = null;
   }
 
-  bool get isInitialized => _db != null && _db!.isOpen;
+  bool get isInitialized => _db != null && _db!.isOpen && _initError == null;
+
+  /// Lỗi khởi tạo (nếu có). Null nếu init thành công hoặc chưa init.
+  Object? get initializationError => _initError;
 
   /// Khởi tạo Isar với danh sách schema.
   /// Schemas được đăng ký từ từng feature model (FsmOrder, StockMove, ...).
+  /// 
+  /// Ném [IsarInitializationException] nếu khởi tạo thất bại.
   Future<void> init(List<CollectionSchema<dynamic>> schemas) async {
     if (isInitialized) return;
 
@@ -49,10 +61,15 @@ class IsarService {
         name: 'fieldforce_db',
         inspector: false,
       );
+      _initError = null;
+      _initStackTrace = null;
     } catch (e, stackTrace) {
+      _initError = e;
+      _initStackTrace = stackTrace;
       if (kDebugMode) {
         debugPrint('Lỗi khởi tạo Isar DB: $e\n$stackTrace');
       }
+      throw IsarInitializationException(e, stackTrace);
     }
   }
 
@@ -60,5 +77,18 @@ class IsarService {
   Future<void> dispose() async {
     await _db?.close();
     _db = null;
+    _initError = null;
+    _initStackTrace = null;
   }
+}
+
+/// Exception được ném khi Isar khởi tạo thất bại.
+class IsarInitializationException implements Exception {
+  final Object error;
+  final StackTrace? stackTrace;
+
+  const IsarInitializationException(this.error, [this.stackTrace]);
+
+  @override
+  String toString() => 'IsarInitializationException: $error';
 }

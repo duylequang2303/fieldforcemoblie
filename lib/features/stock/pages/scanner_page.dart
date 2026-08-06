@@ -9,7 +9,9 @@ import '../providers/stock_provider.dart';
 
 /// Trang quét mã barcode/QR vật tư.
 class ScannerPage extends StatefulWidget {
-  const ScannerPage({super.key});
+  const ScannerPage({super.key, required this.orderId});
+
+  final int orderId;
 
   @override
   State<ScannerPage> createState() => _ScannerPageState();
@@ -30,6 +32,28 @@ class _ScannerPageState extends State<ScannerPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.orderId <= 0) {
+      final colorScheme = Theme.of(context).colorScheme;
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Lỗi đơn hàng'),
+          backgroundColor: colorScheme.surface,
+          foregroundColor: colorScheme.onSurface,
+        ),
+        backgroundColor: colorScheme.surface,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              'Mã đơn hàng dịch vụ không hợp lệ. Không thể thực hiện quét vật tư.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: colorScheme.error, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Consumer<StockProvider>(
       builder: (context, provider, _) {
         return Scaffold(
@@ -104,9 +128,9 @@ class _ScannerPageState extends State<ScannerPage> {
                           ? _ProductFoundPanel(
                               product: provider.scannedProduct!,
                               onRecord: (qty) async {
-                                // Lấy orderId từ route params nếu có
+                                // Lấy orderId từ route params
                                 await provider.recordOut(
-                                  orderOdooId: 0, // sẽ truyền từ route
+                                  orderOdooId: widget.orderId,
                                   qty: qty,
                                 );
                                 if (context.mounted) {

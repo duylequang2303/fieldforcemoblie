@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'route_names.dart';
 
 // Auth pages (Phase 6)
 import '../../features/auth/pages/splash_page.dart';
 import '../../features/auth/pages/login_page.dart';
+import '../../features/auth/providers/auth_provider.dart';
 // Orders pages (Phase 7)
 import '../../features/orders/pages/orders_list_page.dart';
 import '../../features/orders/pages/order_detail_page.dart';
@@ -41,10 +43,37 @@ import '../../features/settings/pages/settings_page.dart';
 /// Khai báo toàn bộ routes tại đây — không navigate trực tiếp bằng Navigator.push().
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
+/// Danh sách route names công khai (không cần auth)
+final Set<String> _publicRoutes = {
+  RouteNames.splash,
+  RouteNames.login,
+};
+
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: RouteNames.splash,
   debugLogDiagnostics: true,
+  // Refresh router when AuthProvider notifies (handles session expiration)
+  refreshListenable: AuthProvider.instance,
+  // Redirect guard cho authentication
+  redirect: (context, state) {
+    final authProvider = context.read<AuthProvider>();
+    final isAuthenticated = authProvider.isAuthenticated;
+    final location = state.matchedLocation;
+    final isPublic = _publicRoutes.contains(location);
+    
+    // Nếu chưa đăng nhập và truy cập route được bảo vệ -> redirect về login
+    if (!isAuthenticated && !isPublic) {
+      return RouteNames.login;
+    }
+    
+    // Nếu đã đăng nhập nhưng đang ở splash/login -> redirect về shell schedule
+    if (isAuthenticated && (location == RouteNames.splash || location == RouteNames.login)) {
+      return RouteNames.shellSchedule;
+    }
+    
+    return null; // Không redirect
+  },
   routes: [
     // Shell navigation với 3 tab (Schedule, Properties, Settings)
     StatefulShellRoute.indexedStack(
@@ -128,9 +157,12 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const RouteMapPage(),
     ),
     GoRoute(
-      path: RouteNames.scanner,
+      path: '${RouteNames.scanner}/:orderId',
       name: 'scanner',
-      builder: (context, state) => const ScannerPage(),
+      builder: (context, state) {
+        final orderId = state.pathParameters['orderId'] ?? '0';
+        return ScannerPage(orderId: int.tryParse(orderId) ?? 0);
+      },
     ),
     GoRoute(
       path: '/stock-moves/:orderId',

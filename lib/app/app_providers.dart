@@ -20,7 +20,7 @@ class AppProviders extends StatelessWidget {
     return MultiProvider(
       providers: [
         // Phase 6: Auth ✅
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider.value(value: AuthProvider.instance),
         // Phase 7: Orders ✅
         ChangeNotifierProvider(create: (_) => OrdersProvider()),
         // Phase 8: Route Map ✅

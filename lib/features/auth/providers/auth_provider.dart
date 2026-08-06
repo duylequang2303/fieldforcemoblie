@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import '../../../core/auth/auth_service.dart';
 import '../../../core/api/api_exception.dart';
+import '../../../core/api/odoo_session_manager.dart';
 
 enum AuthStatus { initial, loading, authenticated, unauthenticated, error }
 
 /// Provider quản lý trạng thái xác thực toàn app.
 class AuthProvider extends ChangeNotifier {
+  static final AuthProvider instance = AuthProvider._internal();
+  AuthProvider._internal();
+
   final _authService = AuthService.instance;
+  final _sessionManager = OdooSessionManager.instance;
+  StreamSubscription<void>? _sessionExpiredSubscription;
 
   AuthStatus _status = AuthStatus.initial;
   String? _errorMessage;
@@ -21,9 +28,24 @@ class AuthProvider extends ChangeNotifier {
     _isBiometricAvailable = await _authService.isBiometricAvailable;
     notifyListeners();
 
+    // Subscribe TRƯỚC khi restore để không bỏ sót session expiry event
+    // nếu syncAfterAuth() phát hiện session expired ngay trong lúc restore
+    // (Fix CodeRabbit PR#34 Thread #14)
+    _sessionExpiredSubscription = _sessionManager.onSessionExpired.listen((_) {
+      if (_status == AuthStatus.authenticated) {
+        _status = AuthStatus.unauthenticated;
+        _errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+        notifyListeners();
+      }
+    });
+
     // Thử restore session khi app khởi động
     final restored = await _authService.tryRestoreSession();
-    _status = restored ? AuthStatus.authenticated : AuthStatus.unauthenticated;
+    // Sau restore, kiểm tra lại isAuthenticated vì listener có thể đã
+    // set unauthenticated nếu session expired ngay trong quá trình restore
+    _status = (restored && _sessionManager.isAuthenticated)
+        ? AuthStatus.authenticated
+        : AuthStatus.unauthenticated;
     notifyListeners();
   }
 
@@ -73,6 +95,12 @@ class AuthProvider extends ChangeNotifier {
     _status = AuthStatus.unauthenticated;
     _errorMessage = null;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _sessionExpiredSubscription?.cancel();
+    super.dispose();
   }
 
   void clearError() {

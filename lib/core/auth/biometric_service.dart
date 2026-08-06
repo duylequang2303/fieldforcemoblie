@@ -1,4 +1,25 @@
 import 'package:local_auth/local_auth.dart';
+import 'package:flutter/services.dart';
+import '../utils/logger.dart';
+import 'secure_storage.dart';
+
+/// Exception để handle biometric lockout ở UI layer
+class BiometricLockoutException implements Exception {
+  final bool isPermanent;
+  final String message;
+
+  const BiometricLockoutException._({required this.isPermanent, required this.message});
+
+  factory BiometricLockoutException.permanent() => const BiometricLockoutException._(
+    isPermanent: true,
+    message: 'Biometric bị khóa vĩnh viễn. Vui lòng dùng mật khẩu để đăng nhập.',
+  );
+
+  factory BiometricLockoutException.temporary() => const BiometricLockoutException._(
+    isPermanent: false,
+    message: 'Biometric tạm thời bị khóa. Vui lòng thử lại sau giây lát.',
+  );
+}
 
 /// Service xử lý xác thực sinh trắc học: FaceID hoặc Vân tay.
 class BiometricService {
@@ -27,6 +48,7 @@ class BiometricService {
 
   /// Thực hiện xác thực sinh trắc học.
   /// Trả về [true] nếu xác thực thành công.
+  /// Ném [BiometricLockoutException] nếu bị khóa vĩnh viễn.
   Future<bool> authenticate() async {
     try {
       final available = await isAvailable;
@@ -35,11 +57,33 @@ class BiometricService {
       return await _auth.authenticate(
         localizedReason: 'Xác thực để đăng nhập Fieldforce Worker',
         options: const AuthenticationOptions(
-          biometricOnly: false, // Cho phép dùng PIN nếu biometric fail
-          stickyAuth: true, // Giữ auth dialog khi app chuyển nền
+          biometricOnly: true,   // fix: CHỈ cho phép biometric, không fallback PIN
+          stickyAuth: false,     // fix: Không giữ dialog khi app background
         ),
       );
-    } catch (_) {
+    } on PlatformException catch (e) {
+      switch (e.code) {
+        case 'LockoutPermanent':
+          logger.e('Biometric permanently locked out');
+          // Auto-disable biometric login trong app
+          await SecureStorageService.instance.setBiometricEnabled(enabled: false);
+          throw BiometricLockoutException.permanent();
+        case 'LockoutTemporary':
+          logger.w('Biometric temporarily locked out');
+          throw BiometricLockoutException.temporary();
+        case 'UserFallback':
+          logger.i('User chose fallback (PIN/Pattern)');
+          // Không throw - coi như user cancel
+          return false;
+        case 'UserCancel':
+          logger.i('User cancelled biometric');
+          return false;
+        default:
+          logger.e('Biometric auth error', error: e);
+          return false;
+      }
+    } catch (e, stack) {
+      logger.e('Biometric auth unexpected error', error: e, stackTrace: stack);
       return false;
     }
   }
