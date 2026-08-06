@@ -10,6 +10,7 @@ import '../../../../core/routing/route_names.dart';
 import '../../../../core/settings/offline_storage_service.dart';
 import '../../../../core/settings/settings_repository.dart';
 import '../../../../core/settings/sync_status_provider.dart';
+import '../../../../core/database/sync_manager.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../ui/theme/sf_tokens.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -355,10 +356,11 @@ class _SettingsPageState extends State<SettingsPage> {
             trailing: DropdownButton<int>(
               value: _autoSync,
               underline: const SizedBox.shrink(),
-              onChanged: (v) {
+              onChanged: (v) async {
                 if (v == null) return;
                 setState(() => _autoSync = v);
-                SettingsRepository.instance.saveAutoSyncMinutes(v);
+                await SettingsRepository.instance.saveAutoSyncMinutes(v);
+                SyncManager.instance.applyPreferences();
               },
               items: const [
                 DropdownMenuItem(value: 0, child: Text('Off')),
@@ -376,9 +378,10 @@ class _SettingsPageState extends State<SettingsPage> {
             trailing: Switch(
               value: _wifiOnly,
               activeThumbColor: SfTokens.primary,
-              onChanged: (v) {
+              onChanged: (v) async {
                 setState(() => _wifiOnly = v);
-                SettingsRepository.instance.saveWifiOnly(v);
+                await SettingsRepository.instance.saveWifiOnly(v);
+                SyncManager.instance.applyPreferences();
               },
             ),
           ),

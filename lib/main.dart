@@ -41,7 +41,8 @@ Future<void> main() async {
   const defaultLocale = 'vi_VN';
   Intl.defaultLocale = defaultLocale;
   await initializeDateFormatting(defaultLocale, null);
-  LocaleService.instance.setLocale(defaultLocale);
+  // Khởi tạo và thiết lập Locale đã lưu từ bộ nhớ (Fix Thread #1)
+  await LocaleService.instance.init();
 
   // Chỉ cho phép xoay dọc (portrait) trên thiết bị di động
   if (!kIsWeb) {

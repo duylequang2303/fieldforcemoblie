@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
@@ -154,7 +153,7 @@ class _PhotoThumbnail extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           SafeImageFile(
-            file: File(path),
+            path: path,
             width: 88,
             height: 88,
             fit: BoxFit.cover,

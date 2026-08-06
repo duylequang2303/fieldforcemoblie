@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/api/api_exception.dart';
+import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/connectivity/connectivity_service.dart';
 import '../models/fsm_order.dart';
 import '../services/orders_service.dart';
@@ -44,6 +45,7 @@ class OrdersProvider extends ChangeNotifier {
 
   /// Fetch orders: online → gọi Odoo, offline → đọc Isar.
   Future<void> fetchOrders() async {
+    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -52,53 +54,67 @@ class OrdersProvider extends ChangeNotifier {
       final isOnline = await _connectivity.checkConnectivity();
       _isOffline = !isOnline;
 
-      if (isOnline) {
-        _orders = await _service.fetchMyOrders();
-      } else {
-        _orders = await _service.loadCachedOrders();
-      }
+      final results = isOnline
+          ? await _service.fetchMyOrders()
+          : await _service.loadCachedOrders();
+
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
+      _orders = results;
     } on OdooApiException catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
       _errorMessage = e.message;
       // Fallback sang cache nếu API lỗi
       _orders = await _service.loadCachedOrders();
     } catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
       _errorMessage = 'Lỗi không xác định: $e';
       _orders = await _service.loadCachedOrders();
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (OdooSessionManager.instance.currentSession?.sessionId == sessionToken) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   /// Cập nhật stage của một order.
   Future<void> updateOrderStage(int odooId, int newStageId) async {
+    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
       await _service.updateStage(odooId, newStageId);
-      _orders = await _service.loadCachedOrders();
+      final results = await _service.loadCachedOrders();
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
+      _orders = results;
     } on OdooApiException catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
       _errorMessage = e.message;
       if (e is OdooConnectionException) {
         _isOffline = true;
       }
       _orders = await _service.loadCachedOrders();
     } catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
       _errorMessage = 'Lỗi không xác định: $e';
       _orders = await _service.loadCachedOrders();
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (OdooSessionManager.instance.currentSession?.sessionId == sessionToken) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   /// Chuyển đơn sang trạng thái Đang thực hiện (In Progress) bằng cách quét từ khoá
   Future<void> updateOrderToInProgress(int odooId) async {
+    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
     _isLoading = true;
     notifyListeners();
     final stageId =
         await _service.getStageIdByKeywords(['progress', 'thực hiện']);
+    if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
     if (stageId != null) {
       await updateOrderStage(odooId, stageId);
     } else {
@@ -111,46 +127,60 @@ class OrdersProvider extends ChangeNotifier {
 
   /// Chuyển đơn sang trạng thái Hoàn thành (Done) qua action chuẩn của Odoo
   Future<void> updateOrderToDone(int odooId) async {
+    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
     _isLoading = true;
     _errorMessage = null; // Reset errorMessage trước khi gọi API nghiệp vụ
     notifyListeners();
 
     try {
       await _service.completeOrder(odooId);
-      _orders = await _service.loadCachedOrders();
+      final results = await _service.loadCachedOrders();
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
+      _orders = results;
     } on OdooApiException catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
       _errorMessage = e.message;
       if (e is OdooConnectionException) {
         _isOffline = true;
       }
     } catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
       _errorMessage = 'Lỗi không xác định: $e';
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (OdooSessionManager.instance.currentSession?.sessionId == sessionToken) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   /// Check-in tại địa điểm làm việc.
   Future<void> checkIn(int odooId) async {
+    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
       await _service.checkIn(odooId);
-      _orders = await _service.loadCachedOrders();
+      final results = await _service.loadCachedOrders();
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
+      _orders = results;
     } on OdooApiException catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
       _errorMessage = e.message;
       if (e is OdooConnectionException) {
         _isOffline = true;
       }
       _orders = await _service.loadCachedOrders();
     } catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
       _errorMessage = 'Lỗi không xác định: $e';
       _orders = await _service.loadCachedOrders();
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (OdooSessionManager.instance.currentSession?.sessionId == sessionToken) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -165,28 +195,35 @@ class OrdersProvider extends ChangeNotifier {
 
   /// Đánh dấu bỏ qua kì định kỳ này (Skip), trả về true nếu thành công
   Future<bool> skipOccurrence(FsmOrder order) async {
+    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
     try {
       final success = await _recurringService.skipOccurrence(order);
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return false;
       if (success) {
         _orders = await _service.loadCachedOrders();
         return true;
       }
       return false;
     } on ArgumentError catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return false;
       _errorMessage = 'Lỗi tham số: ${e.message}';
       return false;
     } on StateError catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return false;
       _errorMessage = e.message;
       return false;
     } catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return false;
       _errorMessage = 'Lỗi không xác định khi bỏ qua đơn: $e';
       return false;
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (OdooSessionManager.instance.currentSession?.sessionId == sessionToken) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 

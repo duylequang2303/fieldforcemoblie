@@ -82,7 +82,7 @@ class _CustomerSignatureWidgetState extends State<CustomerSignatureWidget> {
               color: Colors.white,
             ),
             child: SafeImageFile(
-              file: File(widget.existingSignaturePath!),
+              path: widget.existingSignaturePath!,
               fit: BoxFit.contain,
               borderRadius: BorderRadius.circular(12),
             ),

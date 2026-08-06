@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -323,7 +322,7 @@ class _ExpenseCard extends StatelessWidget {
             // Receipt image or category icon
             if (expense.receiptImagePath != null)
               SafeImageFile(
-                file: File(expense.receiptImagePath!),
+                path: expense.receiptImagePath!,
                 width: 64,
                 height: 64,
                 fit: BoxFit.cover,

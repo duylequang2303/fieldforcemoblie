@@ -24,20 +24,25 @@ class LocaleService {
     }
   }
 
-  void setLocale(String locale) {
-    if (locale.isEmpty) return;
+  Future<bool> setLocale(String locale) async {
+    if (locale.isEmpty) return false;
     _current = locale;
     Intl.defaultLocale = locale;
     // Persist to SharedPreferences
-    _persistLocale(locale);
+    return await _persistLocale(locale);
   }
 
-  Future<void> _persistLocale(String locale) async {
+  Future<bool> _persistLocale(String locale) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyLocale, locale);
-    } catch (e) {
-      logger.w('LocaleService: Failed to persist locale', error: e);
+      final success = await prefs.setString(_keyLocale, locale);
+      if (!success) {
+        logger.e('LocaleService: Failed to persist locale - SharedPreferences setString returned false');
+      }
+      return success;
+    } catch (e, stackTrace) {
+      logger.e('LocaleService: Exception while persisting locale', error: e, stackTrace: stackTrace);
+      return false;
     }
   }
 

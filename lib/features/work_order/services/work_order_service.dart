@@ -48,14 +48,16 @@ class WorkOrderService {
 
   /// Lấy hoặc tạo mới báo cáo cho đơn.
   Future<WorkReport> getOrCreateReport(int orderOdooId) async {
+    final currentUserId = _odoo.currentUserId;
     final existing = await _isar.db.workReports
         .filter()
         .orderOdooIdEqualTo(orderOdooId)
+        .and()
+        .localOwnerIdEqualTo(currentUserId)
         .findFirst();
 
     if (existing != null) return existing;
 
-    final currentUserId = _odoo.currentUserId;
     final report = WorkReport.create(orderOdooId: orderOdooId);
     report.localOwnerId = currentUserId;
     await _isar.db.writeTxn(() async {
@@ -66,12 +68,17 @@ class WorkOrderService {
 
   /// Lưu nội dung báo cáo (local).
   Future<void> saveReport(WorkReport report) async {
+    final currentUserId = _odoo.currentUserId;
     final existing = await _isar.db.workReports
         .filter()
         .orderOdooIdEqualTo(report.orderOdooId)
+        .and()
+        .localOwnerIdEqualTo(currentUserId)
         .findFirst();
 
+    report.localOwnerId = currentUserId;
     if (existing != null) {
+      report.id = existing.id;
       if (existing.workDone != report.workDone) {
         report.isResolutionSynced = false;
       }

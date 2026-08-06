@@ -1,6 +1,7 @@
 import '../api/odoo_session_manager.dart';
 import '../database/sync_manager.dart';
 import '../database/isar_service.dart';
+import '../database/database_migration_service.dart';
 import '../locale/locale_service.dart';
 import 'secure_storage.dart';
 import 'biometric_service.dart';
@@ -39,11 +40,19 @@ class AuthService {
       userId: session.userId,
       locale: session.locale,
     );
+
+    // Chạy migration gán các bản ghi offline cũ (không localOwnerId) cho user hiện tại (Fix Thread #5)
+    await DatabaseMigrationService.migrateLegacyRecords(session.userId);
   }
 
   /// Thử restore session từ secure storage khi app khởi động.
   /// Trả về [true] nếu có session đã lưu (optimistic — không verify RPC).
   Future<bool> tryRestoreSession() async {
+    // Xóa legacy password (odoo_password) sớm trong luồng khởi động
+    // để đảm bảo migration được thực hiện dù hasSavedSession trả false
+    // (Fix CodeRabbit PR#34 Thread #10)
+    await _storage.removeLegacyPassword();
+
     final hasSaved = await _storage.hasSavedSession;
     if (!hasSaved) return false;
 
@@ -72,8 +81,12 @@ class AuthService {
       locale: locale ?? 'vi_VN',
     );
 
-    if (restored && locale != null && locale.isNotEmpty) {
-      LocaleService.instance.setLocale(locale);
+    if (restored) {
+      // Chạy migration gán các bản ghi offline cũ (không localOwnerId) cho user hiện tại (Fix Thread #5)
+      await DatabaseMigrationService.migrateLegacyRecords(userId);
+      if (locale != null && locale.isNotEmpty) {
+        LocaleService.instance.setLocale(locale);
+      }
     }
 
     return restored;

@@ -107,7 +107,7 @@ const WorkReportSchema = CollectionSchema(
     r'orderOdooId': IndexSchema(
       id: -73562086872608232,
       name: r'orderOdooId',
-      unique: true,
+      unique: false,
       replace: false,
       properties: [
         IndexPropertySchema(
@@ -299,61 +299,6 @@ List<IsarLinkBase<dynamic>> _workReportGetLinks(WorkReport object) {
 
 void _workReportAttach(IsarCollection<dynamic> col, Id id, WorkReport object) {
   object.id = id;
-}
-
-extension WorkReportByIndex on IsarCollection<WorkReport> {
-  Future<WorkReport?> getByOrderOdooId(int orderOdooId) {
-    return getByIndex(r'orderOdooId', [orderOdooId]);
-  }
-
-  WorkReport? getByOrderOdooIdSync(int orderOdooId) {
-    return getByIndexSync(r'orderOdooId', [orderOdooId]);
-  }
-
-  Future<bool> deleteByOrderOdooId(int orderOdooId) {
-    return deleteByIndex(r'orderOdooId', [orderOdooId]);
-  }
-
-  bool deleteByOrderOdooIdSync(int orderOdooId) {
-    return deleteByIndexSync(r'orderOdooId', [orderOdooId]);
-  }
-
-  Future<List<WorkReport?>> getAllByOrderOdooId(List<int> orderOdooIdValues) {
-    final values = orderOdooIdValues.map((e) => [e]).toList();
-    return getAllByIndex(r'orderOdooId', values);
-  }
-
-  List<WorkReport?> getAllByOrderOdooIdSync(List<int> orderOdooIdValues) {
-    final values = orderOdooIdValues.map((e) => [e]).toList();
-    return getAllByIndexSync(r'orderOdooId', values);
-  }
-
-  Future<int> deleteAllByOrderOdooId(List<int> orderOdooIdValues) {
-    final values = orderOdooIdValues.map((e) => [e]).toList();
-    return deleteAllByIndex(r'orderOdooId', values);
-  }
-
-  int deleteAllByOrderOdooIdSync(List<int> orderOdooIdValues) {
-    final values = orderOdooIdValues.map((e) => [e]).toList();
-    return deleteAllByIndexSync(r'orderOdooId', values);
-  }
-
-  Future<Id> putByOrderOdooId(WorkReport object) {
-    return putByIndex(r'orderOdooId', object);
-  }
-
-  Id putByOrderOdooIdSync(WorkReport object, {bool saveLinks = true}) {
-    return putByIndexSync(r'orderOdooId', object, saveLinks: saveLinks);
-  }
-
-  Future<List<Id>> putAllByOrderOdooId(List<WorkReport> objects) {
-    return putAllByIndex(r'orderOdooId', objects);
-  }
-
-  List<Id> putAllByOrderOdooIdSync(List<WorkReport> objects,
-      {bool saveLinks = true}) {
-    return putAllByIndexSync(r'orderOdooId', objects, saveLinks: saveLinks);
-  }
 }
 
 extension WorkReportQueryWhereSort

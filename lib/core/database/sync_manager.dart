@@ -41,8 +41,7 @@ class SyncManager {
   }
 
   /// Áp lại preference khi user đổi auto-sync / wifi-only trong Settings.
-  Future<void> applyPreferences() async {
-    await SettingsRepository.instance.loadAll();
+  void applyPreferences() {
     _restartTimer();
   }
 

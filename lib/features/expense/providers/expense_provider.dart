@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/utils/logger.dart';
+import '../../../core/api/odoo_session_manager.dart';
 import '../models/expense.dart';
 import '../services/expense_service.dart';
 
@@ -20,16 +21,22 @@ class ExpenseProvider extends ChangeNotifier {
   double get totalAmount => _expenses.fold(0.0, (sum, e) => sum + e.amount);
 
   Future<void> loadExpenses(int orderOdooId) async {
+    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
     _isLoading = true;
     notifyListeners();
     try {
-      _expenses = await _service.getExpensesForOrder(orderOdooId);
+      final expenses = await _service.getExpensesForOrder(orderOdooId);
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
+      _expenses = expenses;
     } catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
       _errorMessage = 'Lỗi tải chi phí: $e';
       logger.e('ExpenseProvider.loadExpenses', error: e);
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (OdooSessionManager.instance.currentSession?.sessionId == sessionToken) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -42,6 +49,7 @@ class ExpenseProvider extends ChangeNotifier {
     String? receiptImagePath,
     String? note,
   }) async {
+    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
     _isLoading = true;
     notifyListeners();
     try {
@@ -54,8 +62,10 @@ class ExpenseProvider extends ChangeNotifier {
         receiptImagePath: receiptImagePath,
         note: note,
       );
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
       await loadExpenses(orderOdooId);
     } catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
       _errorMessage = 'Lỗi thêm chi phí: $e';
       logger.e('ExpenseProvider.addExpense', error: e);
       _isLoading = false;

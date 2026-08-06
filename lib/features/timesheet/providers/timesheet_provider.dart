@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/utils/logger.dart';
+import '../../../core/api/odoo_session_manager.dart';
 import '../models/timesheet_entry.dart';
 import '../services/timesheet_service.dart';
 
@@ -20,16 +21,22 @@ class TimesheetProvider extends ChangeNotifier {
   double get totalHours => _entries.fold(0.0, (sum, e) => sum + e.hours);
 
   Future<void> loadEntries(int orderOdooId) async {
+    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
     _isLoading = true;
     notifyListeners();
     try {
-      _entries = await _service.getEntriesForOrder(orderOdooId);
+      final entries = await _service.getEntriesForOrder(orderOdooId);
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
+      _entries = entries;
     } catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
       _errorMessage = 'Lỗi tải dữ liệu: $e';
       logger.e('TimesheetProvider.loadEntries', error: e);
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (OdooSessionManager.instance.currentSession?.sessionId == sessionToken) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -39,6 +46,7 @@ class TimesheetProvider extends ChangeNotifier {
     required double hours,
     required String description,
   }) async {
+    final sessionToken = OdooSessionManager.instance.currentSession?.sessionId;
     _isLoading = true;
     notifyListeners();
     try {
@@ -48,8 +56,10 @@ class TimesheetProvider extends ChangeNotifier {
         hours: hours,
         description: description,
       );
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
       await loadEntries(orderOdooId);
     } catch (e) {
+      if (OdooSessionManager.instance.currentSession?.sessionId != sessionToken) return;
       _errorMessage = 'Lỗi thêm giờ công: $e';
       logger.e('TimesheetProvider.addEntry', error: e);
       _isLoading = false;

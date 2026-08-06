@@ -103,9 +103,13 @@ class StockService {
 
   /// Lấy danh sách vật tư theo đơn dịch vụ.
   Future<List<StockMove>> getMovesForOrder(int orderOdooId) async {
+    final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) return const <StockMove>[];
     return _isar.db.stockMoves
         .filter()
         .orderOdooIdEqualTo(orderOdooId)
+        .and()
+        .localOwnerIdEqualTo(currentUserId)
         .findAll();
   }
 
@@ -118,6 +122,11 @@ class StockService {
     String? productBarcode,
     String? uomName,
   }) async {
+    final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) {
+      throw const OdooAuthException('Yêu cầu đăng nhập trước khi xuất kho.');
+    }
+
     // 1. Khôi phục hoặc tạo mới StockMove local
     var move = await _isar.db.stockMoves
         .filter()
@@ -126,10 +135,11 @@ class StockService {
         .productIdEqualTo(productId)
         .and()
         .isPendingSyncEqualTo(true)
+        .and()
+        .localOwnerIdEqualTo(currentUserId)
         .findFirst();
 
     if (move == null) {
-      final currentUserId = _odoo.currentUserId;
       move = StockMove.create(
         orderOdooId: orderOdooId,
         productId: productId,

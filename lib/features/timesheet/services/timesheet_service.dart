@@ -16,9 +16,13 @@ class TimesheetService {
 
   /// Tải danh sách giờ công cho một đơn từ Isar local.
   Future<List<TimesheetEntry>> getEntriesForOrder(int orderOdooId) async {
+    final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) return const <TimesheetEntry>[];
     return _isar.db.timesheetEntrys
         .filter()
         .orderOdooIdEqualTo(orderOdooId)
+        .and()
+        .localOwnerIdEqualTo(currentUserId)
         .sortByDateDesc()
         .findAll();
   }

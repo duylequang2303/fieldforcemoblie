@@ -22,6 +22,7 @@ import '../features/orders/services/recurring_service.dart';
 import '../features/stock/services/stock_service.dart';
 import '../features/stock/models/product.dart';
 import '../features/work_order/services/work_order_service.dart';
+import '../shared/widgets/safe_image_file.dart';
 
 class _MaterialResult {
   final Product? product;
@@ -799,13 +800,12 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: Image.file(
-              File(path),
+            child: SafeImageFile(
+              path: path,
               width: 88,
               height: 88,
               fit: BoxFit.cover,
-              cacheWidth:
-                  176, // ✅ decode ở 176px (2x Retina) thay vì full resolution
+              cacheWidth: 176, // ✅ decode ở 176px (2x Retina) thay vì full resolution
             ),
           ),
           if (!isClosed)

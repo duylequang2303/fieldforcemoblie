@@ -40,6 +40,7 @@ class AuthProvider extends ChangeNotifier {
       if (_status == AuthStatus.authenticated) {
         _status = AuthStatus.unauthenticated;
         _errorMessage = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+        _clearAllProviders();
         notifyListeners();
       }
     });
@@ -97,15 +98,19 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     await _authService.logout();
-    // Clear all feature providers to prevent data retention leak (H09)
+    _clearAllProviders();
+    _status = AuthStatus.unauthenticated;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  void _clearAllProviders() {
+    // Clear all feature providers to prevent data retention leak (H09 / Thread #4)
     OrdersProvider.instance.clear();
     StockProvider.instance.clear();
     TimesheetProvider.instance.clear();
     ExpenseProvider.instance.clear();
     WorkOrderProvider.instance.clear();
-    _status = AuthStatus.unauthenticated;
-    _errorMessage = null;
-    notifyListeners();
   }
 
   @override
