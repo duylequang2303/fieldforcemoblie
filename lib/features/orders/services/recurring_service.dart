@@ -210,10 +210,17 @@ class RecurringService {
             // được chuyển tiếp bình thường thay vì bị kẹt liên tiếp ở đây.
             if (rule.ruleType == 'completion') {
               // Đối với completion-based, nextDate được cập nhật tại skipOccurrence của order đó rồi.
-              // Nhưng nếu nextDate vẫn chỉ vào ngày này, ta cần reset/null để tránh loop.
+              // Nhưng nếu nextDate vẫn chỉ vào ngày này, ta cần tính nextDate tiếp theo từ ngày completion.
               if (rule.nextDate == existInstance.scheduledDateStart) {
+                final nextDate = DateTime(
+                  DateTime.now().year,
+                  DateTime.now().month,
+                  DateTime.now().day + rule.completionInterval,
+                  existInstance.scheduledDateStart?.hour ?? 9,
+                  existInstance.scheduledDateStart?.minute ?? 0,
+                );
                 await _isar.db.writeTxn(() async {
-                  rule.nextDate = null;
+                  rule.nextDate = nextDate;
                   await _isar.db.fsmRecurrings.put(rule);
                 });
                 break;
@@ -231,8 +238,9 @@ class RecurringService {
               });
             }
           } else {
-            // Đã tồn tại instance hoạt động bình thường, ta tự dịch chuyển nextDate tiếp theo cho Date-based
+            // Đã tồn tại instance hoạt động bình thường
             if (rule.ruleType == 'completion') {
+              // Completion-based: chỉ sinh 1 instance mỗi lần, chờ hoàn thành/skip mới tính next
               break;
             }
             final nextDate = calculateNextOccurrence(

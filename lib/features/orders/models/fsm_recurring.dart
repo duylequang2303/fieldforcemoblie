@@ -37,15 +37,19 @@ class FsmRecurring {
   bool isActive = true;
 
   /// Loại rule: 'date' (theo lịch cố định) hoặc 'completion' (kể từ khi hoàn thành đơn trước).
+  /// Được sync từ Odoo field 'recurrence_rule_type' nếu có
   late String ruleType;
 
   /// Số ngày để tạo kỳ tiếp theo nếu ruleType là 'completion'.
+  /// Được sync từ Odoo field 'recurrence_completion_interval' nếu có
   int completionInterval = 0;
 
   /// Số lần đã hoàn thành thành công
+  /// Được sync từ Odoo field 'recurrence_completed_count' nếu có
   int completedCount = 0;
 
   /// Số lần bị bỏ qua (skipped)
+  /// Được sync từ Odoo field 'recurrence_skipped_count' nếu có
   int skippedCount = 0;
 
   // Sync
@@ -57,22 +61,20 @@ class FsmRecurring {
   /// Tạo từ JSON trả về từ Odoo API.
   factory FsmRecurring.fromJson(Map<String, dynamic> json) {
     return FsmRecurring()
-      ..odooId = json['id'] as int
+      ..odooId = (json['id'] as num).toInt()
       ..name = _strOrNull(json['name']) ?? ''
       ..frequencySetId = _idFromMany(json['fsm_frequency_set_id'])
-      ..orderTemplateId = _idFromMany(json['fsm_order_template_id'])
-      ..companyId = _idFromMany(json['company_id'])
+      ..orderTemplateId = _idOrNull(json['fsm_order_template_id'])
+      ..companyId = _idOrNull(json['company_id'])
       ..startDate = _parseDate(json['start_date']) ?? DateTime.now()
       ..endDate = _parseDate(json['end_date'])
       ..nextDate = _parseDate(json['next_date'])
       ..generatedCount = (json['generated_count'] as int?) ?? 0
       ..isActive = json['active'] != false // Odoo default true nếu không có
-      // NOTE: ruleType, completionInterval, completedCount, skippedCount are LOCAL-ONLY fields
-      // not present on Odoo backend. They are managed locally by the app.
-      ..ruleType = 'date'
-      ..completionInterval = 0
-      ..completedCount = 0
-      ..skippedCount = 0
+      ..ruleType = _strOrNull(json['recurrence_rule_type']) ?? 'date'
+      ..completionInterval = _intOrZero(json['recurrence_completion_interval'])
+      ..completedCount = _intOrZero(json['recurrence_completed_count'])
+      ..skippedCount = _intOrZero(json['recurrence_skipped_count'])
       ..isPendingSync = false
       ..lastSyncAt = DateTime.now();
   }
@@ -88,9 +90,10 @@ class FsmRecurring {
       'end_date': endDate?.toIso8601String().split('T')[0],
       'next_date': nextDate?.toIso8601String().split('T')[0],
       'active': isActive,
-      // NOT sending 'generated_count' since Odoo backend doesn't support or sync it
-      // NOTE: rule_type, completion_interval, completed_count, skipped_count are LOCAL-ONLY
-      // not synced to Odoo (backend doesn't have these fields)
+      'recurrence_rule_type': ruleType,
+      'recurrence_completion_interval': completionInterval,
+      'recurrence_completed_count': completedCount,
+      'recurrence_skipped_count': skippedCount,
     };
   }
 
@@ -98,7 +101,34 @@ class FsmRecurring {
   static int _idFromMany(dynamic value) {
     if (value == null || value == false) return 0;
     if (value is int) return value;
-    if (value is List && value.isNotEmpty) return value[0] as int;
+    if (value is List && value.isNotEmpty) {
+      final first = value[0];
+      if (first is int) return first;
+      if (first is num) return first.toInt();
+      return int.tryParse(first.toString()) ?? 0;
+    }
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static int? _idOrNull(dynamic value) {
+    if (value == null || value == false) return null;
+    if (value is int) return value;
+    if (value is List && value.isNotEmpty) {
+      final first = value[0];
+      if (first is int) return first;
+      if (first is num) return first.toInt();
+      return int.tryParse(first.toString());
+    }
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  static int _intOrZero(dynamic value) {
+    if (value == null || value == false) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
     return 0;
   }
 

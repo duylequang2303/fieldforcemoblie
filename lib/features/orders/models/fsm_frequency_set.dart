@@ -42,11 +42,11 @@ class FsmFrequencySet {
   /// Tạo từ JSON trả về từ Odoo API.
   factory FsmFrequencySet.fromJson(Map<String, dynamic> json) {
     return FsmFrequencySet()
-      ..odooId = json['id'] as int
+      ..odooId = (json['id'] as num).toInt()
       ..name = _strOrNull(json['name']) ?? ''
-      ..interval = (json['interval'] as int?) ?? 1
+      ..interval = _intOrNull(json['interval']) ?? 1
       ..intervalType = _parseIntervalType(json['interval_type'])
-      ..duration = json['duration'] as int?
+      ..duration = _intOrNull(json['duration'])
       ..isPendingSync = false
       ..lastSyncAt = DateTime.now();
   }
@@ -74,5 +74,13 @@ class FsmFrequencySet {
   static String? _strOrNull(dynamic value) {
     if (value == null || value == false) return null;
     return value.toString();
+  }
+
+  static int? _intOrNull(dynamic value) {
+    if (value == null || value == false) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 }

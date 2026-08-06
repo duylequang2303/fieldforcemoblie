@@ -421,6 +421,13 @@ class OrdersService {
     // 1. Cập nhật local trước
     final local = await _isar.db.fsmOrders.getByOdooId(odooId);
     if (local != null) {
+      if (local.isSkipped ||
+          local.isRecurringProcessed ||
+          local.stage == FsmOrderStage.done ||
+          local.stage == FsmOrderStage.cancelled) {
+        throw StateError(
+            'Đơn hàng đã hoàn thành, bị huỷ hoặc bỏ qua. Không thể cập nhật trạng thái.');
+      }
       await _isar.db.writeTxn(() async {
         _updateStageFields(local, newStageId);
         local.isPendingSync = true;
@@ -460,6 +467,15 @@ class OrdersService {
   /// 4. Nếu API thất bại, giữ nguyên bản ghi local với isPendingSync = true để đồng bộ sau.
   Future<void> completeOrder(int odooId) async {
     final local = await _isar.db.fsmOrders.getByOdooId(odooId);
+    if (local != null) {
+      if (local.isSkipped ||
+          local.isRecurringProcessed ||
+          local.stage == FsmOrderStage.done ||
+          local.stage == FsmOrderStage.cancelled) {
+        throw StateError(
+            'Đơn hàng đã hoàn thành, bị huỷ hoặc bỏ qua. Không thể hoàn thành.');
+      }
+    }
     final doneStageId = await getCompletedStageId() ??
         await getStageIdByKeywords(['done', 'completed']);
 
@@ -525,6 +541,13 @@ class OrdersService {
     // 1. Cập nhật local trước
     final local = await _isar.db.fsmOrders.getByOdooId(odooId);
     if (local != null) {
+      if (local.isSkipped ||
+          local.isRecurringProcessed ||
+          local.stage == FsmOrderStage.done ||
+          local.stage == FsmOrderStage.cancelled) {
+        throw StateError(
+            'Đơn hàng đã hoàn thành, bị huỷ hoặc bỏ qua. Không thể Check-in.');
+      }
       await _isar.db.writeTxn(() async {
         local.dateStart = now;
         local.isPendingSync = true;
@@ -562,6 +585,13 @@ class OrdersService {
     // 1. Cập nhật local trước
     final local = await _isar.db.fsmOrders.getByOdooId(odooId);
     if (local != null) {
+      if (local.isSkipped ||
+          local.isRecurringProcessed ||
+          local.stage == FsmOrderStage.done ||
+          local.stage == FsmOrderStage.cancelled) {
+        throw StateError(
+            'Đơn hàng đã hoàn thành, bị huỷ hoặc bỏ qua. Không thể Check-out.');
+      }
       await _isar.db.writeTxn(() async {
         local.dateEnd = now;
         local.isPendingSync = true;
