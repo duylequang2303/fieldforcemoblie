@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/routing/route_names.dart';
+import '../../../core/utils/logger.dart';
 
 /// Màn hình Splash — hiển thị khi khởi động app.
 /// Tự động kiểm tra session và điều hướng tới Login hoặc Orders.
@@ -21,9 +22,15 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _init() async {
+    // Capture dependencies trước await để tránh rò rỉ context hoặc unmounted crash (A19)
     final goRouter = GoRouter.of(context);
     final auth = context.read<AuthProvider>();
-    await auth.initialize();
+    
+    try {
+      await auth.initialize();
+    } catch (e, stack) {
+      logger.e('SplashPage initialization error', error: e, stackTrace: stack);
+    }
 
     if (!mounted) return;
 

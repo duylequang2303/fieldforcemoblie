@@ -105,7 +105,7 @@ Future<void> main() async {
       }
 
       // Bắt đầu lắng nghe trạng thái mạng để tự động sync
-      SyncManager.instance.startListening();
+      await SyncManager.instance.startListening();
       await SyncManager.instance.startAutoSync();
     } catch (e) {
       if (kDebugMode) {

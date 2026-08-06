@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import '../../core/theme/app_colors.dart';
 
 /// Overlay toàn màn hình hiển thị loading spinner.
@@ -18,9 +17,8 @@ class LoadingOverlay extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SpinKitFadingCircle(
+            const CircularProgressIndicator(
               color: AppColors.primaryLight,
-              size: 52,
             ),
             if (message != null) ...[
               const SizedBox(height: 16),

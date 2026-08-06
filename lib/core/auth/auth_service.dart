@@ -94,14 +94,52 @@ class AuthService {
         logger.w('DatabaseMigrationService: Legacy record migration failed during restore.');
       }
       if (locale != null && locale.isNotEmpty) {
-        // Fix Thread #11: Await setLocale to ensure locale is persisted before returning
-        await LocaleService.instance.setLocale(locale);
+        try {
+          final parts = locale.split('_');
+          if (parts.length == 2) {
+            // Fix Thread #11: Await setLocale to ensure locale is persisted before returning
+            final persisted = await LocaleService.instance.setLocale(locale);
+            if (!persisted) {
+              await LocaleService.instance.setLocale('vi_VN');
+            }
+          } else {
+            logger.w('Invalid locale format from storage: $locale');
+            await LocaleService.instance.setLocale('vi_VN');
+          }
+        } catch (e, stack) {
+          logger.e('Failed to set locale from restored session', error: e, stackTrace: stack);
+          try {
+            await LocaleService.instance.setLocale('vi_VN');
+          } catch (_) {}
+        }
       }
       // Bắt đầu đồng bộ sau khi migration hoàn thành (đã giải quyết race condition)
       unawaited(SyncManager.instance.syncAfterAuth());
+
+      // Fire-and-forget verify session validity in background
+      unawaited(_verifySessionInBackground());
     }
 
     return restored;
+  }
+
+  /// Xác thực ngầm trạng thái session mà không chặn UI (A08)
+  Future<void> _verifySessionInBackground() async {
+    try {
+      final userId = _sessionManager.currentUserId;
+      if (userId == null) return;
+      
+      await _sessionManager.callKw(
+        model: 'res.users',
+        method: 'read',
+        args: [[userId]],
+        kwargs: {'fields': ['id']},
+      ).timeout(const Duration(seconds: 15));
+    } catch (_) {
+      // Bỏ qua lỗi kết nối vì app cho phép offline-first.
+      // Nếu session expired thực sự, callKw sẽ tự động trigger 
+      // event báo hết hạn session thông qua OdooSessionManager.
+    }
   }
 
   /// Đăng nhập bằng biometric (nếu có session đã lưu + biometric bật).
@@ -115,8 +153,9 @@ class AuthService {
 
       return tryRestoreSession();
     } on BiometricLockoutException {
-      // Đã log trong BiometricService, chỉ cần return false để UI xử lý chuyển về login thường
-      return false;
+      rethrow;
+    } on BiometricCredentialsInvalidatedException {
+      rethrow;
     } catch (_) {
       return false;
     }
@@ -127,8 +166,14 @@ class AuthService {
     await _sessionManager.logout();
     await _storage.clearSession();
     
-    // FIX C04 + C05: Dispose SyncManager resources, KHÔNG dispose OdooApiClient singleton
-    await SyncManager.instance.dispose();
+    // FIX C04 + C05 + A30: Dispose SyncManager resources, KHÔNG dispose OdooApiClient singleton
+    try {
+      if (SyncManager.instance.isInitialized) {
+        await SyncManager.instance.dispose();
+      }
+    } catch (e, stack) {
+      logger.e('SyncManager dispose failed on logout', error: e, stackTrace: stack);
+    }
 
     // FIX C06: Xoá trắng database Isar cục bộ phòng chống lộ lọt thông tin ngoại tuyến của user cũ
     if (IsarService.instance.isInitialized) {
