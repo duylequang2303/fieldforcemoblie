@@ -116,7 +116,7 @@ class RouteProvider extends ChangeNotifier {
       if (idx + 1 < _stops.length) {
         _stops[idx + 1].status = StopStatus.current;
       }
-      _ordersProvider?.updateOrderToDone(orderOdooId);
+unawaited(_ordersProvider?.updateOrderToDone(orderOdooId) ?? Future.value());
       notifyListeners();
     }
   }
