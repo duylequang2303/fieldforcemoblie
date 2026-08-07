@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -38,12 +39,14 @@ class ScheduleTopBar extends StatefulWidget {
 class _ScheduleTopBarState extends State<ScheduleTopBar> {
   final _connectivity = ConnectivityService.instance;
   bool _isOffline = false;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
 
   @override
   void initState() {
     super.initState();
     _checkInitial();
-    _connectivity.onConnectivityChanged.listen(_onConnectivityChanged);
+    _connectivitySubscription =
+        _connectivity.onConnectivityChanged.listen(_onConnectivityChanged);
   }
 
   Future<void> _checkInitial() async {
@@ -58,7 +61,7 @@ class _ScheduleTopBarState extends State<ScheduleTopBar> {
 
   @override
   void dispose() {
-    _connectivity.onConnectivityChanged.drain<void>();
+    _connectivitySubscription?.cancel();
     super.dispose();
   }
 
@@ -124,7 +127,7 @@ class _ScheduleTopBarState extends State<ScheduleTopBar> {
                       padding: const EdgeInsets.only(right: SfTokens.spacingSm),
                       child: Icon(
                         Icons.wifi_off_rounded,
-                        color: SfTokens.surface.withValues(alpha: 0.8),
+                        color: Theme.of(context).colorScheme.onPrimary.withValues(alpha: 0.8),
                         size: SfTokens.iconMd,
                       ),
                     ),

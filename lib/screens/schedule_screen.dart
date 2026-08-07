@@ -75,7 +75,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
       // Lọc orders theo ngày đã chọn và ẩn các đơn bị skip
-       List<FsmOrder> get _filteredOrders {
+      List<FsmOrder> get _filteredOrders {
         return _orders.where((order) {
           if (order.isSkipped || order.isRecurringProcessed) return false;
           if (order.scheduledDateStart == null) return false;
@@ -88,7 +88,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 orderDate.year, orderDate.month, orderDate.day);
             final start = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
             final end = DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day);
-            if (orderDateTime.isBefore(start) || orderDateTime.isAfter(end)) {
+            if (orderDateTime.isBefore(start) || !orderDateTime.isBefore(end)) {
               return false;
             }
           } else {
@@ -194,6 +194,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         itemCount: displayOrders.length,
         itemBuilder: (context, index) {
           final order = displayOrders[index];
+          final hasPhone = order.partnerPhone != null && order.partnerPhone!.isNotEmpty;
+          final hasCoords = order.locationLat != null && order.locationLng != null;
           return ScheduleCard(
             order: order,
             onTap: () {
@@ -202,21 +204,25 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             onChatTap: () {
               // TODO: Mở màn hình chat/ghi chú
             },
-            onCallTap: () {
-              final phone = order.partnerPhone;
-              if (phone == null || phone.isEmpty) return;
-              launchUrl(Uri(scheme: 'tel', path: phone),
-                  mode: LaunchMode.externalApplication);
-            },
-            onDirectionsTap: () {
-              final lat = order.locationLat;
-              final lng = order.locationLng;
-              if (lat == null || lng == null) return;
-              launchUrl(
-                  Uri.parse(
-                      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng'),
-                  mode: LaunchMode.externalApplication);
-            },
+            onCallTap: hasPhone
+                ? () {
+                    final phone = order.partnerPhone;
+                    if (phone == null || phone.isEmpty) return;
+                    launchUrl(Uri(scheme: 'tel', path: phone),
+                        mode: LaunchMode.externalApplication);
+                  }
+                : null,
+            onDirectionsTap: hasCoords
+                ? () {
+                    final lat = order.locationLat;
+                    final lng = order.locationLng;
+                    if (lat == null || lng == null) return;
+                    launchUrl(
+                        Uri.parse(
+                            'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng'),
+                        mode: LaunchMode.externalApplication);
+                  }
+                : null,
           );
         },
       ),
