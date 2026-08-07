@@ -93,42 +93,39 @@ Future<void> _onSyncNow() async {
   setState(() => _isSyncing = true);
   try {
     // ✅ Chỉ gọi syncPending - SyncManager sẽ chạy TẤT CẢ handlers đã đăng ký
-    final failures = await SyncManager.instance.syncPending();
+    await SyncManager.instance.syncPending();
     
-    // ✅ Chỉ lưu timestamp và báo thành công khi TẤT CẢ handlers đều thành công
-    if (failures.isEmpty) {
-      await SettingsRepository.instance.saveLastSyncedAt(DateTime.now());
-      await _sync.refresh();
+    // ✅ Chỉ lưu timestamp và báo thành công khi syncPending() hoàn thành không ném exception
+    await SettingsRepository.instance.saveLastSyncedAt(DateTime.now());
+    await _sync.refresh();
 
-      if (!mounted) return;
-      final stillPending = _sync.pendingCount;
-      if (stillPending > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Synced, but $stillPending change(s) still pending.'),
-            backgroundColor: SfTokens.warning,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Synced successfully.')),
-        );
-      }
-    } else {
-      // Có handler thất bại
-      if (kDebugMode) {
-        for (final (name, error) in failures) {
-          debugPrint('SyncManager: handler "$name" failed: $error');
-        }
-      }
-      if (!mounted) return;
+    if (!mounted) return;
+    final stillPending = _sync.pendingCount;
+    if (stillPending > 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Sync partially failed: ${failures.length} handler(s) errored.'),
-          backgroundColor: SfTokens.error,
+          content: Text('Synced, but $stillPending change(s) still pending.'),
+          backgroundColor: SfTokens.warning,
         ),
       );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Synced successfully.')),
+      );
     }
+  } on SyncHandlersFailedException catch (e) {
+    if (kDebugMode) {
+      for (final failure in e.failures) {
+        debugPrint('SyncManager: handler "${failure.name}" failed: ${failure.error}');
+      }
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Sync partially failed: ${e.failures.length} handler(s) errored.'),
+        backgroundColor: SfTokens.error,
+      ),
+    );
   } catch (e) {
     logger.e('_onSyncNow failed', error: e);
     if (!mounted) return;
@@ -142,10 +139,10 @@ Future<void> _onSyncNow() async {
 ```
 
 **Fix đã áp dụng**: 
-- `_onSyncNow()` chỉ gọi `SyncManager.instance.syncPending()` (trả về list failures)
-- `SyncManager._runHandlers()` thu thập tất cả lỗi từ các handler
-- Chỉ ghi `lastSyncedAt` và báo thành công khi TẤT CẢ handlers thành công
-- `SyncManager.syncPending()` trả về `List<(String, Object)>` - danh sách (tên handler, lỗi)
+- `_onSyncNow()` chỉ gọi `SyncManager.instance.syncPending()` (trả về `Future<void>`)
+- `SyncManager._runHandlers()` thu thập tất cả lỗi từ các handler và ném `SyncHandlersFailedException` nếu có lỗi
+- Chỉ ghi `lastSyncedAt` và báo thành công khi `syncPending()` hoàn thành không ném exception
+- Các caller tự động (connectivity listener, settings-page unawaited) đã catch `SyncHandlersFailedException` để log failure thay vì unhandled async error
     logger.e('_onSyncNow failed', error: e);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
