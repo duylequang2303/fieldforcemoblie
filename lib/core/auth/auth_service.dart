@@ -42,6 +42,7 @@ class AuthService {
       userId: session.userId,
       locale: session.locale,
       serverVersion: session.serverVersion,
+      employeeId: session.employeeId,
     );
 
     // Chạy migration gán các bản ghi offline cũ (không localOwnerId) cho user hiện tại (Fix Thread #5)
@@ -74,7 +75,9 @@ class AuthService {
     final username = saved['username'] ?? '';
     final userIdStr = saved['userId'];
     final serverVersion = saved['serverVersion'] ?? '19';
+    final employeeIdStr = saved['employeeId'];
     final userId = userIdStr != null ? int.tryParse(userIdStr) : null;
+    final employeeId = employeeIdStr != null ? int.tryParse(employeeIdStr) : null;
 
     if (serverUrl == null ||
         sessionId == null ||
@@ -91,6 +94,7 @@ class AuthService {
       username: username,
       locale: locale ?? 'vi_VN',
       serverVersion: serverVersion,
+      employeeId: employeeId,
     );
 
     if (restored) {

@@ -5,7 +5,6 @@ Future<void> main() async {
 
   final sessionManager = File('lib/core/api/odoo_session_manager.dart');
   final expenseService = File('lib/features/expense/services/expense_service.dart');
-  final settingsPage = File('lib/features/settings/pages/settings_page.dart');
   final ordersService = File('lib/features/orders/services/orders_service.dart');
   final stockService = File('lib/features/stock/services/stock_service.dart');
   final workOrderService = File('lib/features/work_order/services/work_order_service.dart');
@@ -43,10 +42,10 @@ Future<void> main() async {
   }
 
   // 3. Domain person_id.user_id
-  if (await settingsPage.exists()) {
-    final content = await settingsPage.readAsString();
+  if (await ordersService.exists()) {
+    final content = await ordersService.readAsString();
     if (content.contains("'person_id.user_id'")) {
-      issues.add('INVALID_DOMAIN: settings_page.dart contains invalid domain person_id.user_id');
+      issues.add('INVALID_DOMAIN: orders_service.dart contains invalid domain person_id.user_id');
     }
   }
 

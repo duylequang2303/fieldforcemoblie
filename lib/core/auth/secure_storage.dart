@@ -34,6 +34,7 @@ class SecureStorageService {
   static const _keyUserId = 'odoo_user_id';
   static const _keyLocale = 'odoo_locale';
   static const _keyServerVersion = 'odoo_server_version';
+  static const _keyEmployeeId = 'odoo_employee_id';
   static const _keyBiometricEnabled = 'biometric_enabled';
 
   /// Lưu session (KHÔNG lưu password, xóa legacy password nếu có)
@@ -45,6 +46,7 @@ class SecureStorageService {
     required int userId,
     String locale = 'vi_VN',
     String serverVersion = '19',
+    int? employeeId,
   }) async {
     // Serialize writes với lock
     await _writeLock.synchronized(() async {
@@ -55,6 +57,11 @@ class SecureStorageService {
       await _storage.write(key: _keyUserId, value: userId.toString());
       await _storage.write(key: _keyLocale, value: locale);
       await _storage.write(key: _keyServerVersion, value: serverVersion);
+      if (employeeId != null) {
+        await _storage.write(key: _keyEmployeeId, value: employeeId.toString());
+      } else {
+        await _storage.delete(key: _keyEmployeeId);
+      }
       // Migration: Xoá odoo_password key nếu còn sót từ các session trước
       try {
         await _storage.delete(key: 'odoo_password');
@@ -86,6 +93,7 @@ class SecureStorageService {
       _storage.read(key: _keyUserId),
       _storage.read(key: _keyLocale),
       _storage.read(key: _keyServerVersion),
+      _storage.read(key: _keyEmployeeId),
     ]);
     return {
       'serverUrl': results[0],
@@ -95,6 +103,7 @@ class SecureStorageService {
       'userId': results[4],
       'locale': results[5],
       'serverVersion': results[6],
+      'employeeId': results[7],
     };
   }
 
@@ -123,6 +132,7 @@ class SecureStorageService {
         _storage.delete(key: _keyUserId),
         _storage.delete(key: _keyLocale),
         _storage.delete(key: _keyServerVersion),
+        _storage.delete(key: _keyEmployeeId),
         _storage.delete(key: 'odoo_password'), // Xóa legacy key (password cũ) nếu có
       ]);
     });

@@ -147,6 +147,7 @@ class OdooSessionManager {
     required String username,
     String locale = 'vi_VN',
     String serverVersion = '19',
+    int? employeeId,
   }) async {
     try {
       // Dựng OdooSession từ dữ liệu đã lưu. Chỉ id + userId là quan trọng
@@ -177,6 +178,7 @@ class OdooSessionManager {
         username: username,
         userId: savedUserId,
         sessionId: sessionId,
+        employeeId: employeeId,
         locale: locale,
         serverVersion: serverVersion,
       );

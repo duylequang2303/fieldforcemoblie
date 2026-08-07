@@ -53,7 +53,11 @@ class ExpenseService {
   final _isar = IsarService.instance;
 
   static const _maxRetries = 3;
-  static final Map<ExpenseCategory, int?> _productIdCache = {};
+  String? _lastProductCacheKey;
+  static final Map<String, int?> _productIdCache = {};
+
+  String _productCacheKey(String serverUrl, String database) =>
+      '$serverUrl|$database';
 
   Future<List<Expense>> getExpensesForOrder(int orderOdooId) async {
     return _isar.db.expenses
@@ -289,9 +293,19 @@ class ExpenseService {
 
   /// Map ExpenseCategory to Odoo product_id for hr.expense.
   /// Fetches dynamically from Odoo by product name, with hardcoded fallback.
+  /// Cache is isolated by serverUrl+database so session changes do not leak IDs.
   Future<int?> getProductIdForCategory(ExpenseCategory category) async {
-    if (_productIdCache.containsKey(category)) {
-      return _productIdCache[category];
+    final session = _odoo.currentSession;
+    final cacheKey = session != null
+        ? _productCacheKey(session.serverUrl, session.database)
+        : null;
+
+    if (cacheKey != null && _lastProductCacheKey == cacheKey) {
+      final cached = _productIdCache['$cacheKey|$category'];
+      if (cached != null) return cached;
+    } else {
+      _productIdCache.clear();
+      _lastProductCacheKey = cacheKey;
     }
 
     final label = categoryLabelFor(category);
@@ -324,7 +338,9 @@ class ExpenseService {
     }
 
     productId ??= _hardcodedProductIdForCategory(category);
-    _productIdCache[category] = productId;
+    if (cacheKey != null) {
+      _productIdCache['$cacheKey|$category'] = productId;
+    }
     return productId;
   }
 

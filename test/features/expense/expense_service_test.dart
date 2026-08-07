@@ -97,7 +97,7 @@ void main() {
   });
 
   group('ExpenseService.getProductIdForCategory', () {
-    test('maps each ExpenseCategory to a product ID (async fallback)', () async {
+    test('should map each ExpenseCategory to a fallback product ID', () async {
       expect(
           await ExpenseService.instance.getProductIdForCategory(ExpenseCategory.fuel),
           1);

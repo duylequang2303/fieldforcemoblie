@@ -550,7 +550,7 @@ class OrdersService {
       }
     }
     final doneStageId = await getCompletedStageId() ??
-        await getStageIdByKeywords(['done', 'completed'], fallbackIds: [4]);
+        await getStageIdByKeywords(['done', 'completed']);
 
     // 1. Cập nhật local trước (Offline-First)
     if (local != null) {

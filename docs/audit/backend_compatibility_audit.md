@@ -5,11 +5,16 @@ Systematic validation of Odoo backend compatibility with FieldForce Mobile App.
 Run backend audit first, then app-side tests, then fix by priority.
 
 ## Backend Audit Script
+Prerequisite: clone the backend repository alongside this app, e.g.:
+```bash
+git clone git@github.com:duylequang2303/fieldforce.git ../fieldforce
+```
+
 Location: `../fieldforce/develop/audit/validate_app_compat.py`
 
 Run:
 ```bash
-cd /home/duyle/coding/fieldforce/develop
+cd ../fieldforce/develop
 odoo shell -c /etc/odoo19/odoo.conf < audit/validate_app_compat.py
 ```
 
@@ -127,7 +132,7 @@ flutter test test/backend_compat_test.dart
 8. **Vietnamese stage name mapping** — App maps 'mới', 'nháp', etc. Backend must have matching stage names
    - **Risk**: Stage detection fails if backend uses English names only
    - **Fix needed**: Map by stage ID instead of name, or make name mapping configurable
-   - **Status**: FIXED — added `fallbackIds` param to `getStageIdByKeywords` with standard IDs
+   - **Status**: FIXED — `getStageIdByKeywords` accepts optional `fallbackIds`. Note: these fallback IDs are local-only conventions; `action_complete` does not send a stage ID to Odoo.
 
 9. **`fsm.person.calendar.filter` required** — Module `fieldservice_calendar` must be installed
    - **Risk**: Order fetching fails if module not installed
