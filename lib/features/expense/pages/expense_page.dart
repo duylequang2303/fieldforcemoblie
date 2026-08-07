@@ -83,6 +83,7 @@ class _ExpensePageState extends State<ExpensePage> {
                   : RefreshIndicator(
                       onRefresh: () async {
                         final result = await provider.syncExpenses();
+                        if (!mounted) return;
                         if (result != null && result.hasFailures) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -172,8 +173,21 @@ class _ExpensePageState extends State<ExpensePage> {
 
                           Expanded(
                             child: provider.expenses.isEmpty && !_showForm
-                                ? _buildEmptyState()
+                                ? ListView(
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
+                                    children: [
+                                      SizedBox(
+                                        height:
+                                            MediaQuery.of(context).size.height *
+                                                0.4,
+                                        child: _buildEmptyState(),
+                                      ),
+                                    ],
+                                  )
                                 : ListView.builder(
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 16, vertical: 8),
                                     itemCount: provider.expenses.length,
