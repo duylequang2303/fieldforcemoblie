@@ -1,16 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../features/orders/models/fsm_order.dart';
 
 class ScheduleCard extends StatelessWidget {
   final FsmOrder order;
   final VoidCallback onTap;
-  final VoidCallback onChatTap;
+  final VoidCallback? onChatTap;
+  final VoidCallback? onCallTap;
+  final VoidCallback? onDirectionsTap;
 
   const ScheduleCard({
     super.key,
     required this.order,
     required this.onTap,
-    required this.onChatTap,
+    this.onChatTap,
+    this.onCallTap,
+    this.onDirectionsTap,
   });
 
   String _formatTime(DateTime? date) {
@@ -19,18 +25,49 @@ class ScheduleCard extends StatelessWidget {
   }
 
   String _calculateDurationBadge(DateTime? start, DateTime? end) {
-    if (start == null || end == null) return '2 hrs'; // Mock fallback
+    if (start == null || end == null) return '-- hrs';
     final diff = end.difference(start);
     return '${diff.inHours} hrs';
+  }
+
+  Future<void> _launch(Uri uri, String errorMsg) async {
+    try {
+      final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!success) {
+        debugPrint('$errorMsg: launchUrl returned false for $uri');
+      }
+    } on PlatformException catch (e) {
+      debugPrint('$errorMsg: $e');
+    } catch (e) {
+      debugPrint('$errorMsg: unexpected error $e');
+    }
+  }
+
+  void _handleCall() {
+    final phone = order.partnerPhone;
+    if (phone == null || phone.isEmpty) return;
+    _launch(Uri(scheme: 'tel', path: phone), 'Cannot open Phone');
+  }
+
+  void _handleDirections() {
+    final lat = order.locationLat;
+    final lng = order.locationLng;
+    if (lat == null || lng == null) return;
+    _launch(
+      Uri.parse('https://www.google.com/maps/dir/?api=1&destination=$lat,$lng'),
+      'Cannot open Maps',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasActions = onCallTap != null ||
+        onDirectionsTap != null;
 
     return Card(
       key: Key('schedule_card_${order.odooId}'),
-      clipBehavior: Clip.antiAlias, // Để bo góc cắt luôn cả border bên trong
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: IntrinsicHeight(
@@ -72,7 +109,8 @@ class ScheduleCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              _calculateDurationBadge(order.scheduledDateStart,
+                              _calculateDurationBadge(
+                                  order.scheduledDateStart,
                                   order.scheduledDateEnd),
                               style: TextStyle(
                                 fontSize: 12,
@@ -99,7 +137,7 @@ class ScheduleCard extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // Due date (12sp, gray) - (Không dùng italic theo chuẩn Hallmark)
+                          // Due date (12sp, gray)
                           Row(
                             children: [
                               Icon(
@@ -128,17 +166,37 @@ class ScheduleCard extends StatelessWidget {
                                   size: 20,
                                   color: theme.colorScheme.primary,
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 8),
                               ],
-                              GestureDetector(
-                                onTap: onChatTap,
-                                child: Icon(
-                                  Icons.chat_bubble_outline,
-                                  size: 20,
-                                  color: theme.colorScheme.onSurface
-                                      .withValues(alpha: 0.5),
+                              if (hasActions) ...[
+                                _ActionIcon(
+                                  icon: Icons.phone_outlined,
+                                  color: theme.colorScheme.primary,
+                                  onTap: onCallTap ?? _handleCall,
                                 ),
-                              ),
+                                const SizedBox(width: 4),
+                                _ActionIcon(
+                                  icon: Icons.chat_bubble_outline,
+                                  color: theme.colorScheme.primary,
+                                  onTap: onChatTap ?? () {},
+                                ),
+                                const SizedBox(width: 4),
+                                _ActionIcon(
+                                  icon: Icons.directions_outlined,
+                                  color: theme.colorScheme.primary,
+                                  onTap: onDirectionsTap ?? _handleDirections,
+                                ),
+                              ] else if (onChatTap != null) ...[
+                                GestureDetector(
+                                  onTap: onChatTap,
+                                  child: Icon(
+                                    Icons.chat_bubble_outline,
+                                    size: 20,
+                                    color: theme.colorScheme.onSurface
+                                        .withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ],
@@ -150,6 +208,35 @@ class ScheduleCard extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ActionIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _ActionIcon({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 18, color: color),
       ),
     );
   }
