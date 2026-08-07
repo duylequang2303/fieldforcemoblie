@@ -34,6 +34,7 @@ class Expense {
   late ExpenseCategory category;
 
   String? receiptImagePath; // Đường dẫn ảnh hoá đơn local
+  int? receiptAttachmentId; // Odoo ir.attachment.id (backup server-side)
   String? note;
 
   late bool isPendingSync;
@@ -48,6 +49,7 @@ class Expense {
     required DateTime date,
     required ExpenseCategory category,
     String? receiptImagePath,
+    int? receiptAttachmentId,
     String? note,
   }) {
     return Expense()
@@ -57,6 +59,7 @@ class Expense {
       ..date = date
       ..category = category
       ..receiptImagePath = receiptImagePath
+      ..receiptAttachmentId = receiptAttachmentId
       ..note = note
       ..isPendingSync = true
       ..createdAt = DateTime.now();

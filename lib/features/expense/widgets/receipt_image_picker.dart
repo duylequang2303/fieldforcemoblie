@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/safe_image_file.dart';
 
@@ -112,13 +114,24 @@ class ReceiptImagePicker extends StatelessWidget {
 
   Future<void> _pickImage(ImageSource source) async {
     final picker = ImagePicker();
+    // Image is already compressed somewhat by maxWidth and imageQuality
     final picked = await picker.pickImage(
       source: source,
-      imageQuality: 70,
-      maxWidth: 1024,
+      imageQuality: 60,
+      maxWidth: 800,
+      maxHeight: 800,
     );
     if (picked != null) {
-      onImageSelected(picked.path);
+      try {
+        final appDir = await getApplicationDocumentsDirectory();
+        final fileName = 'receipt_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final savedFile =
+            await File(picked.path).copy('${appDir.path}/$fileName');
+        onImageSelected(savedFile.path);
+      } catch (e) {
+        // Fallback to picked path if copy fails
+        onImageSelected(picked.path);
+      }
     }
   }
 }

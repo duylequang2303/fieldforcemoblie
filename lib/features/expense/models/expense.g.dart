@@ -77,7 +77,12 @@ const ExpenseSchema = CollectionSchema(
       id: 11,
       name: r'receiptImagePath',
       type: IsarType.string,
-    )
+    ),
+    r'receiptAttachmentId': PropertySchema(
+      id: 12,
+      name: r'receiptAttachmentId',
+      type: IsarType.long,
+    ),
   },
   estimateSize: _expenseEstimateSize,
   serialize: _expenseSerialize,
@@ -162,6 +167,7 @@ void _expenseSerialize(
   writer.writeLong(offsets[9], object.odooId);
   writer.writeLong(offsets[10], object.orderOdooId);
   writer.writeString(offsets[11], object.receiptImagePath);
+  writer.writeLong(offsets[12], object.receiptAttachmentId);
 }
 
 Expense _expenseDeserialize(
@@ -185,6 +191,7 @@ Expense _expenseDeserialize(
   object.odooId = reader.readLongOrNull(offsets[9]);
   object.orderOdooId = reader.readLong(offsets[10]);
   object.receiptImagePath = reader.readStringOrNull(offsets[11]);
+  object.receiptAttachmentId = reader.readLongOrNull(offsets[12]);
   return object;
 }
 
@@ -220,6 +227,8 @@ P _expenseDeserializeProp<P>(
       return (reader.readLong(offset)) as P;
     case 11:
       return (reader.readStringOrNull(offset)) as P;
+    case 12:
+      return (reader.readLongOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }

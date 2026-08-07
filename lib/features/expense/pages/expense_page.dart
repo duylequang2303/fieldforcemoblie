@@ -38,13 +38,37 @@ class _ExpensePageState extends State<ExpensePage> {
         return Scaffold(
           backgroundColor: AppColors.background,
           appBar: AppBar(
-            backgroundColor: const Color(0xFFE65100), // Orange for expense
+            backgroundColor: const Color(0xFFE65100),
             foregroundColor: Colors.white,
             elevation: 0,
             title: const Text(
               'Khoản Chi',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
             ),
+            actions: [
+              if (provider.pendingSyncCount > 0)
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.warning.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '${provider.pendingSyncCount} chưa sync',
+                        style: TextStyle(
+                          color: AppColors.warning,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
           body: provider.isLoading
               ? const LoadingOverlay(message: 'Đang tải...')
@@ -56,78 +80,109 @@ class _ExpensePageState extends State<ExpensePage> {
                         provider.loadExpenses(widget.orderId);
                       },
                     )
-                  : Column(
-                      children: [
-                        // Summary
-                        _SummaryCard(
-                          totalExpenses: provider.expenses.length,
-                          totalAmount: provider.totalAmount,
-                        ),
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        final result = await provider.syncExpenses();
+                        if (result != null && result.hasFailures) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  '${result.failedCount} khoản chi không đồng bộ. '
+                                  'Vui lòng thử lại.'),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
+                        await provider.loadExpenses(widget.orderId);
+                      },
+                      child: Column(
+                        children: [
+                          // Summary
+                          _SummaryCard(
+                            totalExpenses: provider.expenses.length,
+                            totalAmount: provider.totalAmount,
+                            pendingCount: provider.pendingSyncCount,
+                          ),
 
-                        // Form toggle (animated)
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                          height: _showForm ? null : 0,
-                          child: _showForm
-                              ? Container(
-                                  margin:
-                                      const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color:
-                                          AppColors.secondary.withOpacity(0.3),
-                                      width: 2,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.08),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: ExpenseForm(
-                                    onSubmit: ({
-                                      required String name,
-                                      required double amount,
-                                      required DateTime date,
-                                      required ExpenseCategory category,
-                                      String? receiptImagePath,
-                                      String? note,
-                                    }) async {
-                                      await provider.addExpense(
-                                        orderOdooId: widget.orderId,
-                                        name: name,
-                                        amount: amount,
-                                        date: date,
-                                        category: category,
-                                        receiptImagePath: receiptImagePath,
-                                        note: note,
-                                      );
-                                      if (mounted)
-                                        setState(() => _showForm = false);
-                                    },
-                                  ),
-                                )
-                              : const SizedBox.shrink(),
-                        ),
-
-                        Expanded(
-                          child: provider.expenses.isEmpty && !_showForm
-                              ? _buildEmptyState()
-                              : ListView.builder(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                  itemCount: provider.expenses.length,
-                                  itemBuilder: (context, i) => _ExpenseCard(
-                                      expense: provider.expenses[i]),
+                          // Form toggle (animated) — uses AnimatedCrossFade to
+                          // properly unmount the form subtree when collapsed,
+                          // avoiding layout jank from height=0 keeping child in tree.
+                          AnimatedCrossFade(
+                            duration: const Duration(milliseconds: 300),
+                            crossFadeState: _showForm
+                                ? CrossFadeState.showFirst
+                                : CrossFadeState.showSecond,
+                            firstChild: Container(
+                              margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: AppColors.secondary.withOpacity(0.3),
+                                  width: 2,
                                 ),
-                        ),
-                      ],
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.08),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: ExpenseForm(
+                                onSubmit: ({
+                                  required String name,
+                                  required double amount,
+                                  required DateTime date,
+                                  required ExpenseCategory category,
+                                  String? receiptImagePath,
+                                  String? note,
+                                }) async {
+                                  try {
+                                    await provider.addExpense(
+                                      orderOdooId: widget.orderId,
+                                      name: name,
+                                      amount: amount,
+                                      date: date,
+                                      category: category,
+                                      receiptImagePath: receiptImagePath,
+                                      note: note,
+                                    );
+                                    if (mounted) {
+                                      setState(() => _showForm = false);
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                              'Thêm khoản chi thất bại: $e'),
+                                          backgroundColor: AppColors.error,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                              ),
+                            ),
+                            secondChild: const SizedBox.shrink(),
+                          ),
+
+                          Expanded(
+                            child: provider.expenses.isEmpty && !_showForm
+                                ? _buildEmptyState()
+                                : ListView.builder(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    itemCount: provider.expenses.length,
+                                    itemBuilder: (context, i) => _ExpenseCard(
+                                        expense: provider.expenses[i]),
+                                  ),
+                          ),
+                        ],
+                      ),
                     ),
           floatingActionButton: FloatingActionButton.extended(
             heroTag: 'fab_expense',
@@ -186,10 +241,15 @@ class _ExpensePageState extends State<ExpensePage> {
 }
 
 class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({required this.totalExpenses, required this.totalAmount});
+  const _SummaryCard({
+    required this.totalExpenses,
+    required this.totalAmount,
+    required this.pendingCount,
+  });
 
   final int totalExpenses;
   final double totalAmount;
+  final int pendingCount;
 
   @override
   Widget build(BuildContext context) {
@@ -224,6 +284,16 @@ class _SummaryCard extends StatelessWidget {
               icon: Icons.account_balance_wallet_outlined,
             ),
           ),
+          if (pendingCount > 0) ...[
+            Container(width: 1, height: 40, color: Colors.white30),
+            Expanded(
+              child: _Stat(
+                label: 'Chờ sync',
+                value: '$pendingCount',
+                icon: Icons.sync_problem,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -327,6 +397,21 @@ class _ExpenseCard extends StatelessWidget {
                 height: 64,
                 fit: BoxFit.cover,
                 borderRadius: BorderRadius.circular(12),
+                cacheWidth: 128,
+                cacheHeight: 128,
+                errorWidget: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: categoryColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    categoryIcon,
+                    color: categoryColor,
+                    size: 28,
+                  ),
+                ),
               )
             else
               Container(
