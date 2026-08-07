@@ -27,7 +27,7 @@ class WorkOrderProvider extends ChangeNotifier with SessionGuard {
   FsmOrder? get order => _order;
 
   bool get isComplete {
-    if (_report == null || _report!.workDone.isEmpty) return false;
+    if (_report == null || _report!.workDone.trim().isEmpty) return false;
 
     // Check photo requirements
     if (_order?.requirePhoto == true) {

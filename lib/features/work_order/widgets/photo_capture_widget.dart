@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
@@ -111,7 +110,7 @@ class PhotoCaptureWidget extends StatelessWidget {
     final validImages = <XFile>[];
     for (final img in images) {
       try {
-        final size = await File(img.path).length();
+        final size = await img.length();
         if (size > _maxFileSizeBytes) {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(

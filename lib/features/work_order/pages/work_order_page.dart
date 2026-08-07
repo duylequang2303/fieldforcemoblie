@@ -141,7 +141,7 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
               number: 1,
               label: 'Công việc',
               isActive: _currentStep >= 0,
-              isComplete: _workDoneController.text.isNotEmpty &&
+              isComplete: _workDoneController.text.trim().isNotEmpty &&
                   (provider.order?.requirePhoto != true ||
                       (provider.report?.photoPaths.isNotEmpty == true ||
                           provider.report?.syncedPhotoPaths.isNotEmpty == true)),

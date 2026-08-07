@@ -24,7 +24,7 @@
 | ID | Mô tả bug | File/Function | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|---------------|--------|------------|---------|
 | WO-LOGIC-001 | **Race condition mất ảnh**: `_uploadPhoto` thêm ảnh vào Isar → upload Odoo → xóa khỏi `photoPaths` (line 348-349). Nếu upload fail, ảnh bị mất khỏi local list | `lib/screens/work_order_detail_screen.dart:329-365` | Critical | 🟢 Closed | Đã giữ ảnh trong `photoPaths`, `uploadSinglePhoto` trả về report đã cập nhật synced paths |
-| WO-LOGIC-002 | **Signature validation bypass**: Kiểm tra `report.signedAt != null` (line 459), nhưng `signedAt` chỉ set locally khi user vẽ signature (line 483). Nếu load report có signature từ device khác, `signedAt` = null → bắt ký lại không cần thiết | `lib/screens/work_order_detail_screen.dart:459-484` | High | 🟢 Closed | Đã kiểm tra cả `customerSignaturePath != null && signedAt != null` |
+| WO-LOGIC-002 | **Signature validation bypass**: Kiểm tra `report.signedAt != null` (line 459), nhưng `signedAt` chỉ set locally khi user vẽ signature (line 483). Nếu load report có signature từ device khác, `signedAt` = null → bắt ký lại không cần thiết | `lib/screens/work_order_detail_screen.dart:459-484` | High | 🟢 Closed | Đã kiểm tra `customerSignaturePath != null` (không yêu cầu `signedAt`), legacy screen chấp nhận signature từ Odoo |
 | WO-LOGIC-003 | `submitReport` không validate `workDone` non-empty trước khi gửi Odoo, có thể submit report rỗng | `lib/features/work_order/services/work_order_service.dart:115` | High | 🟢 Closed | Đã throw exception nếu `workDone.trim().isEmpty` |
 | WO-LOGIC-004 | Khi xóa ảnh khỏi `photoPaths`, `syncedPhotoPaths` được filter đúng nhưng `syncedAttachmentEntries` filtering dùng `split('|').first` có thể không match nếu path format khác nhau | `lib/features/work_order/services/work_order_service.dart:92-98` | Medium | 🟢 Closed | Filter robust: check cả `parts[0]` và `parts[1]` |
 | WO-LOGIC-005 | Getter `isComplete` chỉ kiểm tra `workDone` và signature, không kiểm tra yêu cầu ảnh từ `FsmOrder` | `lib/features/work_order/providers/work_order_provider.dart:28-34` | Medium | 🟢 Closed | `isComplete` giờ kiểm tra `requirePhoto` + `photoPaths`/`syncedPhotoPaths` |
@@ -103,7 +103,7 @@
 ---
 
 ## 📊 Thống kê
-- **Tổng bugs**: 18
+- **Tổng bugs**: 22
 - **Critical (P0)**: 4 → 3 Closed, 1 Open
 - **High (P1)**: 4 → 3 Closed, 1 Partial
 - **Medium (P2)**: 8 → 5 Closed, 3 Open

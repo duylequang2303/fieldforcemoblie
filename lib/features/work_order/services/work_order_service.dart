@@ -190,7 +190,7 @@ class WorkOrderService {
             ],
           ) as List<dynamic>;
 
-          if (order.isEmpty || order[0]['customer_signature'] == null) {
+          if (order.isEmpty || order[0]['customer_signature'] == null || order[0]['customer_signature'] == false || (order[0]['customer_signature'] is String && (order[0]['customer_signature'] as String).isEmpty)) {
             throw Exception('Signature was not applied to fsm.order');
           }
 
@@ -369,7 +369,6 @@ class WorkOrderService {
 
     final entry = '$path|$attId';
     report.syncedAttachmentEntries = [...report.syncedAttachmentEntries, entry];
-    report.syncedPhotoPaths = [...report.syncedPhotoPaths, path];
 
     await _isar.db.writeTxn(() async {
       await _isar.db.workReports.put(report);
@@ -388,6 +387,11 @@ class WorkOrderService {
         'attachment_ids': [attId],
       },
     );
+
+    report.syncedPhotoPaths = [...report.syncedPhotoPaths, path];
+    await _isar.db.writeTxn(() async {
+      await _isar.db.workReports.put(report);
+    });
 
     return report;
   }

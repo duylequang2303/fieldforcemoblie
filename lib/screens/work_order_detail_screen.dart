@@ -454,8 +454,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
           .getOrCreateReport(widget.order.odooId);
 
       // X: đã ký rồi (local hoặc Odoo) thì không bắt ký lại, không chạy lại wizard.
-      final alreadySigned =
-          report.customerSignaturePath != null && report.signedAt != null;
+      final alreadySigned = report.customerSignaturePath != null;
 
       if (widget.order.requireSignature && !alreadySigned) {
         if (_signatureController.isEmpty) {
