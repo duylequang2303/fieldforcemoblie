@@ -65,6 +65,7 @@ class FsmOrder {
 
   // Rules
   bool requireSignature = false;
+  bool requirePhoto = false;
 
   // Recurring - Tracking instance sinh từ recurring template
   /// ID của fsm.recurring parent (Odoo ID, không phải Isar ID).
@@ -112,6 +113,7 @@ class FsmOrder {
       ..routeState = _strOrNull(json[
           'route_state']) // Sẽ được merge từ query riêng hoặc related field
       ..requireSignature = json['require_signature'] == true
+      ..requirePhoto = json['require_photo'] == true
       ..isPendingSync = false
       ..lastSyncAt = DateTime.now();
 
@@ -203,14 +205,53 @@ class FsmOrder {
   static FsmOrderStage parseStageName(String name) {
     final normalized = name.toLowerCase().trim();
     return switch (normalized) {
-      'new' || 'draft' || 'scheduled' || 'assigned' || 'mới' || 'nháp' || 'đã lên lịch' || 'lên lịch' || 'đã phân công' || 'phân công' || 'hold' || 'on hold' || 'on_hold' || 'tạm dừng' => FsmOrderStage.draft,
-      'ready' || 'in_progress' || 'in progress' || 'sẵn sàng' || 'đang thực hiện' || 'thực hiện' => FsmOrderStage.inProgress,
+      'new' ||
+      'draft' ||
+      'scheduled' ||
+      'assigned' ||
+      'mới' ||
+      'nháp' ||
+      'đã lên lịch' ||
+      'lên lịch' ||
+      'đã phân công' ||
+      'phân công' ||
+      'hold' ||
+      'on hold' ||
+      'on_hold' ||
+      'tạm dừng' =>
+        FsmOrderStage.draft,
+      'ready' ||
+      'in_progress' ||
+      'in progress' ||
+      'sẵn sàng' ||
+      'đang thực hiện' ||
+      'thực hiện' =>
+        FsmOrderStage.inProgress,
       'done' || 'completed' || 'hoàn thành' || 'hoàn' => FsmOrderStage.done,
-      'cancelled' || 'cancel' || 'huỷ' || 'hủy' || 'đã huỷ' || 'đã hủy' => FsmOrderStage.cancelled,
+      'cancelled' ||
+      'cancel' ||
+      'huỷ' ||
+      'hủy' ||
+      'đã huỷ' ||
+      'đã hủy' =>
+        FsmOrderStage.cancelled,
       // fallback checks matching exact substring patterns
-      _ when normalized.contains('progress') || normalized.contains('thực hiện') || normalized.contains('ready') || normalized.contains('sẵn sàng') => FsmOrderStage.inProgress,
-      _ when normalized.contains('done') || normalized.contains('completed') || normalized.contains('hoàn') => FsmOrderStage.done,
-      _ when normalized.contains('cancel') || normalized.contains('huỷ') || normalized.contains('hủy') => FsmOrderStage.cancelled,
+      _
+          when normalized.contains('progress') ||
+              normalized.contains('thực hiện') ||
+              normalized.contains('ready') ||
+              normalized.contains('sẵn sàng') =>
+        FsmOrderStage.inProgress,
+      _
+          when normalized.contains('done') ||
+              normalized.contains('completed') ||
+              normalized.contains('hoàn') =>
+        FsmOrderStage.done,
+      _
+          when normalized.contains('cancel') ||
+              normalized.contains('huỷ') ||
+              normalized.contains('hủy') =>
+        FsmOrderStage.cancelled,
       _ => FsmOrderStage.draft,
     };
   }

@@ -6,6 +6,7 @@ import '../../../shared/widgets/loading_overlay.dart';
 import '../providers/work_order_provider.dart';
 import '../widgets/customer_signature_widget.dart';
 import '../widgets/photo_capture_widget.dart';
+import '../../orders/models/fsm_order.dart';
 
 /// Trang nghiệm thu công việc — bao gồm:
 /// - Mô tả công việc đã thực hiện
@@ -121,7 +122,8 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
           const SizedBox(height: 24),
 
           // Navigation buttons
-          _buildButtons(context, provider),
+          if (provider.order != null)
+            _buildButtons(context, provider, provider.order),
           const SizedBox(height: 16),
         ],
       ),
@@ -139,7 +141,10 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
               number: 1,
               label: 'Công việc',
               isActive: _currentStep >= 0,
-              isComplete: _workDoneController.text.isNotEmpty,
+              isComplete: _workDoneController.text.isNotEmpty &&
+                  (provider.order?.requirePhoto != true ||
+                      (provider.report?.photoPaths.isNotEmpty == true ||
+                          provider.report?.syncedPhotoPaths.isNotEmpty == true)),
             ),
             Container(
               width: 40,
@@ -417,7 +422,9 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
     );
   }
 
-  Widget _buildButtons(BuildContext context, WorkOrderProvider provider) {
+  Widget _buildButtons(
+      BuildContext context, WorkOrderProvider provider, FsmOrder? order) {
+    final canAdvance = _validateStep(_currentStep, provider, order);
     return Row(
       children: [
         if (_currentStep > 0)
@@ -435,7 +442,7 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
         Expanded(
           child: _currentStep < 2
               ? ElevatedButton.icon(
-                  onPressed: () => setState(() => _currentStep++),
+                  onPressed: canAdvance ? () => setState(() => _currentStep++) : null,
                   icon: const Icon(Icons.arrow_forward),
                   label: const Text('Tiếp theo'),
                   style: ElevatedButton.styleFrom(
@@ -504,6 +511,26 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
           backgroundColor: AppColors.error,
         ),
       );
+    }
+  }
+
+  bool _validateStep(int step, WorkOrderProvider provider, FsmOrder? order) {
+    switch (step) {
+      case 0:
+        if (_workDoneController.text.trim().isEmpty) return false;
+        if (order?.requirePhoto == true) {
+          final hasPhotos = provider.report?.photoPaths.isNotEmpty == true ||
+              provider.report?.syncedPhotoPaths.isNotEmpty == true;
+          if (!hasPhotos) return false;
+        }
+        return true;
+      case 1:
+        if (order?.requireSignature == true) {
+          return provider.report?.customerSignaturePath != null;
+        }
+        return true;
+      default:
+        return true;
     }
   }
 }
