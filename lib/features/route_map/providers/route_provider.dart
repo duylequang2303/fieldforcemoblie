@@ -10,12 +10,12 @@ import 'package:fieldforce_mobile/features/route_map/services/location_service.d
 
 /// State management cho bản đồ lộ trình.
 class RouteProvider extends ChangeNotifier {
-  RouteProvider({LocationService? locationService, OrdersProvider? ordersProvider})
+  RouteProvider({LocationService? locationService, required OrdersProvider ordersProvider})
       : _locationService = locationService ?? LocationService.instance,
         _ordersProvider = ordersProvider;
 
   final LocationService _locationService;
-  final OrdersProvider? _ordersProvider;
+  final OrdersProvider _ordersProvider;
 
   List<RouteStop> _stops = [];
   Position? _currentPosition;
@@ -110,29 +110,27 @@ class RouteProvider extends ChangeNotifier {
     final idx = _stops.indexWhere((s) => s.orderOdooId == orderOdooId);
     if (idx == -1) return false;
 
-    bool localOk = true;
     try {
-      _ordersProvider?.updateOrderToDone(orderOdooId);
+      await _ordersProvider.updateOrderToDone(orderOdooId);
     } catch (e) {
-      localOk = false;
       logger.w('RouteProvider.markStopCompleted: error updating order', error: e);
-    }
-
-    if (localOk) {
-      _stops[idx]
-        ..status = StopStatus.completed
-        ..completedAt = DateTime.now();
-
-      // Tự động set điểm tiếp theo là current
-      if (idx + 1 < _stops.length) {
-        _stops[idx + 1].status = StopStatus.current;
-      }
-
-      _errorMessage = null;
+      _errorMessage = 'Không thể đồng bộ hoàn thành: $e';
       notifyListeners();
+      return false;
     }
 
-    return localOk;
+    _stops[idx]
+      ..status = StopStatus.completed
+      ..completedAt = DateTime.now();
+
+    // Tự động set điểm tiếp theo là current
+    if (idx + 1 < _stops.length) {
+      _stops[idx + 1].status = StopStatus.current;
+    }
+
+    _errorMessage = null;
+    notifyListeners();
+    return true;
   }
 
   /// Tính khoảng cách giữa các điểm dừng liên tiếp.
