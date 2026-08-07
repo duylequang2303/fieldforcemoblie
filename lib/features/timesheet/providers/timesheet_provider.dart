@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/utils/logger.dart';
+import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/api/session_guard.dart';
 import '../models/timesheet_entry.dart';
 import '../services/timesheet_service.dart';
@@ -25,7 +26,7 @@ class TimesheetProvider extends ChangeNotifier with SessionGuard {
     _isLoading = true;
     notifyListeners();
     try {
-      final entries = await _service.getEntriesForOrder(orderOdooId, limit: 100);
+      final entries = await _service.getEntriesForOrder(orderOdooId);
       if (!isSameSession(sessionToken)) return;
       _entries = entries;
     } catch (e) {

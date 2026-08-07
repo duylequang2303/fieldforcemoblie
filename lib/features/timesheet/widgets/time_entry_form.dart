@@ -71,7 +71,7 @@ class _TimeEntryFormState extends State<TimeEntryForm> {
             ),
             validator: (v) {
               final h = double.tryParse(v ?? '');
-              if (h == null || !h.isFinite || h <= 0) return 'Nhập số giờ hợp lệ (> 0)';
+              if (h == null || h <= 0) return 'Nhập số giờ hợp lệ (> 0)';
               if (h > 24) return 'Không thể quá 24 giờ/ngày';
               return null;
             },

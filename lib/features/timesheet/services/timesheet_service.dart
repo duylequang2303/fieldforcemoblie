@@ -1,5 +1,4 @@
 import 'package:isar_community/isar.dart';
-import 'package:intl/intl.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/database/isar_service.dart';
@@ -15,12 +14,8 @@ class TimesheetService {
   final _odoo = OdooSessionManager.instance;
   final _isar = IsarService.instance;
 
-  String _formatDate(DateTime date) {
-    return DateFormat('yyyy-MM-dd').format(date);
-  }
-
   /// Tải danh sách giờ công cho một đơn từ Isar local.
-  Future<List<TimesheetEntry>> getEntriesForOrder(int orderOdooId, {int limit = 100}) async {
+  Future<List<TimesheetEntry>> getEntriesForOrder(int orderOdooId) async {
     final currentUserId = _odoo.currentUserId;
     if (currentUserId == null) return const <TimesheetEntry>[];
     return _isar.db.timesheetEntrys
@@ -29,7 +24,6 @@ class TimesheetService {
         .and()
         .localOwnerIdEqualTo(currentUserId)
         .sortByDateDesc()
-        .limit(limit)
         .findAll();
   }
 
@@ -59,6 +53,14 @@ class TimesheetService {
       await _isar.db.timesheetEntrys.put(entry);
     });
 
+    if (entry.odooId != null) {
+      await _isar.db.writeTxn(() async {
+        entry.isPendingSync = false;
+        await _isar.db.timesheetEntrys.put(entry);
+      });
+      return entry;
+    }
+
     // Cố gắng push lên Odoo ngay
     try {
       final result = await _odoo.callKw(
@@ -67,7 +69,8 @@ class TimesheetService {
         args: [
           {
             'name': description,
-            'date': _formatDate(date),
+            'date':
+                '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
             'unit_amount': hours,
             'employee_id': _odoo.currentSession?.employeeId,
             'fsm_order_id': orderOdooId,
@@ -94,7 +97,6 @@ class TimesheetService {
         .filter()
         .isPendingSyncEqualTo(true)
         .localOwnerIdEqualTo(currentUserId)
-        .isSyncFailedEqualTo(false)
         .findAll();
 
     for (final entry in pending) {
@@ -113,30 +115,6 @@ class TimesheetService {
         continue;
       }
 
-      final existing = await _isar.db.timesheetEntrys
-          .filter()
-          .orderOdooIdEqualTo(entry.orderOdooId)
-          .and()
-          .localOwnerIdEqualTo(entry.localOwnerId!)
-          .and()
-          .dateEqualTo(entry.date)
-          .and()
-          .nameEqualTo(entry.name)
-          .and()
-          .hoursEqualTo(entry.hours)
-          .and()
-          .odooIdGreaterThan(0)
-          .findFirst();
-
-      if (existing != null) {
-        await _isar.db.writeTxn(() async {
-          entry.odooId = existing.odooId;
-          entry.isPendingSync = false;
-          await _isar.db.timesheetEntrys.put(entry);
-        });
-        continue;
-      }
-
       try {
         final result = await _odoo.callKw(
           model: 'account.analytic.line',
@@ -144,7 +122,7 @@ class TimesheetService {
           args: [
             {
               'name': entry.name,
-              'date': _formatDate(entry.date),
+              'date': entry.date.toIso8601String().substring(0, 10),
               'unit_amount': entry.hours,
               'employee_id': _odoo.currentSession?.employeeId,
               'fsm_order_id': order.odooId,
@@ -157,22 +135,7 @@ class TimesheetService {
           await _isar.db.timesheetEntrys.put(entry);
         });
       } catch (e) {
-        entry.syncRetryCount++;
-        if (entry.syncRetryCount >= 3) {
-          await _isar.db.writeTxn(() async {
-            entry.isSyncFailed = true;
-            entry.isPendingSync = false;
-            await _isar.db.timesheetEntrys.put(entry);
-          });
-          logger.w('TimesheetService.syncPending: permanently failed for entry ${entry.id}');
-        } else {
-          await _isar.db.writeTxn(() async {
-            await _isar.db.timesheetEntrys.put(entry);
-          });
-          final backoffMs = 1000 * (1 << (entry.syncRetryCount - 1));
-          await Future.delayed(Duration(milliseconds: backoffMs)); // ignore: inference_failure_on_instance_creation
-        }
-        logger.w('TimesheetService.syncPending: failed (attempt ${entry.syncRetryCount})', error: e);
+        logger.w('TimesheetService.syncPending: failed', error: e);
       }
     }
   }
