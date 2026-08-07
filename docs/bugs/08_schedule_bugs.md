@@ -70,7 +70,7 @@
 | SCH-SYNC-002 | Sync pending orders không exposed to UI | `orders_service.dart` lines 645-755 | 🟠 High | ✅ Fixed | Thêm nút "Sync Now" với badge đếm pending orders trong `ScheduleTopBar` |
 | SCH-SYNC-003 | Recurring rules sync không trigger | `recurring_service.dart` lines 20-142 | 🟡 Medium | ✅ Fixed | `fetchRecurringRules()` đã đăng ký với `SyncManager`, auto-sync định kỳ chạy khi app khởi động |
 | SCH-SYNC-004 | Conflict resolution cho recurring instances incomplete | `orders_service.dart` lines 759-816 | 🟠 High | ⏸️ Skipped | Chỉ handle `odooId < 0` local orders. Cần handle server-side changes |
-| SCH-SYNC-005 | Properties không cached offline | `properties_service.dart`, `schedule_properties_list_page.dart` | 🟠 High | ⏸️ Skipped | `PropertiesService` fetch từ Odoo mỗi lần, no Isar caching. Cần implement |
+| SCH-SYNC-005 | Properties không cached offline | `properties_service.dart`, `schedule_properties_list_page.dart` | 🟠 High | ✅ Fixed | Thêm Isar caching cho properties: offline-first load từ cache, sync Odoo nền, update cache. ScheduleProperty thành Isar collection. |
 
 ### Navigation/State Bugs
 | ID | Mô tả bug | File/Location | Mức độ | Trạng thái | Ghi chú |
@@ -140,13 +140,13 @@
 34. ✅ **SCH-NAV-007**: State được giữ trong `_ScheduleScreenState`, AppShell dùng `IndexedStack`
 35. ✅ **SCH-PERF-002**: Thêm `RepaintBoundary` quanh `GridView.builder` trong `RecurringCalendar`
 36. ✅ **SCH-LOGIC-011**: Filter bottom sheet state được quản lý đúng, cập nhật parent qua `FilterResult`
+37. ✅ **SCH-SYNC-005**: Properties offline caching với Isar — offline-first load cache, sync Odoo nền, ScheduleProperty thành Isar collection
 
 ---
 
 ## ⏸️ Còn Lại (Future Work)
 
 ### High Priority
-- SCH-SYNC-005: Properties offline caching (Isar)
 - SCH-SYNC-004: Conflict resolution enhancement
 
 ### Medium Priority
@@ -177,8 +177,8 @@
 | UI/UX | 10 | 10 | 0 |
 | Logic/Functional | 14 | 14 | 0 |
 | Performance | 5 | 3 | 2 |
-| Offline/Sync | 5 | 3 | 2 |
+| Offline/Sync | 5 | 4 | 1 |
 | Navigation/State | 8 | 8 | 0 |
-| **Total** | **42** | **39** | **3** |
+| **Total** | **42** | **40** | **2** |
 
-**Tỷ lệ hoàn thành**: 39/42 = **93%**
+**Tỷ lệ hoàn thành**: 40/42 = **95%**
