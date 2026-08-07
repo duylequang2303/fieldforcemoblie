@@ -79,8 +79,13 @@ class WorkOrderProvider extends ChangeNotifier with SessionGuard {
     notifyListeners();
   }
 
+  static const int _maxPhotos = 10;
+
   void addPhoto(String path) {
     if (_report == null) return;
+    if (_report!.photoPaths.length >= _maxPhotos) {
+      return;
+    }
     _report!.photoPaths = [..._report!.photoPaths, path];
     _report!.isPendingSync = true;
     notifyListeners();

@@ -95,17 +95,7 @@ class PhotoCaptureWidget extends StatelessWidget {
           ].whereType<XFile>().toList();
 
     final currentCount = photoPaths.length;
-    if (currentCount + images.length > _maxPhotos) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Tối đa $_maxPhotos ảnh. Hiện tại đã có $currentCount ảnh.'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-      return;
-    }
+    final maxAllowed = _maxPhotos - currentCount;
 
     final validImages = <XFile>[];
     for (final img in images) {
@@ -116,27 +106,41 @@ class PhotoCaptureWidget extends StatelessWidget {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Ảnh ${img.path.split('/').last} vượt quá 10MB, bỏ qua.'),
-                backgroundColor: AppColors.error,
+                backgroundColor: Theme.of(context).colorScheme.error,
               ),
             );
           }
           continue;
         }
         validImages.add(img);
-      } catch (e) {
+      } on Exception catch (e, _) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Không thể đọc ảnh ${img.path.split('/').last}: $e'),
-              backgroundColor: AppColors.error,
+              backgroundColor: Theme.of(context).colorScheme.error,
             ),
           );
         }
       }
     }
 
-    for (final img in validImages) {
-      onAdd(img.path);
+    if (validImages.length > maxAllowed) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Tối đa $_maxPhotos ảnh. Có thể thêm $maxAllowed ảnh nữa.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+      for (final img in validImages.take(maxAllowed)) {
+        onAdd(img.path);
+      }
+    } else if (validImages.isNotEmpty) {
+      for (final img in validImages) {
+        onAdd(img.path);
+      }
     }
   }
 }
