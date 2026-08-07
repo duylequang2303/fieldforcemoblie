@@ -63,7 +63,13 @@ class SyncManager extends ChangeNotifier {
           !_isSyncing &&
           await _allowedByNetworkPref() &&
           OdooSessionManager.instance.isAuthenticated) {
-        await syncPending();
+        try {
+          await syncPending();
+        } on SyncHandlersFailedException catch (e, st) {
+          if (kDebugMode) {
+            debugPrint('Auto-sync handler failed: $e\n$st');
+          }
+        }
       }
     });
   }
@@ -196,7 +202,13 @@ class SyncManager extends ChangeNotifier {
     if (!await _allowedByNetworkPref()) {
       return;
     }
-    await syncPending();
+    try {
+      await syncPending();
+    } on SyncHandlersFailedException catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('syncAfterAuth handler failed: $e\n$st');
+      }
+    }
   }
 
   final List<_NamedHandler> _syncHandlers = [];

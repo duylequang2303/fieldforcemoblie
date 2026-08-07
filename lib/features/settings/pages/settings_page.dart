@@ -583,7 +583,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
                         // Case 2: TẮT wifi-only (v == false)
                         if (isOnline && (!v || isWifi)) {
-                          unawaited(SyncManager.instance.syncPending());
+                          unawaited(SyncManager.instance.syncPending().catchError((Object e, StackTrace st) {
+                            logger.e('Auto-sync from settings failed', error: e, stackTrace: st);
+                          }));
                         }
                       } catch (e) {
                         logger.e('Failed to save wifi-only settings', error: e);

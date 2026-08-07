@@ -288,6 +288,7 @@ class RecurringNotificationService {
 
   bool _shouldSkipUpcoming(FsmOrder order) {
     return order.scheduledDateStart == null ||
+        order.dateStart != null ||
         order.stage == FsmOrderStage.done ||
         order.stage == FsmOrderStage.cancelled ||
         order.isSkipped;
