@@ -542,7 +542,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
         success = await RecurringService.instance.skipOccurrence(currentOrder);
       } else {
         final stageId = await OrdersService.instance
-            .getStageIdByKeywords(['cancel', 'huỷ', 'cancelled']);
+            .getStageIdByKeywords(['cancel', 'huỷ', 'cancelled'], fallbackIds: [5]);
         if (stageId == null) {
           if (!mounted) return;
           _showSnackBar('Cancelled stage not configured in Odoo.');

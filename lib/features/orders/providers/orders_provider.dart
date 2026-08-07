@@ -119,7 +119,7 @@ class OrdersProvider extends ChangeNotifier with SessionGuard {
     notifyListeners();
     try {
       final stageId =
-          await _service.getStageIdByKeywords(['progress', 'thực hiện']);
+          await _service.getStageIdByKeywords(['progress', 'thực hiện'], fallbackIds: [3]);
       if (!isSameSession(sessionToken)) {
         _isLoading = false;
         notifyListeners();

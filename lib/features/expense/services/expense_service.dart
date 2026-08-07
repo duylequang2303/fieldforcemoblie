@@ -53,6 +53,11 @@ class ExpenseService {
   final _isar = IsarService.instance;
 
   static const _maxRetries = 3;
+  String? _lastProductCacheKey;
+  static final Map<String, int?> _productIdCache = {};
+
+  String _productCacheKey(String serverUrl, String database) =>
+      '$serverUrl|$database';
 
   Future<List<Expense>> getExpensesForOrder(int orderOdooId) async {
     return _isar.db.expenses
@@ -100,7 +105,7 @@ class ExpenseService {
       return expense;
     }
 
-    final productId = getProductIdForCategory(category);
+    final productId = await getProductIdForCategory(category);
     if (productId == null) {
       logger.w(
           'ExpenseService.addExpense: no product mapping for category $category');
@@ -287,8 +292,60 @@ class ExpenseService {
   }
 
   /// Map ExpenseCategory to Odoo product_id for hr.expense.
-  /// TODO: Fetch from Odoo product.template where can_be_expensed=true.
-  int? getProductIdForCategory(ExpenseCategory category) {
+  /// Fetches dynamically from Odoo by product name, with hardcoded fallback.
+  /// Cache is isolated by serverUrl+database so session changes do not leak IDs.
+  Future<int?> getProductIdForCategory(ExpenseCategory category) async {
+    final session = _odoo.currentSession;
+    final cacheKey = session != null
+        ? _productCacheKey(session.serverUrl, session.database)
+        : null;
+
+    if (cacheKey != null && _lastProductCacheKey == cacheKey) {
+      final cached = _productIdCache['$cacheKey|$category'];
+      if (cached != null) return cached;
+    } else {
+      _productIdCache.clear();
+      _lastProductCacheKey = cacheKey;
+    }
+
+    final label = categoryLabelFor(category);
+    int? productId;
+
+    try {
+      final results = await _odoo.callKw(
+        model: 'product.product',
+        method: 'search_read',
+        args: [
+          [
+            ['name', 'ilike', label]
+          ]
+        ],
+        kwargs: {
+          'fields': ['id', 'name'],
+          'limit': 1,
+        },
+      ) as List<dynamic>;
+
+      if (results.isNotEmpty) {
+        productId = results.first['id'] as int?;
+      }
+    } on OdooApiException catch (e) {
+      logger.w('ExpenseService.getProductIdForCategory: failed to fetch product for $label',
+          error: e);
+    } catch (e) {
+      logger.w('ExpenseService.getProductIdForCategory: unexpected error for $label',
+          error: e);
+    }
+
+    productId ??= _hardcodedProductIdForCategory(category);
+    if (cacheKey != null) {
+      _productIdCache['$cacheKey|$category'] = productId;
+    }
+    return productId;
+  }
+
+  /// Hardcoded fallback mapping when dynamic fetch fails.
+  int? _hardcodedProductIdForCategory(ExpenseCategory category) {
     switch (category) {
       case ExpenseCategory.fuel:
         return 1;
@@ -300,6 +357,21 @@ class ExpenseService {
         return 4;
       case ExpenseCategory.other:
         return 5;
+    }
+  }
+
+  String categoryLabelFor(ExpenseCategory category) {
+    switch (category) {
+      case ExpenseCategory.fuel:
+        return 'Nhiên liệu';
+      case ExpenseCategory.meal:
+        return 'Ăn uống';
+      case ExpenseCategory.transport:
+        return 'Vận chuyển';
+      case ExpenseCategory.material:
+        return 'Vật liệu';
+      case ExpenseCategory.other:
+        return 'Khác';
     }
   }
 
@@ -328,7 +400,7 @@ class ExpenseService {
         continue;
       }
 
-      final productId = getProductIdForCategory(expense.category);
+      final productId = await getProductIdForCategory(expense.category);
       if (productId == null) {
         result.skippedCount++;
         result.errors

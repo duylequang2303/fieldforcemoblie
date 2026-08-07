@@ -16,6 +16,7 @@ class OdooSessionData {
     required this.sessionId,
     this.employeeId,
     this.locale = 'vi_VN',
+    this.serverVersion = '19',
   });
 
   final String serverUrl;
@@ -25,6 +26,7 @@ class OdooSessionData {
   final String sessionId;
   final int? employeeId;
   final String locale;
+  final String serverVersion;
 }
 
 /// Quản lý toàn bộ vòng đời session Odoo: đăng nhập, kiểm tra, đăng xuất.
@@ -115,6 +117,7 @@ class OdooSessionManager {
         sessionId: session.id,
         employeeId: employeeId,
         locale: userLang,
+        serverVersion: session.serverVersion,
       );
 
       return _currentSession!;
@@ -143,11 +146,12 @@ class OdooSessionManager {
     required int savedUserId,
     required String username,
     String locale = 'vi_VN',
+    String serverVersion = '19',
+    int? employeeId,
   }) async {
     try {
       // Dựng OdooSession từ dữ liệu đã lưu. Chỉ id + userId là quan trọng
       // cho RPC; các field còn lại là metadata, đặt default an toàn.
-      // serverVersion đặt '19' (khác '') để tránh RangeError nếu serverVersionInt bị gọi.
       final session = OdooSession(
         id: sessionId,
         userId: savedUserId,
@@ -160,7 +164,7 @@ class OdooSessionManager {
         userTz: 'UTC',
         isSystem: false,
         dbName: database,
-        serverVersion: '19',
+        serverVersion: serverVersion,
       );
 
       // FIX TẦNG 1: nạp session vào client → mọi callKw online gửi cookie session_id.
@@ -174,7 +178,9 @@ class OdooSessionManager {
         username: username,
         userId: savedUserId,
         sessionId: sessionId,
+        employeeId: employeeId,
         locale: locale,
+        serverVersion: serverVersion,
       );
       return true;
     } catch (e, stack) {
