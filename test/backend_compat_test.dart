@@ -150,5 +150,19 @@ void main() {
       }
       expect(success, isFalse);
     });
+
+    test('Legacy secure storage missing serverVersion and employeeId should use fallbacks', () {
+      final session = OdooSessionData(
+        serverUrl: 'https://example.com',
+        database: 'test',
+        username: 'test',
+        userId: 1,
+        sessionId: 'session123',
+        serverVersion: '19',
+        employeeId: null,
+      );
+      expect(session.serverVersion, '19');
+      expect(session.employeeId, isNull);
+    });
   });
 }
