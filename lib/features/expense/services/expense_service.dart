@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/database/isar_service.dart';
@@ -72,13 +73,20 @@ class ExpenseService {
   }) async {
     final currentUserId = _odoo.currentUserId;
     final employeeId = _odoo.currentSession?.employeeId;
+
+    // Persist receipt image to app directory if it exists and is a temp file
+    String? persistedReceiptPath = receiptImagePath;
+    if (receiptImagePath != null) {
+      persistedReceiptPath = await _persistReceiptFile(receiptImagePath);
+    }
+
     final expense = Expense.create(
       orderOdooId: orderOdooId,
       name: name,
       amount: amount,
       date: date,
       category: category,
-      receiptImagePath: receiptImagePath,
+      receiptImagePath: persistedReceiptPath,
       note: note,
     );
     expense.localOwnerId = currentUserId;
@@ -133,16 +141,17 @@ class ExpenseService {
       }
 
       int? attachmentId;
-      if (receiptImagePath != null &&
+      if (persistedReceiptPath != null &&
           expense.receiptAttachmentId == null &&
           odooId != null) {
-        attachmentId = await _uploadReceipt(receiptImagePath, odooId);
+        attachmentId = await _uploadReceipt(persistedReceiptPath, odooId);
       }
 
       await _isar.db.writeTxn(() async {
         expense.odooId = odooId;
-        expense.receiptAttachmentId = attachmentId;
-        expense.isPendingSync = false;
+        expense.receiptAttachmentId =
+            attachmentId ?? expense.receiptAttachmentId;
+        expense.isPendingSync = odooId == null;
         await _isar.db.expenses.put(expense);
       });
     } on OdooApiException catch (e) {
@@ -150,6 +159,27 @@ class ExpenseService {
     }
 
     return expense;
+  }
+
+  /// Helper to copy temp files to app documents directory
+  Future<String?> _persistReceiptFile(String tempPath) async {
+    try {
+      final tempFile = File(tempPath);
+      if (!await tempFile.exists()) {
+        logger.w(
+            'ExpenseService._persistReceiptFile: temp file does not exist: $tempPath');
+        return tempPath;
+      }
+      final appDir = await getApplicationDocumentsDirectory();
+      final fileName = 'receipt_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final persistedFile = await tempFile.copy('${appDir.path}/$fileName');
+      logger.i(
+          'ExpenseService._persistReceiptFile: Persisted receipt to ${persistedFile.path}');
+      return persistedFile.path;
+    } catch (e) {
+      logger.e('ExpenseService._persistReceiptFile failed', error: e);
+      return tempPath;
+    }
   }
 
   /// Upload receipt image as ir.attachment linked to hr.expense.
@@ -178,7 +208,7 @@ class ExpenseService {
             'res_id': expenseOdooId,
           }
         ],
-      ) as int;
+      ) as int?;
       logger.i(
           'ExpenseService._uploadReceipt: Uploaded receipt attachment $attId for expense $expenseOdooId');
       return attId;
@@ -228,8 +258,9 @@ class ExpenseService {
           return item['id'] as int?;
         }
       }
-    } catch (e) {
+    } on OdooApiException catch (e, _) {
       logger.w('ExpenseService._findDuplicateOnOdoo failed', error: e);
+      rethrow;
     }
     return null;
   }
@@ -313,6 +344,7 @@ class ExpenseService {
       int? attachmentId;
 
       for (int attempt = 1; attempt <= _maxRetries; attempt++) {
+        error = null;
         try {
           existingOdooId = await _findDuplicateOnOdoo(
             name: expense.name,
@@ -392,8 +424,9 @@ class ExpenseService {
             expense.isPendingSync = false;
           } else {
             expense.odooId = update.odooId;
-            expense.receiptAttachmentId = update.attachmentId;
-            expense.isPendingSync = false;
+            expense.receiptAttachmentId =
+                update.attachmentId ?? expense.receiptAttachmentId;
+            expense.isPendingSync = update.odooId == null;
           }
           await _isar.db.expenses.put(expense);
         }

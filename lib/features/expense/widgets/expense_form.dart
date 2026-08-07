@@ -8,8 +8,22 @@ import 'receipt_image_picker.dart';
 /// Handles thousand separators (space, dot, comma) for integer VND amounts.
 double? parseAmount(String? text) {
   if (text == null || text.trim().isEmpty) return null;
-  final cleaned = text.replaceAll(RegExp(r'[.,\s]'), '');
-  return double.tryParse(cleaned);
+  final value = text.trim();
+
+  // Ensure it does not mix different types of thousand separators
+  final hasDot = value.contains('.') ? 1 : 0;
+  final hasComma = value.contains(',') ? 1 : 0;
+  final hasSpace = value.contains(' ') ? 1 : 0;
+  if (hasDot + hasComma + hasSpace > 1) {
+    return null;
+  }
+
+  if (!RegExp(
+    r'^-?(?:\d+|\d{1,3}(?:[.,\s]\d{3})+)$',
+  ).hasMatch(value)) {
+    return null;
+  }
+  return double.tryParse(value.replaceAll(RegExp(r'[.,\s]'), ''));
 }
 
 /// Form nhập thông tin một khoản chi phí.

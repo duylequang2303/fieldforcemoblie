@@ -6,7 +6,7 @@
 - **Models**: `Expense`
 - **Services**: `ExpenseService`
 - **Pages**: `expense_page.dart`
-- **Ngày tạo**: 2025-08-07
+- **Ngày tạo**: 2026-08-07
 
 ---
 
@@ -21,6 +21,7 @@
 | EXP-UI-004 | Form animate collapse dùng height=0 nhưng child vẫn trong tree → layout jank | `ExpensePage` AnimatedContainer (expense_page.dart) | 🟢 Low | 🟢 Fixed | Thay bằng `AnimatedCrossFade` - properly unmount form subtree khi collapse |
 
 ### Logic/Functional Bugs
+
 | ID | Mô tả bug | File/Function | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|---------------|--------|------------|---------|
 | EXP-LOGIC-001 | Dead code: check `expense.odooId != null` sau create local (luôn false) | `ExpenseService.addExpense` line 48-53 | 🔴 High | 🟢 Fixed | Đã loại bỏ nhánh check odooId != null thừa |
@@ -31,12 +32,14 @@
 | EXP-LOGIC-006 | `loadExpenses` không clear `_expenses` khi load fail → hiển thị data cũ | `ExpenseProvider.loadExpenses` line 30-32 | 🟡 Medium | 🟢 Fixed | Gán `_expenses = []` tại catch block khi bắt OdooApiException |
 
 ### Performance/Memory Bugs
+
 | ID | Mô tả bug | File/Location | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|---------------|--------|------------|---------|
 | EXP-PERF-001 | AnimatedContainer height=null/0 giữ child trong tree, không unmount | `ExpensePage` line 68-117 | 🟢 Low | 🟢 Fixed | Thay bằng `AnimatedCrossFade` |
 | EXP-PERF-002 | `ReceiptImagePicker` load full image vào list (120px nhưng cache full size) | `receipt_image_picker.dart:39-44`, `_ExpenseCard:324-329` | 🟡 Medium | 🟢 Fixed | Thêm `cacheWidth: 128` và `cacheHeight: 128` vào SafeImageFile, scale ảnh picker về tối đa 800x800 |
 
 ### Offline/Sync Bugs
+
 | ID | Mô tả bug | File/Location | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|---------------|--------|------------|---------|
 | EXP-SYNC-001 | Sync fail chỉ log warning, không retry, không notify user | `ExpenseService.syncPending` | 🔴 High | 🟢 Fixed | Thêm retry logic (3 attempts, exponential backoff) + `SyncResult` trả về provider, snackbar thông báo user khi pull-to-refresh |
@@ -45,11 +48,12 @@
 | EXP-SYNC-004 | Không có background sync / periodic sync | N/A | 🟡 Medium | 🟢 Fixed | `syncPending` đã đăng ký với `SyncManager` (main.dart:77) — event-driven on network change + periodic auto-sync (Timer.periodic) |
 
 ### Attachment/Receipt Bugs
+
 | ID | Mô tả bug | File/Location | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|---------------|--------|------------|---------|
 | EXP-ATT-001 | ImagePicker trả về content URI (Android 10+) không dùng được với Image.file | `ReceiptImagePicker._pickImage` line 115-121 | 🔴 Critical | 🟢 Fixed | Đã copy file từ paths trả ra của Picker về cache/documents folder local cố định |
 | EXP-ATT-002 | Không có size limit/image compression trước khi lưu path | `ReceiptImagePicker` line 117-118 | 🟡 Medium | 🟢 Fixed | Đặt `imageQuality: 60`, `maxWidth`/`maxHeight` = 800 |
-| EXP-ATT-003 | Receipt path lưu local file path, bị mất khi clear cache/app reinstall | `Expense` model `receiptImagePath` field | 🟡 Medium | 🟢 Fixed | Thêm `receiptAttachmentId` field, upload receipt lên Odoo `ir.attachment` sau khi tạo expense, lưu attachment_id để restore sau nỗi
+| EXP-ATT-003 | Receipt path lưu local file path, bị mất khi clear cache/app reinstall | `Expense` model `receiptImagePath` field | 🟡 Medium | 🟢 Fixed | Thêm `receiptAttachmentId` field, upload receipt lên Odoo `ir.attachment` sau khi tạo expense, lưu attachment_id để restore sau này |
 
 ---
 
@@ -102,8 +106,9 @@
 ---
 
 ## ✅ Test Cases to Add
-- [x] Unit test: ExpenseService.addExpense - verify local create + Odoo payload
-- [x] Unit test: ExpenseService.syncPending - verify duplicate detection
+- [x] Unit test: ExpenseService.buildOdooPayload - verify required Odoo fields
+- [ ] Unit test: ExpenseService.addExpense - verify local create + Odoo payload
+- [ ] Unit test: ExpenseService.syncPending - verify duplicate detection
 - [x] Unit test: ExpenseForm validation - amount, required fields
 - [ ] Widget test: ExpensePage - form toggle, empty state, list render
 - [ ] Widget test: ReceiptImagePicker - camera/gallery pick, remove

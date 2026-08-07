@@ -1,10 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fieldforce_mobile/features/expense/models/expense.dart';
 import 'package:fieldforce_mobile/features/expense/services/expense_service.dart';
+import 'package:fieldforce_mobile/features/expense/widgets/expense_form.dart';
 
 void main() {
   group('Expense.create', () {
-    test('should create expense with all fields set correctly', () {
+    test('creates expense with all fields set correctly', () {
       final expense = Expense.create(
         orderOdooId: 42,
         name: 'Ăn trưa',
@@ -29,7 +30,7 @@ void main() {
       expect(expense.createdAt, isA<DateTime>());
     });
 
-    test('should create expense with null receipt fields', () {
+    test('creates expense with null receipt fields', () {
       final expense = Expense.create(
         orderOdooId: 1,
         name: 'Nhiên liệu',
@@ -46,39 +47,49 @@ void main() {
   });
 
   group('Expense.categoryLabel', () {
-    test('should return correct Vietnamese label for each category', () {
-      expect(
-        Expense()
-          ..category = ExpenseCategory.fuel,
-        isNotNull,
-      );
+    test('returns correct Vietnamese label for each category', () {
       // Verify via create
       final fuel = Expense.create(
-        orderOdooId: 1, name: 'test', amount: 1, date: DateTime.now(),
+        orderOdooId: 1,
+        name: 'test',
+        amount: 1,
+        date: DateTime.now(),
         category: ExpenseCategory.fuel,
       );
       expect(fuel.categoryLabel, 'Nhiên liệu');
 
       final meal = Expense.create(
-        orderOdooId: 1, name: 'test', amount: 1, date: DateTime.now(),
+        orderOdooId: 1,
+        name: 'test',
+        amount: 1,
+        date: DateTime.now(),
         category: ExpenseCategory.meal,
       );
       expect(meal.categoryLabel, 'Ăn uống');
 
       final transport = Expense.create(
-        orderOdooId: 1, name: 'test', amount: 1, date: DateTime.now(),
+        orderOdooId: 1,
+        name: 'test',
+        amount: 1,
+        date: DateTime.now(),
         category: ExpenseCategory.transport,
       );
       expect(transport.categoryLabel, 'Vận chuyển');
 
       final material = Expense.create(
-        orderOdooId: 1, name: 'test', amount: 1, date: DateTime.now(),
+        orderOdooId: 1,
+        name: 'test',
+        amount: 1,
+        date: DateTime.now(),
         category: ExpenseCategory.material,
       );
       expect(material.categoryLabel, 'Vật liệu');
 
       final other = Expense.create(
-        orderOdooId: 1, name: 'test', amount: 1, date: DateTime.now(),
+        orderOdooId: 1,
+        name: 'test',
+        amount: 1,
+        date: DateTime.now(),
         category: ExpenseCategory.other,
       );
       expect(other.categoryLabel, 'Khác');
@@ -86,27 +97,30 @@ void main() {
   });
 
   group('ExpenseService.getProductIdForCategory', () {
-    test('should map each ExpenseCategory to a product ID', () {
+    test('maps each ExpenseCategory to a product ID', () {
       expect(
           ExpenseService.instance.getProductIdForCategory(ExpenseCategory.fuel),
           1);
       expect(
           ExpenseService.instance.getProductIdForCategory(ExpenseCategory.meal),
           2);
-      expect(ExpenseService.instance
-          .getProductIdForCategory(ExpenseCategory.transport),
+      expect(
+          ExpenseService.instance
+              .getProductIdForCategory(ExpenseCategory.transport),
           3);
-      expect(ExpenseService.instance
-          .getProductIdForCategory(ExpenseCategory.material),
+      expect(
+          ExpenseService.instance
+              .getProductIdForCategory(ExpenseCategory.material),
           4);
       expect(
-          ExpenseService.instance.getProductIdForCategory(ExpenseCategory.other),
+          ExpenseService.instance
+              .getProductIdForCategory(ExpenseCategory.other),
           5);
     });
   });
 
   group('ExpenseService.buildOdooPayload', () {
-    test('should build correct Odoo hr.expense payload', () {
+    test('builds correct Odoo hr.expense payload with all required fields', () {
       final payload = ExpenseService.instance.buildOdooPayload(
         name: 'Nhiên liệu đi công tác',
         amount: 350000,
@@ -126,7 +140,7 @@ void main() {
       expect(payload['fsm_order_id'], 42);
     });
 
-    test('should always include all 8 required fields for hr.expense', () {
+    test('payload always includes all 7 required fields for hr.expense', () {
       final payload = ExpenseService.instance.buildOdooPayload(
         name: 'Test',
         amount: 1000,
@@ -137,14 +151,20 @@ void main() {
       );
 
       expect(payload.keys.toSet(), {
-        'name', 'total_amount', 'unit_amount', 'quantity', 'date',
-        'employee_id', 'product_id', 'fsm_order_id'
+        'name',
+        'total_amount',
+        'unit_amount',
+        'quantity',
+        'date',
+        'employee_id',
+        'product_id',
+        'fsm_order_id'
       });
     });
   });
 
   group('ExpenseService.getMimeFromExtension', () {
-    test('should return correct MIME type for image extensions', () {
+    test('returns correct MIME type for image extensions', () {
       expect(getMimeFromExtension('photo.jpg'), 'image/jpeg');
       expect(getMimeFromExtension('photo.jpeg'), 'image/jpeg');
       expect(getMimeFromExtension('photo.png'), 'image/png');
@@ -155,34 +175,34 @@ void main() {
       expect(getMimeFromExtension('photo.heif'), 'image/heif');
     });
 
-    test('should return image/jpeg for unknown extensions', () {
+    test('returns image/jpeg for unknown extensions', () {
       expect(getMimeFromExtension('photo.xyz'), 'image/jpeg');
       expect(getMimeFromExtension('receipt'), 'image/jpeg');
     });
 
-    test('should be case-insensitive for extensions', () {
+    test('is case-insensitive for extensions', () {
       expect(getMimeFromExtension('photo.PNG'), 'image/png');
       expect(getMimeFromExtension('photo.JPG'), 'image/jpeg');
     });
   });
 
   group('SyncResult', () {
-    test('should be false for empty result', () {
+    test('hasFailures is false for empty result', () {
       final result = SyncResult();
       expect(result.hasFailures, isFalse);
     });
 
-    test('should be true when failedCount > 0', () {
+    test('hasFailures is true when failedCount > 0', () {
       final result = SyncResult()..failedCount = 2;
       expect(result.hasFailures, isTrue);
     });
 
-    test('should be true when errors list is non-empty', () {
+    test('hasFailures is true when errors list is non-empty', () {
       final result = SyncResult()..errors.add('Some error');
       expect(result.hasFailures, isTrue);
     });
 
-    test('should track synced, failed, and skipped counts', () {
+    test('can track synced, failed, and skipped counts independently', () {
       final result = SyncResult()
         ..syncedCount = 5
         ..failedCount = 2
@@ -196,7 +216,7 @@ void main() {
       expect(result.hasFailures, isTrue);
     });
 
-    test('should include all counts in toString', () {
+    test('toString includes all counts', () {
       final result = SyncResult()
         ..syncedCount = 3
         ..failedCount = 1
@@ -208,6 +228,38 @@ void main() {
       expect(str, contains('failed: 1'));
       expect(str, contains('skipped: 2'));
       expect(str, contains('errors: 1'));
+    });
+  });
+
+  group('parseAmount', () {
+    test('parses clean integers', () {
+      expect(parseAmount('150000'), 150000.0);
+      expect(parseAmount('0'), 0.0);
+    });
+
+    test('parses space/dot/comma thousand separators for VND', () {
+      expect(parseAmount('1.500.000'), 1500000.0);
+      expect(parseAmount('1,500,000'), 1500000.0);
+      expect(parseAmount('1 500 000'), 1500000.0);
+    });
+
+    test('handles negative values correctly', () {
+      expect(parseAmount('-500.000'), -500000.0);
+    });
+
+    test('returns null for values with invalid separator placement', () {
+      expect(parseAmount('1.5'), isNull);
+      expect(parseAmount('1,23'), isNull);
+      expect(parseAmount('1 00'), isNull);
+      expect(parseAmount('1,234.567'),
+          isNull); // Mixed separators incorrectly placed
+    });
+
+    test('returns null for empty or non-numeric strings', () {
+      expect(parseAmount(''), isNull);
+      expect(parseAmount('   '), isNull);
+      expect(parseAmount(null), isNull);
+      expect(parseAmount('abc'), isNull);
     });
   });
 }
