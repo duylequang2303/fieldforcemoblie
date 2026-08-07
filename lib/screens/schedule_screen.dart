@@ -75,27 +75,24 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
       // Lọc orders theo ngày đã chọn và ẩn các đơn bị skip
-      List<FsmOrder> get _filteredOrders {
+       List<FsmOrder> get _filteredOrders {
         return _orders.where((order) {
           if (order.isSkipped || order.isRecurringProcessed) return false;
           if (order.scheduledDateStart == null) return false;
           final orderDate = order.scheduledDateStart!;
+          final orderDay = DateTime.utc(orderDate.year, orderDate.month, orderDate.day);
           if (_viewMode == 'Week') {
             final startOfWeek = _selectedDate.subtract(
                 Duration(days: _selectedDate.weekday - 1));
             final endOfWeek = startOfWeek.add(const Duration(days: 7));
-            final orderDateTime = DateTime(
-                orderDate.year, orderDate.month, orderDate.day);
-            final start = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-            final end = DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day);
-            if (orderDateTime.isBefore(start) || !orderDateTime.isBefore(end)) {
+            final start = DateTime.utc(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+            final end = DateTime.utc(endOfWeek.year, endOfWeek.month, endOfWeek.day);
+            if (orderDay.isBefore(start) || !orderDay.isBefore(end)) {
               return false;
             }
           } else {
-            final matchDate = orderDate.year == _selectedDate.year &&
-                orderDate.month == _selectedDate.month &&
-                orderDate.day == _selectedDate.day;
-            if (!matchDate) return false;
+            final selectedDay = DateTime.utc(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+            if (orderDay != selectedDay) return false;
           }
           if (_selectedStage != null && order.stage != _selectedStage) {
             return false;
@@ -118,7 +115,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         }).toList();
       }
 
-  // Tính tổng giờ và giả lập tính tiền
+  // Tính tổng giờ
   String _getSummaryText() {
     double totalHours = 0;
     for (var order in _filteredOrders) {
@@ -129,9 +126,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             60.0;
       }
     }
-    // Giả lập tính tiền: $50 / giờ (do FsmOrder hiện tại chưa có field giá trị)
-    final double totalValue = totalHours * 50;
-    return '${totalHours.toStringAsFixed(2)} hrs (\$ ${totalValue.toStringAsFixed(0)})';
+    return '${totalHours.toStringAsFixed(2)} hrs';
   }
 
   List<String> get _availablePersons {

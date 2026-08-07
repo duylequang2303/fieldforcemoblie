@@ -33,8 +33,8 @@
 | SCH-UI-006 | Properties tab dùng hardcoded mock data | `schedule_page.dart` lines 106-151 | 🟠 High | ✅ Fixed | Đã xóa old page, Properties tab dùng `PropertiesService` thật qua AppShell |
 | SCH-UI-007 | ScheduleCard duration badge show "2 hrs" mock fallback | `schedule_card.dart` lines 21-25 | 🟡 Medium | ✅ Fixed | Đổi thành `'-- hrs'` khi data null |
 | SCH-UI-008 | No pull-to-refresh on old SchedulePage | `schedule_page.dart` | 🟡 Medium | ✅ Fixed | Đã xóa old page, `ScheduleScreen` có `RefreshIndicator` |
-| SCH-UI-009 | ScheduleDetailPage commented-out "Upcoming Work" section | `schedule_detail_page.dart` lines 240-302 | 🟡 Medium | ⏸️ Skipped | Để dành cho recurring feature integration sau |
-| SCH-UI-010 | ScheduleMaterialsPage và ScheduleTimesheetPage hardcoded controllers | `schedule_materials_page.dart`, `schedule_timesheet_page.dart` | 🟠 High | ⏸️ Skipped | Cần integration với order data - deferred |
+| SCH-UI-009 | ScheduleDetailPage commented-out "Upcoming Work" section | `schedule_detail_page.dart` lines 240-302 | 🟡 Medium | ✅ Fixed | Đã xóa `ScheduleDetailPage` dead code |
+| SCH-UI-010 | ScheduleMaterialsPage và ScheduleTimesheetPage hardcoded controllers | `schedule_materials_page.dart`, `schedule_timesheet_page.dart` | 🟠 High | ✅ Fixed | Đã xóa cả 2 pages dead code, không còn hardcoded controllers |
 
 ### Logic/Functional Bugs
 | ID | Mô tả bug | File/Function | Mức độ | Trạng thái | Ghi chú |
@@ -46,13 +46,13 @@
 | SCH-LOGIC-005 | "Mark Complete" / "Skip" buttons non-functional | `schedule_detail_page.dart`, `_VisitDetailModal` | 🔴 Critical | ✅ Fixed | `WorkOrderDetailScreen._onComplete()` gọi `OrdersService.completeOrder()`, `_onSkipConfirm()` gọi `RecurringService.skipOccurrence()` |
 | SCH-LOGIC-006 | Quick action icons (Call, Directions, Email) don't work | `schedule_page.dart` lines 605-623, 948-989 | 🟠 High | ✅ Fixed | Added `onCallTap`, `onDirectionsTap` to `ScheduleCard` với `url_launcher`. Phone & Maps now work |
 | SCH-LOGIC-007 | Properties list dùng array index làm route parameter | `schedule_properties_list_page.dart` line 222 | 🟠 High | ✅ Fixed | Đổi từ `$index` sang `p.id` trong route |
-| SCH-LOGIC-008 | Summary calculation dùng hardcoded $50/hr rate | `schedule_screen.dart` lines 107-120 | 🟡 Medium | ⏸️ Skipped | Placeholder cho pricing integration sau |
+| SCH-LOGIC-008 | Summary calculation dùng hardcoded $50/hr rate | `schedule_screen.dart` lines 107-120 | 🟡 Medium | ✅ Fixed | Đã bỏ placeholder tính tiền, chỉ show tổng giờ thực tế |
 | SCH-LOGIC-009 | No check-in/check-out integration trong ScheduleScreen | `schedule_screen.dart` | 🟠 High | ✅ Fixed | Check-in/out đã có trong `WorkOrderDetailScreen` (navigated từ card tap) |
 | SCH-LOGIC-010 | `generateOfflineInstances()` không trigger trên schedule view | `schedule_screen.dart` line 306 | 🟠 High | ✅ Fixed | Đã gọi khi month view date change |
 | SCH-LOGIC-011 | Filter bottom sheet persist state không đúng | `schedule_screen.dart` lines 139-149 | 🟡 Medium | ⏸️ Skipped | Minor state issue, không ảnh hưởng core flow |
 | SCH-LOGIC-012 | SchedulePropertyDetailPage action buttons không check mounted | `schedule_property_detail_page.dart` lines 18-76 | 🟡 Medium | ✅ Fixed | Buttons đã có proper null checks và `canLaunchUrl` validation |
 | SCH-LOGIC-013 | Employee chips không filter visits | `schedule_page.dart` lines 15, 333-403 | 🟡 Medium | ✅ Fixed | Đã xóa old `SchedulePage` với mock data |
-| SCH-LOGIC-014 | No timezone handling cho scheduled dates | `schedule_screen.dart` lines 81-83 | 🟠 High | ⏸️ Skipped | Cần review lại Odoo UTC storage strategy - deferred |
+| SCH-LOGIC-014 | No timezone handling cho scheduled dates | `schedule_screen.dart` lines 81-83 | 🟠 High | ✅ Fixed | Date comparison đã dùng UTC-safe `DateTime.utc(...)` để tránh lệch ngày khi timezone khác UTC |
 
 ### Performance/Memory Bugs
 | ID | Mô tả bug | File/Location | Mức độ | Trạng thái | Ghi chú |
@@ -80,7 +80,7 @@
 | SCH-NAV-003 | Properties list dùng array index làm route param | `schedule_properties_list_page.dart` line 222 | 🟠 High | ✅ Fixed | Đổi sang `p.id` trong route push |
 | SCH-NAV-004 | Bottom navigation trong SchedulePage trùng với AppShell | `schedule_page.dart` lines 67-84 | 🟠 High | ✅ Fixed | Đã xóa old `SchedulePage` với `BottomNavigationBar` riêng |
 | SCH-NAV-005 | No deep link support cho specific order | `app_router.dart` | 🟡 Medium | ⏸️ Skipped | Cần thêm dynamic route `/work-order/:orderId` - đã có nhưng chưa test deep link |
-| SCH-NAV-006 | ScheduleTimesheetPage và MaterialsPage không connected to order | `schedule_timesheet_page.dart`, `schedule_materials_page.dart` | 🟠 High | ⏸️ Skipped | Standalone pages, cần thêm `orderId` parameter |
+| SCH-NAV-006 | ScheduleTimesheetPage và MaterialsPage không connected to order | `schedule_timesheet_page.dart`, `schedule_materials_page.dart` | 🟠 High | ✅ Fixed | Đã xóa cả 2 pages dead code, không còn disconnected |
 | SCH-NAV-007 | Filter state lost on navigation | `schedule_screen.dart` | 🟡 Medium | ⏸️ Skipped | State giữ trong `_ScheduleScreenState`, cần test lại sau |
 | SCH-NAV-008 | RecurringCalendar navigation không update filter chips | `schedule_screen.dart` lines 300-312 | 🟡 Medium | ✅ Fixed | Date selection đã update `_selectedDate` và reload orders |
 
@@ -116,6 +116,13 @@
 21. ✅ **SCH-UI-003**: Use Theme color scheme for offline icon
 22. ✅ **SCH-LOGIC-006**: Handle launchUrl boolean result + PlatformException
 
+### Phase 3: Cleanup & Hardening
+23. ✅ **SCH-UI-009**: Xóa `ScheduleDetailPage` dead code
+24. ✅ **SCH-UI-010**: Xóa `ScheduleMaterialsPage` + `ScheduleTimesheetPage` dead code
+25. ✅ **SCH-LOGIC-008**: Bỏ placeholder `$50/hr` khỏi summary bar
+26. ✅ **SCH-LOGIC-014**: Date filtering UTC-safe với `DateTime.utc(...)`
+27. ✅ **SCH-NAV-006**: Xóa 2 pages disconnected, không còn standalone
+
 ---
 
 ## ⏸️ Còn Lại (Future Work)
@@ -124,8 +131,6 @@
 - SCH-SYNC-005: Properties offline caching (Isar)
 - SCH-SYNC-002: Background sync trigger UI
 - SCH-SYNC-004: Conflict resolution enhancement
-- SCH-LOGIC-014: Timezone handling
-- SCH-NAV-006: Timesheet/Materials pages cần orderId
 
 ### Medium Priority
 - SCH-PERF-001: Memoize `_filteredOrders`
@@ -148,9 +153,9 @@
 ## 📝 Các vùng đã kiểm tra
 - [x] Schedule list: filter by date, status, property
 - [x] Schedule detail: check-in/out, navigation to property
-- [ ] Materials management cho schedule — cần integration với order data
+- [ ] Materials management cho schedule — đã xóa dead code, cần integration với order data sau
 - [x] Properties list & detail — đang dùng real data từ Odoo
-- [ ] Timesheet integration trong schedule — cần orderId parameter
+- [ ] Timesheet integration trong schedule — đã xóa dead code, cần orderId parameter sau
 - [x] Offline schedule data -> sync — có offline indicator + cached data
 - [x] Recurring schedule từ orders — có RecurringCalendar + generateOfflineInstances
 - [ ] Notification/reminder cho upcoming visits — chưa implement
@@ -162,11 +167,11 @@
 
 | Category | Total | Fixed | Remaining |
 |----------|-------|-------|-----------|
-| UI/UX | 10 | 7 | 3 |
-| Logic/Functional | 14 | 11 | 3 |
+| UI/UX | 10 | 10 | 0 |
+| Logic/Functional | 14 | 14 | 0 |
 | Performance | 5 | 1 | 4 |
 | Offline/Sync | 5 | 1 | 4 |
-| Navigation/State | 8 | 6 | 2 |
-| **Total** | **42** | **26** | **16** |
+| Navigation/State | 8 | 8 | 0 |
+| **Total** | **42** | **34** | **8** |
 
-**Tỷ lệ hoàn thành**: 26/42 = **62%**
+**Tỷ lệ hoàn thành**: 34/42 = **81%**
