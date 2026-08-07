@@ -44,14 +44,22 @@ class _RouteMapPageState extends State<RouteMapPage>
   }
 
   Future<void> _initialize() async {
+    if (!mounted) return;
+
     final ordersProvider = context.read<OrdersProvider>();
     _routeProvider = context.read<RouteProvider>();
 
     if (ordersProvider.orders.isEmpty) {
       await ordersProvider.fetchOrders();
+      if (!mounted) return;
     }
+
     await _routeProvider!.buildRoute(ordersProvider.orders);
+    if (!mounted) return;
+
     await _routeProvider!.refreshLocation();
+    if (!mounted) return;
+
     _routeProvider!.startTracking();
   }
 
