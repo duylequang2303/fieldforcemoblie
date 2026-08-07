@@ -77,10 +77,12 @@ class _ScannerPageState extends State<ScannerPage> {
                 onPressed: () async {
                   try {
                     await _controller.toggleTorch();
-                    setState(() => _torchOn = !_torchOn);
-                  } catch (e) {
+                  } on MobileScannerException catch (e) {
                     logger.w('ScannerPage: toggleTorch failed', error: e);
+                    return;
                   }
+                  if (!mounted) return;
+                  setState(() => _torchOn = !_torchOn);
                 },
               ),
             ],
@@ -345,7 +347,7 @@ class _ProductFoundPanelState extends State<_ProductFoundPanel> {
                 child: FilledButton.icon(
                   onPressed: () {
                     final qty = double.tryParse(_qtyController.text) ?? 0.0;
-                    if (qty <= 0) {
+                    if (!qty.isFinite || qty <= 0) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                             content: Text('Số lượng phải lớn hơn 0')),
