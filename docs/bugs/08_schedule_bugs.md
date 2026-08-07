@@ -49,7 +49,7 @@
 | SCH-LOGIC-008 | Summary calculation dùng hardcoded $50/hr rate | `schedule_screen.dart` lines 107-120 | 🟡 Medium | ✅ Fixed | Đã bỏ placeholder tính tiền, chỉ show tổng giờ thực tế |
 | SCH-LOGIC-009 | No check-in/check-out integration trong ScheduleScreen | `schedule_screen.dart` | 🟠 High | ✅ Fixed | Check-in/out đã có trong `WorkOrderDetailScreen` (navigated từ card tap) |
 | SCH-LOGIC-010 | `generateOfflineInstances()` không trigger trên schedule view | `schedule_screen.dart` line 306 | 🟠 High | ✅ Fixed | Đã gọi khi month view date change |
-| SCH-LOGIC-011 | Filter bottom sheet persist state không đúng | `schedule_screen.dart` lines 139-149 | 🟡 Medium | ⏸️ Skipped | Minor state issue, không ảnh hưởng core flow |
+| SCH-LOGIC-011 | Filter bottom sheet persist state không đúng | `schedule_screen.dart` lines 139-149 | 🟡 Medium | ✅ Fixed | Filter bottom sheet state được quản lý đúng trong `_FilterBottomSheetBodyState`, parent state cập nhật qua `FilterResult` khi Apply |
 | SCH-LOGIC-012 | SchedulePropertyDetailPage action buttons không check mounted | `schedule_property_detail_page.dart` lines 18-76 | 🟡 Medium | ✅ Fixed | Buttons đã có proper null checks và `canLaunchUrl` validation |
 | SCH-LOGIC-013 | Employee chips không filter visits | `schedule_page.dart` lines 15, 333-403 | 🟡 Medium | ✅ Fixed | Đã xóa old `SchedulePage` với mock data |
 | SCH-LOGIC-014 | No timezone handling cho scheduled dates | `schedule_screen.dart` lines 81-83 | 🟠 High | ✅ Fixed | Date comparison đã dùng UTC-safe `DateTime.utc(...)` để tránh lệch ngày khi timezone khác UTC |
@@ -139,6 +139,7 @@
 33. ✅ **SCH-NAV-005**: Route `/work-order/:orderId` đã tồn tại trong router
 34. ✅ **SCH-NAV-007**: State được giữ trong `_ScheduleScreenState`, AppShell dùng `IndexedStack`
 35. ✅ **SCH-PERF-002**: Thêm `RepaintBoundary` quanh `GridView.builder` trong `RecurringCalendar`
+36. ✅ **SCH-LOGIC-011**: Filter bottom sheet state được quản lý đúng, cập nhật parent qua `FilterResult`
 
 ---
 
@@ -150,7 +151,6 @@
 
 ### Medium Priority
 - SCH-PERF-003: Properties pagination
-- SCH-LOGIC-011: Filter bottom sheet state polish
 
 ### Low Priority / Nice to Have
 - (none)
@@ -179,6 +179,6 @@
 | Performance | 5 | 3 | 2 |
 | Offline/Sync | 5 | 3 | 2 |
 | Navigation/State | 8 | 8 | 0 |
-| **Total** | **42** | **38** | **4** |
+| **Total** | **42** | **39** | **3** |
 
-**Tỷ lệ hoàn thành**: 38/42 = **90%**
+**Tỷ lệ hoàn thành**: 39/42 = **93%**
