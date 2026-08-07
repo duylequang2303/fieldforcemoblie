@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
 import '../../../core/api/api_exception.dart';
@@ -23,6 +24,22 @@ class StockService {
 
   final OdooSessionManager _odoo;
   final IsarService _isar;
+  final _syncMutexes = <String, Completer<void>>{};
+
+  Future<T> _withSyncLock<T>(String key, Future<T> Function() fn) async {
+    final previous = _syncMutexes[key];
+    final completer = Completer<void>();
+    _syncMutexes[key] = completer;
+    await previous?.future;
+    try {
+      return await fn();
+    } finally {
+      completer.complete();
+      if (_syncMutexes[key] == completer) {
+        _syncMutexes.remove(key);
+      }
+    }
+  }
 
   /// Tìm sản phẩm theo barcode (hỗ trợ quét mã).
   Future<Product?> findProductByBarcode(String barcode) async {
@@ -128,16 +145,18 @@ class StockService {
     }
 
     // 1. Khôi phục hoặc tạo mới StockMove local
-    var move = await _isar.db.stockMoves
-        .filter()
-        .orderOdooIdEqualTo(orderOdooId)
-        .and()
-        .productIdEqualTo(productId)
-        .and()
-        .isPendingSyncEqualTo(true)
-        .and()
-        .localOwnerIdEqualTo(currentUserId)
-        .findFirst();
+    var move = await _isar.db.writeTxn(() async {
+      return _isar.db.stockMoves
+          .filter()
+          .orderOdooIdEqualTo(orderOdooId)
+          .and()
+          .productIdEqualTo(productId)
+          .and()
+          .isPendingSyncEqualTo(true)
+          .and()
+          .localOwnerIdEqualTo(currentUserId)
+          .findFirst();
+    });
 
     if (move == null) {
       move = StockMove.create(
@@ -154,6 +173,23 @@ class StockService {
       await _isar.db.writeTxn(() async {
         await _isar.db.stockMoves.put(move!);
       });
+    } else {
+      // Cộng thêm qty vào pending move đã có (quét lại cùng sản phẩm)
+      await _isar.db.writeTxn(() async {
+        move!.doneQty += qty;
+        move.demandQty += qty;
+        await _isar.db.stockMoves.put(move);
+      });
+      if (move.moveOdooId != null) {
+        await _odoo.callKw(
+          model: 'stock.move',
+          method: 'write',
+          args: [
+            [move.moveOdooId!],
+            {'product_uom_qty': move.demandQty},
+          ],
+        );
+      }
     }
 
     final order = await _isar.db.fsmOrders.getByOdooId(orderOdooId);
@@ -165,7 +201,10 @@ class StockService {
 
     // 2. Chạy State Machine để đồng bộ Odoo
     try {
-      await _syncStockMoveToOdoo(move, order);
+      await _withSyncLock(
+        '$orderOdooId-$productId',
+        () => _syncStockMoveToOdoo(move!, order),
+      );
     } on StockPartialAssignException catch (e) {
       logger.w('StockService.recordStockOut: Lỗi thiếu kho (Business Error)',
           error: e);
@@ -182,19 +221,21 @@ class StockService {
   Future<void> syncPending() async {
     final currentUserId = _odoo.currentUserId;
     if (currentUserId == null) return;
-    final pending =
-        await _isar.db.stockMoves
-            .filter()
-            .isPendingSyncEqualTo(true)
-            .localOwnerIdEqualTo(currentUserId)
-            .findAll();
+    final pending = await _isar.db.stockMoves
+        .filter()
+        .isPendingSyncEqualTo(true)
+        .localOwnerIdEqualTo(currentUserId)
+        .findAll();
 
     for (final move in pending) {
       final order = await _isar.db.fsmOrders.getByOdooId(move.orderOdooId);
       if (order == null) continue;
 
       try {
-        await _syncStockMoveToOdoo(move, order);
+        await _withSyncLock(
+          '${move.orderOdooId}-${move.productId}',
+          () => _syncStockMoveToOdoo(move, order),
+        );
       } on StockPartialAssignException catch (e) {
         logger.w(
             'StockService.syncPending: Bỏ qua do thiếu tồn kho (${move.id})',

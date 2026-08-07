@@ -96,8 +96,11 @@ class _StockMovesPageState extends State<StockMovesPage> {
                         ),
           floatingActionButton: FloatingActionButton.extended(
             heroTag: 'fab_scanner',
-            onPressed: () {
-              context.push('${RouteNames.scanner}/${widget.orderId}');
+            onPressed: () async {
+              await context.push('${RouteNames.scanner}/${widget.orderId}');
+              if (context.mounted) {
+                context.read<StockProvider>().loadMoves(widget.orderId);
+              }
             },
             backgroundColor: AppColors.accent,
             elevation: 4,
