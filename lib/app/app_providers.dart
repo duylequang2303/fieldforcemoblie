@@ -24,7 +24,11 @@ class AppProviders extends StatelessWidget {
         // Phase 7: Orders ✅
         ChangeNotifierProvider.value(value: OrdersProvider.instance),
         // Phase 8: Route Map ✅
-        ChangeNotifierProvider(create: (_) => RouteProvider()),
+        ChangeNotifierProvider(
+          create: (context) => RouteProvider(
+            ordersProvider: context.read<OrdersProvider>(),
+          ),
+        ),
         // Phase 9: Stock ✅
         ChangeNotifierProvider.value(value: StockProvider.instance),
         // Phase 10: Timesheet ✅

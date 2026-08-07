@@ -86,5 +86,15 @@ class LocationService {
     return 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving';
   }
 
+  /// Mở cài đặt định vị trên thiết bị.
+  Future<void> openLocationSettings() async {
+    await Geolocator.openLocationSettings();
+  }
+
+  /// Mở cài đặt ứng dụng.
+  Future<void> openAppSettings() async {
+    await Geolocator.openAppSettings();
+  }
+
   double _toRad(double deg) => deg * math.pi / 180;
 }

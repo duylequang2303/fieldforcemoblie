@@ -1,23 +1,28 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import '../../../core/api/api_exception.dart';
-import '../../../core/utils/logger.dart';
-import '../../orders/models/fsm_order.dart';
-import '../models/route_stop.dart';
-import '../services/location_service.dart';
+import 'package:fieldforce_mobile/core/api/api_exception.dart';
+import 'package:fieldforce_mobile/core/utils/logger.dart';
+import 'package:fieldforce_mobile/features/orders/models/fsm_order.dart';
+import 'package:fieldforce_mobile/features/orders/providers/orders_provider.dart';
+import 'package:fieldforce_mobile/features/route_map/models/route_stop.dart';
+import 'package:fieldforce_mobile/features/route_map/services/location_service.dart';
 
 /// State management cho bản đồ lộ trình.
 class RouteProvider extends ChangeNotifier {
-  RouteProvider({LocationService? locationService})
-      : _locationService = locationService ?? LocationService.instance;
+  RouteProvider({LocationService? locationService, required OrdersProvider ordersProvider})
+      : _locationService = locationService ?? LocationService.instance,
+        _ordersProvider = ordersProvider;
 
   final LocationService _locationService;
+  final OrdersProvider _ordersProvider;
 
   List<RouteStop> _stops = [];
   Position? _currentPosition;
   bool _isLoading = false;
   String? _errorMessage;
   bool _isTracking = false;
+  StreamSubscription<Position>? _positionSubscription;
 
   List<RouteStop> get stops => List.unmodifiable(_stops);
   Position? get currentPosition => _currentPosition;
@@ -64,7 +69,8 @@ class RouteProvider extends ChangeNotifier {
     _isTracking = true;
     notifyListeners();
 
-    _locationService.positionStream().listen(
+    _positionSubscription?.cancel();
+    _positionSubscription = _locationService.positionStream().listen(
       (position) {
         _currentPosition = position;
         notifyListeners();
@@ -73,6 +79,19 @@ class RouteProvider extends ChangeNotifier {
         logger.w('RouteProvider: GPS stream error', error: e);
       },
     );
+  }
+
+  void stopTracking() {
+    _positionSubscription?.cancel();
+    _positionSubscription = null;
+    _isTracking = false;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _positionSubscription?.cancel();
+    super.dispose();
   }
 
   /// Lấy vị trí hiện tại một lần.
@@ -86,23 +105,38 @@ class RouteProvider extends ChangeNotifier {
   }
 
   /// Đánh dấu một điểm dừng là đã hoàn thành.
-  void markStopCompleted(int orderOdooId) {
+  /// Returns true if local state was updated successfully.
+  Future<bool> markStopCompleted(int orderOdooId) async {
     final idx = _stops.indexWhere((s) => s.orderOdooId == orderOdooId);
-    if (idx != -1) {
-      _stops[idx]
-        ..status = StopStatus.completed
-        ..completedAt = DateTime.now();
+    if (idx == -1) return false;
 
-      // Tự động set điểm tiếp theo là current
-      if (idx + 1 < _stops.length) {
-        _stops[idx + 1].status = StopStatus.current;
-      }
+    try {
+      await _ordersProvider.updateOrderToDone(orderOdooId);
+    } catch (e) {
+      logger.w('RouteProvider.markStopCompleted: error updating order', error: e);
+      _errorMessage = 'Không thể đồng bộ hoàn thành: $e';
       notifyListeners();
+      return false;
     }
+
+    _stops[idx]
+      ..status = StopStatus.completed
+      ..completedAt = DateTime.now();
+
+    // Tự động set điểm tiếp theo là current
+    if (idx + 1 < _stops.length) {
+      _stops[idx + 1].status = StopStatus.current;
+    }
+
+    _errorMessage = null;
+    notifyListeners();
+    return true;
   }
 
   /// Tính khoảng cách giữa các điểm dừng liên tiếp.
   void _calculateDistances() {
+    const double avgSpeedKmh = 30.0;
+
     for (int i = 1; i < _stops.length; i++) {
       final prev = _stops[i - 1];
       final curr = _stops[i];
@@ -110,12 +144,27 @@ class RouteProvider extends ChangeNotifier {
           prev.longitude != null &&
           curr.latitude != null &&
           curr.longitude != null) {
-        curr.distanceFromPrev = _locationService.distanceBetween(
+        final distanceKm = _locationService.distanceBetween(
           prev.latitude!,
           prev.longitude!,
           curr.latitude!,
           curr.longitude!,
         );
+        curr.distanceFromPrev = distanceKm;
+        curr.estimatedMinutes = ((distanceKm / avgSpeedKmh) * 60).round();
+      }
+    }
+
+    if (_stops.isNotEmpty) {
+      int? cumulative = 0;
+      _stops[0].estimatedMinutes = 0;
+
+      for (int i = 1; i < _stops.length; i++) {
+        final segmentMinutes = _stops[i].estimatedMinutes;
+        cumulative = (cumulative != null && segmentMinutes != null)
+            ? cumulative + segmentMinutes
+            : null;
+        _stops[i].estimatedMinutes = cumulative;
       }
     }
   }
@@ -164,10 +213,9 @@ class RouteProvider extends ChangeNotifier {
       );
 
       // Nếu cách xa hơn 500m -> Không cho phép check-in (strict enforcement)
-      if (distance > maxDistanceMeters / 1000) {
-        // Convert km to meters
+      if (distance * 1000 > maxDistanceMeters) {
         logger.w(
-            'RouteProvider.isAllowedToCheckIn: Worker quá xa location (${distance * 1000}m > ${maxDistanceMeters}m)');
+            'RouteProvider.isAllowedToCheckIn: Worker quá xa location (${distance}km > ${maxDistanceMeters / 1000}km)');
         return false;
       }
     }

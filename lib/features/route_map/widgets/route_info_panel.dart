@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
-import '../models/route_stop.dart';
+import 'package:fieldforce_mobile/core/theme/app_colors.dart';
+import 'package:fieldforce_mobile/features/route_map/models/route_stop.dart';
+import 'package:fieldforce_mobile/features/route_map/utils/stop_status_ui.dart';
 
 /// Panel thông tin lộ trình — hiển thị danh sách điểm dừng theo thứ tự.
 class RouteInfoPanel extends StatelessWidget {
@@ -188,16 +189,7 @@ class _StopTile extends StatelessWidget {
     );
   }
 
-  Color get _lineColor {
-    switch (stop.status) {
-      case StopStatus.completed:
-        return AppColors.success;
-      case StopStatus.current:
-        return AppColors.primary;
-      default:
-        return AppColors.surfaceVariant;
-    }
-  }
+  Color get _lineColor => StopStatusUI.color(stop.status);
 }
 
 class _StepCircle extends StatelessWidget {
@@ -238,7 +230,7 @@ class _StepCircle extends StatelessWidget {
       case StopStatus.completed:
         return AppColors.success;
       case StopStatus.current:
-        return AppColors.primary;
+        return StopStatusUI.color(StopStatus.current);
       default:
         return Colors.white;
     }
@@ -249,7 +241,7 @@ class _StepCircle extends StatelessWidget {
       case StopStatus.completed:
         return AppColors.success;
       case StopStatus.current:
-        return AppColors.primary;
+        return StopStatusUI.color(StopStatus.current);
       default:
         return AppColors.surfaceVariant;
     }
