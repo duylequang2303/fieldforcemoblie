@@ -176,7 +176,9 @@ class WorkOrderService {
             ],
           );
 
-          if (result == null || result is! Map || !(result['success'] as bool? ?? false)) {
+          final success = result == true ||
+              (result is Map && (result['success'] as bool? ?? false));
+          if (!success) {
             throw Exception('Signature wizard did not return success.');
           }
 

@@ -57,9 +57,8 @@ class OrdersService {
     'color',
     'state_name',
     'todo',
-    // Recurring fields needed for conflict resolution
+    // Recurring fields
     'fsm_recurring_id',
-    'is_skipped',
   ];
 
   static const _locationFields = [
@@ -134,7 +133,7 @@ class OrdersService {
     return _completedStageId;
   }
 
-  Future<int?> getStageIdByKeywords(List<String> keywords) async {
+  Future<int?> getStageIdByKeywords(List<String> keywords, {List<int>? fallbackIds}) async {
     await fetchStagesIfNeeded();
     for (final entry in _stageIdsByLowerName.entries) {
       for (final kw in keywords) {
@@ -143,6 +142,15 @@ class OrdersService {
         }
       }
     }
+
+    if (fallbackIds != null) {
+      for (final id in fallbackIds) {
+        if (_stageNames.containsKey(id)) {
+          return id;
+        }
+      }
+    }
+
     return null;
   }
 
@@ -192,55 +200,78 @@ class OrdersService {
       return [];
     }
 
-    // [WARNING] Quy ước nội bộ công ty:
-    // Dùng field person_id.user_id (thường là Salesperson) để map thợ (fsm.person) với user login.
-    // KHÔNG SỬA thành chuẩn Odoo (person_id.partner_id.user_ids) vì dữ liệu partner_id không chứa user.
+    // Tìm person_id liên kết với user đăng nhập thông qua fsm.person.calendar.filter
+    // (module fieldservice_calendar). Nếu không có, fallback sang team calendar.
+    int? personId;
+    try {
+      final personFilter = await _odoo.callKw(
+        model: 'fsm.person.calendar.filter',
+        method: 'search_read',
+        args: [
+          [
+            ['user_id', '=', userId]
+          ]
+        ],
+        kwargs: {
+          'fields': ['person_id'],
+          'limit': 1,
+        },
+      ) as List<dynamic>;
+      if (personFilter.isNotEmpty) {
+        personId = (personFilter.first['person_id'] as List?)?.first as int?;
+      }
+    } on OdooBusinessException catch (e) {
+      final msg = e.message.toLowerCase();
+      if (msg.contains('model') && msg.contains('does not exist') ||
+          msg.contains('field') && msg.contains('does not exist') ||
+          msg.contains('undefined') ||
+          msg.contains('access denied')) {
+        logger.w('OrdersService.fetchMyOrders: fieldservice_calendar module missing or inaccessible');
+      } else {
+        rethrow;
+      }
+    } catch (_) {
+      // Network or other transient error - silent fallback
+    }
 
-    // Domain chính: person_id.user_id = userId
-    final domain = [
-      ['person_id.user_id', '=', userId]
-    ];
+    List<dynamic> rawOrders = [];
+    if (personId != null) {
+      // Ưu tiên domain chính xác: person_id = personId
+      logger.i('OrdersService.fetchMyOrders: personId=$personId for user=$userId');
+      rawOrders = await _callSearchRead([
+        ['person_id', '=', personId]
+      ]);
+    }
 
-    // Thử thêm fallback domain nếu không có kết quả:
-    // Trường hợp 1: fsm.order có person_id nhưng person_id.user_id không tồn tại
-    // Trường hợp 2: fsm.order có person_ids (many2many) và user có thể trong đó
-    // Trường hợp 3: fsm.order không có person_id nhưng có team_id với team có user_id
-    final domainFallback1 = [
-      ['person_ids.user_id', '=', userId] // many2many field person_ids
-    ];
-
-    final domainFallback2 = [
-      ['team_id.calendar_user_id', '=', userId] // team với calendar_user_id
-    ];
-
-    // Fetch orders với domain chính
-    logger.i(
-        'OrdersService.fetchMyOrders: Fetching with domain: person_id.user_id = $userId');
-    final rawOrders = await _callSearchRead(domain);
-
-    // Nếu không có kết quả, thử fallback domains
+    // Fallback 1: team calendar (fieldservice_calendar module)
     if (rawOrders.isEmpty) {
       logger.w(
-          'OrdersService.fetchMyOrders: Không có kết quả với domain chính, thử fallback domains');
-
-      // Thử fallback 1: person_ids
-      final fallbackOrders1 = await _tryFetchOrders(domainFallback1);
-      if (fallbackOrders1.isNotEmpty) {
-        logger.i(
-            'OrdersService.fetchMyOrders: Found orders via person_ids fallback');
-        return fallbackOrders1;
+          'OrdersService.fetchMyOrders: Không có kết quả với person_id, thử team calendar fallback');
+      final fallbackOrders = await _tryFetchOrders([
+        ['team_id.calendar_user_id', '=', userId]
+      ]);
+      if (fallbackOrders.isNotEmpty) {
+        logger.i('OrdersService.fetchMyOrders: Found orders via team calendar fallback');
+        return fallbackOrders;
       }
+    }
 
-      // Thử fallback 2: team_id.calendar_user_id
-      final fallbackOrders2 = await _tryFetchOrders(domainFallback2);
-      if (fallbackOrders2.isNotEmpty) {
-        logger.i(
-            'OrdersService.fetchMyOrders: Found orders via team_id fallback');
-        return fallbackOrders2;
-      }
-
+    // Fallback 2: person_ids (many2many) - legacy nếu có custom field mapping
+    if (rawOrders.isEmpty) {
       logger.w(
-          'OrdersService.fetchMyOrders: Không có kết quả với bất kỳ domain nào');
+          'OrdersService.fetchMyOrders: Thử person_ids fallback');
+      final fallbackOrders = await _tryFetchOrders([
+        ['person_ids.user_id', '=', userId]
+      ]);
+      if (fallbackOrders.isNotEmpty) {
+        logger.i('OrdersService.fetchMyOrders: Found orders via person_ids fallback');
+        return fallbackOrders;
+      }
+    }
+
+    if (rawOrders.isEmpty) {
+      logger.w('OrdersService.fetchMyOrders: Không có kết quả với bất kỳ domain nào');
+      return [];
     }
 
     // Process location_ids và route_ids như cũ
@@ -519,7 +550,7 @@ class OrdersService {
       }
     }
     final doneStageId = await getCompletedStageId() ??
-        await getStageIdByKeywords(['done', 'completed']);
+        await getStageIdByKeywords(['done', 'completed'], fallbackIds: [4]);
 
     // 1. Cập nhật local trước (Offline-First)
     if (local != null) {
@@ -691,8 +722,6 @@ class OrdersService {
 
     for (final order in pending) {
       try {
-        bool isSkippedRejected = false;
-
         // 1. Nếu đây là local-only order (do logic lặp sinh ra lúc offline, odooId < 0)
         // -> Cần gọi API create trên Odoo trước để lấy odooId thật.
         if (order.odooId < 0) {
@@ -702,7 +731,6 @@ class OrdersService {
                 'OrdersService.syncPending: Skip processing local order ${order.id} due to failed Odoo creation');
             continue;
           }
-          isSkippedRejected = createResult.isSkippedRejected;
 
           // Cập nhật odooId thật vào Isar. Phải làm trong txn
           final oldOdooId = order.odooId;
@@ -728,9 +756,6 @@ class OrdersService {
           final data = <String, dynamic>{
             'stage_id': order.stageId,
           };
-          if (order.isSkipped && !isSkippedRejected) {
-            data['is_skipped'] = true;
-          }
 
           try {
             await _odoo.callKw(
@@ -742,23 +767,12 @@ class OrdersService {
               ],
             );
           } on OdooBusinessException catch (be) {
-            if (be.message.contains('is_skipped') ||
-                be.message.contains('ValueError')) {
-              logger.w('Odoo reject is_skipped field, retrying without it...',
+            if (be.message.contains('ValueError')) {
+              logger.w('Odoo reject write, skipping order ${order.odooId}',
                   error: be);
-              data.remove('is_skipped');
-              isSkippedRejected = true;
-              await _odoo.callKw(
-                model: _model,
-                method: 'write',
-                args: [
-                  [order.odooId],
-                  data,
-                ],
-              );
-            } else {
-              rethrow;
+              continue;
             }
+            rethrow;
           }
         }
 
@@ -781,15 +795,10 @@ class OrdersService {
           );
         }
 
-        if (!isSkippedRejected) {
-          await _isar.db.writeTxn(() async {
-            order.isPendingSync = false;
-            await _isar.db.fsmOrders.put(order);
-          });
-        } else {
-          logger.w(
-              'OrdersService.syncPending: is_skipped was rejected/unsupported by Odoo. Retaining isPendingSync=true for order ${order.odooId}');
-        }
+        await _isar.db.writeTxn(() async {
+          order.isPendingSync = false;
+          await _isar.db.fsmOrders.put(order);
+        });
       } catch (e) {
         logger.w('OrdersService.syncPending: failed for order ${order.odooId}',
             error: e);
@@ -961,12 +970,7 @@ class OrdersService {
           ? _formatDateTimeUtc(order.scheduledDateEnd!)
           : null,
       'priority': order.priority ?? '0',
-      'require_signature': order.requireSignature,
     };
-
-    if (order.isSkipped) {
-      data['is_skipped'] = true;
-    }
 
     // Map relation fields an toàn (nếu có gán)
     if (order.partnerId != null && order.partnerId! > 0) {
@@ -995,19 +999,17 @@ class OrdersService {
       // Chỉ fallback khi lỗi là do field không tồn tại (custom fields chưa được hỗ trợ)
       // Các lỗi khác (auth, connection, business logic) rethrow để fail closed
       if (be.message.contains('fsm_recurring_id') ||
-          be.message.contains('is_skipped') ||
           be.message.contains('ValueError')) {
         logger.w('Odoo reject custom fields, retrying with basic fields...',
             error: be);
         data.remove('fsm_recurring_id');
-        data.remove('is_skipped');
         // Retry with basic fields
         final id = await _odoo.callKw(
           model: _model,
           method: 'create',
           args: [data],
         ) as int;
-        return OdooCreateResult(id, isSkippedRejected: order.isSkipped);
+        return OdooCreateResult(id);
       }
       rethrow;
     } catch (e, stackTrace) {

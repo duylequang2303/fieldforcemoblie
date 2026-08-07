@@ -53,6 +53,7 @@ class ExpenseService {
   final _isar = IsarService.instance;
 
   static const _maxRetries = 3;
+  static final Map<ExpenseCategory, int?> _productIdCache = {};
 
   Future<List<Expense>> getExpensesForOrder(int orderOdooId) async {
     return _isar.db.expenses
@@ -100,7 +101,7 @@ class ExpenseService {
       return expense;
     }
 
-    final productId = getProductIdForCategory(category);
+    final productId = await getProductIdForCategory(category);
     if (productId == null) {
       logger.w(
           'ExpenseService.addExpense: no product mapping for category $category');
@@ -287,8 +288,48 @@ class ExpenseService {
   }
 
   /// Map ExpenseCategory to Odoo product_id for hr.expense.
-  /// TODO: Fetch from Odoo product.template where can_be_expensed=true.
-  int? getProductIdForCategory(ExpenseCategory category) {
+  /// Fetches dynamically from Odoo by product name, with hardcoded fallback.
+  Future<int?> getProductIdForCategory(ExpenseCategory category) async {
+    if (_productIdCache.containsKey(category)) {
+      return _productIdCache[category];
+    }
+
+    final label = categoryLabelFor(category);
+    int? productId;
+
+    try {
+      final results = await _odoo.callKw(
+        model: 'product.product',
+        method: 'search_read',
+        args: [
+          [
+            ['name', 'ilike', label]
+          ]
+        ],
+        kwargs: {
+          'fields': ['id', 'name'],
+          'limit': 1,
+        },
+      ) as List<dynamic>;
+
+      if (results.isNotEmpty) {
+        productId = results.first['id'] as int?;
+      }
+    } on OdooApiException catch (e) {
+      logger.w('ExpenseService.getProductIdForCategory: failed to fetch product for $label',
+          error: e);
+    } catch (e) {
+      logger.w('ExpenseService.getProductIdForCategory: unexpected error for $label',
+          error: e);
+    }
+
+    productId ??= _hardcodedProductIdForCategory(category);
+    _productIdCache[category] = productId;
+    return productId;
+  }
+
+  /// Hardcoded fallback mapping when dynamic fetch fails.
+  int? _hardcodedProductIdForCategory(ExpenseCategory category) {
     switch (category) {
       case ExpenseCategory.fuel:
         return 1;
@@ -300,6 +341,21 @@ class ExpenseService {
         return 4;
       case ExpenseCategory.other:
         return 5;
+    }
+  }
+
+  String categoryLabelFor(ExpenseCategory category) {
+    switch (category) {
+      case ExpenseCategory.fuel:
+        return 'Nhiên liệu';
+      case ExpenseCategory.meal:
+        return 'Ăn uống';
+      case ExpenseCategory.transport:
+        return 'Vận chuyển';
+      case ExpenseCategory.material:
+        return 'Vật liệu';
+      case ExpenseCategory.other:
+        return 'Khác';
     }
   }
 
@@ -328,7 +384,7 @@ class ExpenseService {
         continue;
       }
 
-      final productId = getProductIdForCategory(expense.category);
+      final productId = await getProductIdForCategory(expense.category);
       if (productId == null) {
         result.skippedCount++;
         result.errors

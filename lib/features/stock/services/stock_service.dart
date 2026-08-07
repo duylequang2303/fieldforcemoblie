@@ -414,7 +414,7 @@ class StockService {
         method: 'write',
         args: [
           [move.moveOdooId!],
-          {'quantity': move.doneQty}
+          {'product_uom_qty': move.doneQty}
         ],
       );
 

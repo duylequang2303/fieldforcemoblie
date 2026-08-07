@@ -285,7 +285,7 @@ class _SettingsPageState extends State<SettingsPage> {
         model: 'fsm.order',
         method: 'search_read',
         args: [
-          [['person_id.user_id', '=', userId]]
+          [['id', '>', 0]]
         ],
         kwargs: {
           'fields': ['id', 'name'],

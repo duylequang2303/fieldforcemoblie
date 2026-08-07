@@ -97,24 +97,21 @@ void main() {
   });
 
   group('ExpenseService.getProductIdForCategory', () {
-    test('maps each ExpenseCategory to a product ID', () {
+    test('maps each ExpenseCategory to a product ID (async fallback)', () async {
       expect(
-          ExpenseService.instance.getProductIdForCategory(ExpenseCategory.fuel),
+          await ExpenseService.instance.getProductIdForCategory(ExpenseCategory.fuel),
           1);
       expect(
-          ExpenseService.instance.getProductIdForCategory(ExpenseCategory.meal),
+          await ExpenseService.instance.getProductIdForCategory(ExpenseCategory.meal),
           2);
       expect(
-          ExpenseService.instance
-              .getProductIdForCategory(ExpenseCategory.transport),
+          await ExpenseService.instance.getProductIdForCategory(ExpenseCategory.transport),
           3);
       expect(
-          ExpenseService.instance
-              .getProductIdForCategory(ExpenseCategory.material),
+          await ExpenseService.instance.getProductIdForCategory(ExpenseCategory.material),
           4);
       expect(
-          ExpenseService.instance
-              .getProductIdForCategory(ExpenseCategory.other),
+          await ExpenseService.instance.getProductIdForCategory(ExpenseCategory.other),
           5);
     });
   });
