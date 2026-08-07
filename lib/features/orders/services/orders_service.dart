@@ -760,18 +760,28 @@ class OrdersService {
     }
   }
 
-  /// Resolve conflict giữa local-only recurring instances (sinh offline, odooId < 0)
-  /// và các instances thật tải từ Odoo. Lưu dữ liệu sạch vào Isar.
+  /// Resolve conflict giữa local và server orders.
+  /// Xử lý 3 cases:
+  /// 1. Local-only (odooId < 0) duplicate vs server order
+  /// 2. Same odooId on both sides - merge based on lastSyncAt/isPendingSync
+  /// 3. Local has odooId but server deleted it (mark for deletion)
   Future<List<FsmOrder>> _resolveConflictsAndSave(
       List<FsmOrder> fetchedOrders) async {
     final currentUserId = _odoo.currentUserId;
     final cleanOrders = fetchedOrders.map((order) {
-      order.localOwnerId = currentUserId; // Stamp local owner!
+      order.localOwnerId = currentUserId;
       return order;
     }).toList();
     final isar = _isar.db;
 
+    // Build map of server orders by odooId for quick lookup
+    final serverOrdersMap = <int, FsmOrder>{};
+    for (final o in fetchedOrders) {
+      serverOrdersMap[o.odooId] = o;
+    }
+
     await isar.writeTxn(() async {
+      // 1. Handle local-only duplicates vs server orders (existing logic)
       for (final odooOrder in fetchedOrders) {
         if (odooOrder.recurringId == null ||
             odooOrder.recurringId! <= 0 ||
@@ -809,6 +819,114 @@ class OrdersService {
             logger.i(
                 'Conflict Resolution: Overwriting clean local order ${localOnly.id} with server order');
             await isar.fsmOrders.delete(localOnly.id);
+          }
+        }
+      }
+
+      // 2. Handle conflicts where both local and server have same odooId > 0
+      // Fetch all local orders with odooId > 0 and filter in memory
+      final allLocalOrders = await isar.fsmOrders
+          .filter()
+          .odooIdGreaterThan(0)
+          .findAll();
+
+      // Build set of server odooIds for quick lookup
+      final serverOdooIds = fetchedOrders.map((o) => o.odooId).toSet();
+
+      // Filter local orders that have matching server odooId
+      final localOrdersWithSameOdooId = allLocalOrders
+          .where((o) => serverOdooIds.contains(o.odooId))
+          .toList();
+
+      for (final localOrder in localOrdersWithSameOdooId) {
+        final serverOrder = serverOrdersMap[localOrder.odooId];
+        if (serverOrder == null) continue; // Server deleted this order
+
+        // Check if local has pending changes
+        final localHasPendingChanges = localOrder.isPendingSync ||
+            localOrder.dateStart != null ||
+            localOrder.isSkipped ||
+            localOrder.stage != FsmOrderStage.draft;
+
+        // Check if server has newer data (server's lastSyncAt would be updated on fetch)
+        final serverIsNewer = serverOrder.lastSyncAt.isAfter(localOrder.lastSyncAt);
+
+        if (localOrder.isPendingSync && localHasPendingChanges) {
+          // Local has uncommitted changes - keep local, mark for sync
+          logger.i(
+              'Conflict Resolution: Local order ${localOrder.odooId} has pending changes. Keeping local, marking for sync.');
+          // Merge server's non-conflicting fields (e.g., scheduledDateStart/End from server if local didn't change them)
+          if (localOrder.scheduledDateStart == serverOrder.scheduledDateStart &&
+              localOrder.scheduledDateEnd == serverOrder.scheduledDateEnd) {
+            // Local didn't modify schedule, accept server's schedule
+            localOrder.scheduledDateStart = serverOrder.scheduledDateStart;
+            localOrder.scheduledDateEnd = serverOrder.scheduledDateEnd;
+          }
+          // Update server's non-conflicting metadata
+          localOrder.stageId = serverOrder.stageId;
+          localOrder.stageName = serverOrder.stageName;
+          localOrder.stage = serverOrder.stage;
+          localOrder.personId = serverOrder.personId;
+          localOrder.personName = serverOrder.personName;
+          localOrder.priority = serverOrder.priority;
+          localOrder.routeSequence = serverOrder.routeSequence;
+          localOrder.routeId = serverOrder.routeId;
+          localOrder.routeState = serverOrder.routeState;
+          localOrder.isPendingSync = true;
+          localOrder.lastSyncAt = DateTime.now();
+          await isar.fsmOrders.put(localOrder);
+
+          // Replace in cleanOrders
+          final idx = cleanOrders.indexWhere((o) => o.odooId == localOrder.odooId);
+          if (idx != -1) cleanOrders[idx] = localOrder;
+        } else if (serverIsNewer && !localHasPendingChanges) {
+          // Server has newer data and local has no pending changes - use server
+          logger.i(
+              'Conflict Resolution: Server order ${serverOrder.odooId} is newer. Updating local with server data.');
+          serverOrder.localOwnerId = currentUserId;
+          await isar.fsmOrders.put(serverOrder);
+
+          // Replace in cleanOrders
+          final idx = cleanOrders.indexWhere((o) => o.odooId == serverOrder.odooId);
+          if (idx != -1) cleanOrders[idx] = serverOrder;
+        } else {
+          // Local has changes but not pending sync, or timestamps equal - keep local but update non-conflicting server fields
+          logger.i(
+              'Conflict Resolution: Order ${localOrder.odooId} - keeping local, merging server metadata.');
+          localOrder.stageId = serverOrder.stageId;
+          localOrder.stageName = serverOrder.stageName;
+          localOrder.stage = serverOrder.stage;
+          localOrder.personId = serverOrder.personId;
+          localOrder.personName = serverOrder.personName;
+          localOrder.priority = serverOrder.priority;
+          localOrder.routeSequence = serverOrder.routeSequence;
+          localOrder.routeId = serverOrder.routeId;
+          localOrder.routeState = serverOrder.routeState;
+          localOrder.lastSyncAt = DateTime.now();
+          await isar.fsmOrders.put(localOrder);
+        }
+      }
+
+      // 3. Handle local orders that server deleted (exist locally but not in server response)
+      // Reuse allLocalOrders from earlier
+      final allLocalOrdersWithOdooId = allLocalOrders.where((o) => o.odooId > 0).toList();
+      final fetchedOdooIds = serverOdooIds;
+
+      for (final localOrder in allLocalOrdersWithOdooId) {
+        if (!fetchedOdooIds.contains(localOrder.odooId)) {
+          // Server doesn't have this order anymore - it was deleted on server
+          if (localOrder.isPendingSync || localOrder.dateStart != null || localOrder.isSkipped) {
+            // Local has work - keep but mark for deletion sync
+            logger.i(
+                'Conflict Resolution: Server deleted order ${localOrder.odooId} but local has work. Marking for deletion sync.');
+            localOrder.isPendingSync = true;
+            localOrder.stage = FsmOrderStage.cancelled;
+            await isar.fsmOrders.put(localOrder);
+          } else {
+            // Local is clean - safe to delete locally
+            logger.i(
+                'Conflict Resolution: Server deleted order ${localOrder.odooId}, deleting clean local copy.');
+            await isar.fsmOrders.delete(localOrder.id);
           }
         }
       }

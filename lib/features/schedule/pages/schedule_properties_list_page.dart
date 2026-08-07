@@ -16,22 +16,36 @@ class SchedulePropertiesListPage extends StatefulWidget {
 class _SchedulePropertiesListPageState
     extends State<SchedulePropertiesListPage> {
   final TextEditingController _search = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  
   List<ScheduleProperty> _all = [];
   List<ScheduleProperty> _filtered = [];
   bool _loading = true;
+  bool _loadingMore = false;
   String? _error;
   bool _isAuthError = false;
+  int _currentPage = 0;
+  bool _hasMore = true;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_onScroll);
     _load();
   }
 
   @override
   void dispose() {
     _search.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      _loadMore();
+    }
   }
 
   Future<void> _load() async {
@@ -39,6 +53,8 @@ class _SchedulePropertiesListPageState
       _loading = true;
       _error = null;
       _isAuthError = false;
+      _currentPage = 0;
+      _hasMore = true;
     });
     try {
       final list = await PropertiesService.instance.fetchProperties();
@@ -47,6 +63,7 @@ class _SchedulePropertiesListPageState
         _all = list;
         _filtered = list;
         _loading = false;
+        _hasMore = list.length >= PropertiesService.defaultPageSize;
       });
     } on OdooAuthException catch (e) {
       logger.w('PropertiesListPage: session expired', error: e);
@@ -75,18 +92,56 @@ class _SchedulePropertiesListPageState
     }
   }
 
-  void _onSearch(String q) {
-    final s = q.trim().toLowerCase();
+  Future<void> _loadMore() async {
+    if (_loadingMore || !_hasMore || _loading) return;
+    
+    setState(() => _loadingMore = true);
+    
+    try {
+      _currentPage++;
+      final nextPage = await PropertiesService.instance
+          .fetchPropertiesPaginated(page: _currentPage);
+      
+      if (!mounted) return;
+      
+      setState(() {
+        if (nextPage.isEmpty) {
+          _hasMore = false;
+        } else {
+          _all.addAll(nextPage);
+          _filtered = _search.text.isEmpty 
+              ? _all 
+              : _all.where((p) => _matchesSearch(p)).toList();
+          _hasMore = nextPage.length >= PropertiesService.defaultPageSize;
+        }
+        _loadingMore = false;
+      });
+    } catch (e) {
+      logger.e('PropertiesListPage: failed to load more', error: e);
+      if (!mounted) return;
+      setState(() => _loadingMore = false);
+    }
+  }
+
+  bool _matchesSearch(ScheduleProperty p) {
+    final q = _search.text.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    return p.address.toLowerCase().contains(q) ||
+        p.ownerName.toLowerCase().contains(q) ||
+        p.suburb.toLowerCase().contains(q);
+  }
+
+void _onSearch(String q) {
     setState(() {
-      if (s.isEmpty) {
+      if (q.trim().isEmpty) {
         _filtered = _all;
       } else {
-        _filtered = _all
-            .where((p) =>
-                p.address.toLowerCase().contains(s) ||
-                p.ownerName.toLowerCase().contains(s) ||
-                p.suburb.toLowerCase().contains(s))
-            .toList();
+        final s = q.trim().toLowerCase();
+        _filtered = _all.where((p) =>
+            p.address.toLowerCase().contains(s) ||
+            p.ownerName.toLowerCase().contains(s) ||
+            p.suburb.toLowerCase().contains(s)
+        ).toList();
       }
     });
   }
@@ -189,12 +244,19 @@ class _SchedulePropertiesListPageState
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(
+        controller: _scrollController,
         padding: const EdgeInsets.symmetric(vertical: 8),
         physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: _filtered.length,
+        itemCount: _filtered.length + (_loadingMore ? 1 : 0),
         separatorBuilder: (_, __) => Divider(
             height: 1, color: theme.dividerColor, indent: 16, endIndent: 16),
         itemBuilder: (context, index) {
+          if (index == _filtered.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
           final p = _filtered[index];
           return ListTile(
             title: Text(

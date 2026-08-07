@@ -59,7 +59,7 @@
 |----|-----------|---------------|--------|------------|---------|
 | SCH-PERF-001 | ScheduleScreen reloads all orders on mỗi filter change | `schedule_screen.dart` lines 77-104 | 🟡 Medium | ✅ Fixed | `_filteredOrders` giờ memoized, chỉ recompute khi inputs thay đổi |
 | SCH-PERF-002 | RecurringCalendar rebuilds entire grid | `recurring_calendar.dart` lines 122-210 | 🟡 Medium | ✅ Fixed | Thêm `RepaintBoundary` quanh `GridView.builder` để isolate repaints |
-| SCH-PERF-003 | Properties list load 100 items không pagination | `properties_service.dart` line 35 | 🟡 Medium | ⏸️ Skipped | Limit 100 là acceptable cho hiện tại |
+| SCH-PERF-003 | Properties list load 100 items không pagination | `properties_service.dart` line 35 | 🟡 Medium | ✅ Fixed | Thêm pagination với `fetchPropertiesPaginated(page, pageSize)`, infinite scroll trong `SchedulePropertiesListPage`, load 50 items/page |
 | SCH-PERF-004 | Multiple Isar queries trong RecurringService | `recurring_service.dart` lines 167-263 | 🟠 High | ✅ Fixed | `generateOfflineInstances()` giờ cache frequency sets trong loop, tránh N+1 query lặp lại |
 | SCH-PERF-005 | ScheduleScreen show stale data briefly | `schedule_screen.dart` lines 43-56 | 🟡 Medium | ✅ Fixed | Đã show cached data immediately, fetch background |
 
@@ -69,7 +69,7 @@
 | SCH-SYNC-001 | No offline indicator trên ScheduleScreen | `schedule_screen.dart` | 🟠 High | ✅ Fixed | `ScheduleTopBar` giờ có offline `wifi_off_rounded` icon khi `_isOffline = true`. Commit `1cbb85e` |
 | SCH-SYNC-002 | Sync pending orders không exposed to UI | `orders_service.dart` lines 645-755 | 🟠 High | ✅ Fixed | Thêm nút "Sync Now" với badge đếm pending orders trong `ScheduleTopBar` |
 | SCH-SYNC-003 | Recurring rules sync không trigger | `recurring_service.dart` lines 20-142 | 🟡 Medium | ✅ Fixed | `fetchRecurringRules()` đã đăng ký với `SyncManager`, auto-sync định kỳ chạy khi app khởi động |
-| SCH-SYNC-004 | Conflict resolution cho recurring instances incomplete | `orders_service.dart` lines 759-816 | 🟠 High | ⏸️ Skipped | Chỉ handle `odooId < 0` local orders. Cần handle server-side changes |
+| SCH-SYNC-004 | Conflict resolution cho recurring instances incomplete | `orders_service.dart` lines 759-816 | 🟠 High | ✅ Fixed | Mở rộng `_resolveConflictsAndSave` để handle 3 cases: local-only vs server, same odooId conflicts (merge bằng lastSyncAt/isPendingSync), server deletions |
 | SCH-SYNC-005 | Properties không cached offline | `properties_service.dart`, `schedule_properties_list_page.dart` | 🟠 High | ✅ Fixed | Thêm Isar caching cho properties: offline-first load từ cache, sync Odoo nền, update cache. ScheduleProperty thành Isar collection. |
 
 ### Navigation/State Bugs
@@ -141,6 +141,8 @@
 35. ✅ **SCH-PERF-002**: Thêm `RepaintBoundary` quanh `GridView.builder` trong `RecurringCalendar`
 36. ✅ **SCH-LOGIC-011**: Filter bottom sheet state được quản lý đúng, cập nhật parent qua `FilterResult`
 37. ✅ **SCH-SYNC-005**: Properties offline caching với Isar — offline-first load cache, sync Odoo nền, ScheduleProperty thành Isar collection
+38. ✅ **SCH-SYNC-004**: Conflict resolution mở rộng — handle 3 cases: local-only, same odooId conflicts, server deletions
+39. ✅ **SCH-PERF-003**: Properties pagination — infinite scroll 50 items/page trong `SchedulePropertiesListPage`
 
 ---
 
@@ -176,9 +178,9 @@
 |----------|-------|-------|-----------|
 | UI/UX | 10 | 10 | 0 |
 | Logic/Functional | 14 | 14 | 0 |
-| Performance | 5 | 3 | 2 |
-| Offline/Sync | 5 | 4 | 1 |
+| Performance | 5 | 4 | 1 |
+| Offline/Sync | 5 | 5 | 0 |
 | Navigation/State | 8 | 8 | 0 |
-| **Total** | **42** | **40** | **2** |
+| **Total** | **42** | **41** | **1** |
 
-**Tỷ lệ hoàn thành**: 40/42 = **95%**
+**Tỷ lệ hoàn thành**: 41/42 = **98%****
