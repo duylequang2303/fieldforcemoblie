@@ -64,8 +64,6 @@ class PropertiesService {
             rethrow;
           } on OdooConnectionException {
             rethrow;
-          } catch (e) {
-            rethrow;
           }
         } else {
           throw OdooAuthException('Not authenticated');
@@ -103,8 +101,6 @@ class PropertiesService {
               'PropertiesService: offline, returning cached data (page $page)');
           return cached;
         }
-        rethrow;
-      } catch (e) {
         rethrow;
       }
     } else {
@@ -181,11 +177,16 @@ class PropertiesService {
 
   /// Lấy tất cả properties từ cache (dùng cho search/filter).
   Future<List<ScheduleProperty>> fetchAllFromCache() async {
+    if (kIsWeb) return _webCache.toList();
     return _loadFromCache();
   }
 
   /// Clear cache (dùng khi logout hoặc cần reset).
   Future<void> clearCache() async {
+    if (kIsWeb) {
+      _webCache = [];
+      return;
+    }
     await _isar.db.writeTxn(() async {
       await _isar.db.schedulePropertys.clear();
     });

@@ -56,6 +56,7 @@ class OrdersService {
     'color',
     'state_name',
     'todo',
+    'require_photo',
     // Recurring fields needed for conflict resolution
     'fsm_recurring_id',
     'is_skipped',
@@ -456,11 +457,16 @@ class OrdersService {
         ],
       );
       if (local != null) {
-        await _isar.db.writeTxn(() async {
-          local.isPendingSync = false;
-          local.isStagePendingSync = false;
-          await _isar.db.fsmOrders.put(local);
-        });
+        final current = await _isar.db.fsmOrders.getByOdooId(odooId);
+        if (current != null &&
+            current.isStagePendingSync &&
+            current.stageId == newStageId) {
+          await _isar.db.writeTxn(() async {
+            current.isPendingSync = false;
+            current.isStagePendingSync = false;
+            await _isar.db.fsmOrders.put(current);
+          });
+        }
       }
     } on OdooApiException catch (e) {
       logger.w('OrdersService.updateStage: offline, queued local update',
@@ -759,11 +765,16 @@ class OrdersService {
         }
 
         if (!isSkippedRejected) {
-          await _isar.db.writeTxn(() async {
-            order.isPendingSync = false;
-            order.isStagePendingSync = false;
-            await _isar.db.fsmOrders.put(order);
-          });
+          final current = await _isar.db.fsmOrders.getByOdooId(order.odooId);
+          if (current != null &&
+              current.isStagePendingSync &&
+              current.stageId == order.stageId) {
+            await _isar.db.writeTxn(() async {
+              current.isPendingSync = false;
+              current.isStagePendingSync = false;
+              await _isar.db.fsmOrders.put(current);
+            });
+          }
         } else {
           logger.w(
               'OrdersService.syncPending: is_skipped was rejected/unsupported by Odoo. Retaining isPendingSync=true for order ${order.odooId}');
@@ -821,6 +832,7 @@ class OrdersService {
             logger.i(
                 'Conflict Resolution: Local order ${localOnly.id} has progress. Copying real odooId: ${odooOrder.odooId}');
             localOnly.odooId = odooOrder.odooId;
+            localOnly.requirePhoto = odooOrder.requirePhoto;
             localOnly.isPendingSync = true;
             await isar.fsmOrders.put(localOnly);
 
@@ -892,6 +904,7 @@ class OrdersService {
           localOrder.routeSequence = serverOrder.routeSequence;
           localOrder.routeId = serverOrder.routeId;
           localOrder.routeState = serverOrder.routeState;
+          localOrder.requirePhoto = serverOrder.requirePhoto;
           localOrder.isPendingSync = true;
           localOrder.lastSyncAt = DateTime.now();
           await isar.fsmOrders.put(localOrder);
@@ -926,6 +939,7 @@ class OrdersService {
           localOrder.routeSequence = serverOrder.routeSequence;
           localOrder.routeId = serverOrder.routeId;
           localOrder.routeState = serverOrder.routeState;
+          localOrder.requirePhoto = serverOrder.requirePhoto;
           localOrder.lastSyncAt = DateTime.now();
           await isar.fsmOrders.put(localOrder);
 
