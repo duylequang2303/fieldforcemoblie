@@ -110,16 +110,17 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
           Divider(height: 12, color: colorScheme.outlineVariant),
 
           // Calendar Grid
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 7,
-              mainAxisSpacing: 4,
-              crossAxisSpacing: 4,
-            ),
-            itemCount: 42,
-            itemBuilder: (context, index) {
+          RepaintBoundary(
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                mainAxisSpacing: 4,
+                crossAxisSpacing: 4,
+              ),
+              itemCount: 42,
+              itemBuilder: (context, index) {
               final dayDate = days[index];
               final isSelected = dayDate.year == widget.selectedDate.year &&
                   dayDate.month == widget.selectedDate.month &&
@@ -208,6 +209,7 @@ class _RecurringCalendarState extends State<RecurringCalendar> {
                 ),
               );
             },
+          ),
           ),
         ],
       ),

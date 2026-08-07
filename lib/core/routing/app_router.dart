@@ -220,8 +220,8 @@ final GoRouter appRouter = GoRouter(
           return SchedulePropertyDetailPage(property: extra);
         }
         return SchedulePropertyDetailPage(
-          property: ScheduleProperty(
-            id: int.tryParse(id) ?? 0,
+          property: ScheduleProperty.create(
+            odooId: int.tryParse(id) ?? 0,
             address: 'Property $id',
             suburb: '',
             postcode: '',

@@ -30,6 +30,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Set<FsmOrderStage> _filterStages = {};
   Set<String> _filterPersons = {};
   Set<String> _filterPriorities = {};
+  int _pendingSyncCount = 0;
+  bool _isSyncing = false;
 
   // Dữ liệu thật — nạp từ OrdersService (Isar cache + Odoo), KHÔNG còn mock.
   List<FsmOrder> _orders = [];
@@ -38,6 +40,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   void initState() {
     super.initState();
     _loadInitial();
+  }
+
+  Future<void> _refreshPendingSyncCount() async {
+    final count = await OrdersService.instance.pendingSyncCount();
+    if (!mounted) return;
+    setState(() => _pendingSyncCount = count);
   }
 
   /// Offline-first: hiện cache Isar ngay, rồi pull Odoo nền.
@@ -55,6 +63,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     // Lần đầu chưa có cache → hiện spinner; đã có cache → fetch nền lặng lẽ.
     await _fetchFromOdoo(showSpinner: cached.isEmpty);
+    await _refreshPendingSyncCount();
   }
 
   /// Pull dữ liệu thật từ Odoo (fetchMyOrders tự lưu Isar).
@@ -72,48 +81,80 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     } finally {
       if (showSpinner && mounted) setState(() => _isLoading = false);
     }
+    await _refreshPendingSyncCount();
   }
 
       // Lọc orders theo ngày đã chọn và ẩn các đơn bị skip
-       List<FsmOrder> get _filteredOrders {
-        return _orders.where((order) {
-          if (order.isSkipped || order.isRecurringProcessed) return false;
-          if (order.scheduledDateStart == null) return false;
-          final orderDate = order.scheduledDateStart!;
-          final orderDay = DateTime.utc(orderDate.year, orderDate.month, orderDate.day);
-          if (_viewMode == 'Week') {
-            final startOfWeek = _selectedDate.subtract(
-                Duration(days: _selectedDate.weekday - 1));
-            final endOfWeek = startOfWeek.add(const Duration(days: 7));
-            final start = DateTime.utc(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-            final end = DateTime.utc(endOfWeek.year, endOfWeek.month, endOfWeek.day);
-            if (orderDay.isBefore(start) || !orderDay.isBefore(end)) {
-              return false;
-            }
-          } else {
-            final selectedDay = DateTime.utc(_selectedDate.year, _selectedDate.month, _selectedDate.day);
-            if (orderDay != selectedDay) return false;
-          }
-          if (_selectedStage != null && order.stage != _selectedStage) {
-            return false;
-          }
-          if (_selectedStage == null &&
-              _filterStages.isNotEmpty &&
-              !_filterStages.contains(order.stage)) {
-            return false;
-          }
-          if (_filterPersons.isNotEmpty &&
-              (order.personName == null ||
-                  !_filterPersons.contains(order.personName))) {
-            return false;
-          }
-          if (_filterPriorities.isNotEmpty &&
-              !_filterPriorities.contains(order.priority)) {
-            return false;
-          }
-          return true;
-        }).toList();
+  List<FsmOrder>? _cachedFilteredOrders;
+  List<FsmOrder>? _cachedOrdersRef;
+  DateTime? _cachedSelectedDate;
+  String? _cachedViewMode;
+  FsmOrderStage? _cachedSelectedStage;
+  Set<FsmOrderStage>? _cachedFilterStages;
+  Set<String>? _cachedFilterPersons;
+  Set<String>? _cachedFilterPriorities;
+
+  List<FsmOrder> get _filteredOrders {
+    if (_cachedFilteredOrders != null &&
+        _cachedOrdersRef == _orders &&
+        _cachedSelectedDate == _selectedDate &&
+        _cachedViewMode == _viewMode &&
+        _cachedSelectedStage == _selectedStage &&
+        _cachedFilterStages == _filterStages &&
+        _cachedFilterPersons == _filterPersons &&
+        _cachedFilterPriorities == _filterPriorities) {
+      return _cachedFilteredOrders!;
+    }
+
+    final result = _orders.where((order) {
+      if (order.isSkipped || order.isRecurringProcessed) return false;
+      if (order.scheduledDateStart == null) return false;
+      final orderDate = order.scheduledDateStart!;
+      final orderDay = DateTime.utc(orderDate.year, orderDate.month, orderDate.day);
+      if (_viewMode == 'Week') {
+        final startOfWeek = _selectedDate.subtract(
+            Duration(days: _selectedDate.weekday - 1));
+        final endOfWeek = startOfWeek.add(const Duration(days: 7));
+        final start = DateTime.utc(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+        final end = DateTime.utc(endOfWeek.year, endOfWeek.month, endOfWeek.day);
+        if (orderDay.isBefore(start) || !orderDay.isBefore(end)) {
+          return false;
+        }
+      } else {
+        final selectedDay = DateTime.utc(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+        if (orderDay != selectedDay) return false;
       }
+      if (_selectedStage != null && order.stage != _selectedStage) {
+        return false;
+      }
+      if (_selectedStage == null &&
+          _filterStages.isNotEmpty &&
+          !_filterStages.contains(order.stage)) {
+        return false;
+      }
+      if (_filterPersons.isNotEmpty &&
+          (order.personName == null ||
+              !_filterPersons.contains(order.personName))) {
+        return false;
+      }
+      if (_filterPriorities.isNotEmpty &&
+          !_filterPriorities.contains(order.priority)) {
+        return false;
+      }
+      return true;
+    }).toList();
+
+    _cachedOrdersRef = _orders;
+    _cachedSelectedDate = _selectedDate;
+    _cachedViewMode = _viewMode;
+    _cachedSelectedStage = _selectedStage;
+    _cachedFilterStages = _filterStages;
+    _cachedFilterPersons = _filterPersons;
+    _cachedFilterPriorities = _filterPriorities;
+    _cachedFilteredOrders = result;
+
+    return result;
+  }
 
   // Tính tổng giờ
   String _getSummaryText() {
@@ -132,6 +173,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   List<String> get _availablePersons {
     return _orders.map((o) => o.personName).whereType<String>().toSet().toList()
       ..sort();
+  }
+
+  int get _activeFilterCount {
+    int count = 0;
+    if (_selectedStage != null) count++;
+    count += _filterStages.length;
+    count += _filterPersons.length;
+    count += _filterPriorities.length;
+    return count;
   }
 
   Future<void> _openFilterSheet() async {
@@ -161,6 +211,27 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   Future<void> _onRefresh() async {
     await _fetchFromOdoo(showSpinner: true);
+  }
+
+  Future<void> _onSyncTap() async {
+    if (_isSyncing) return;
+    setState(() => _isSyncing = true);
+    try {
+      await OrdersService.instance.syncPending();
+      if (!mounted) return;
+      await _fetchFromOdoo(showSpinner: false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sync completed')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sync failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSyncing = false);
+    }
   }
 
   Widget _buildJobList() {
@@ -310,9 +381,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             onViewModeChanged: (mode) {
               setState(() => _viewMode = mode);
             },
+            pendingSyncCount: _pendingSyncCount,
+            onSyncTap: _isSyncing ? null : _onSyncTap,
           ),
           FilterChipsRow(
             selectedStage: _selectedStage,
+            activeFilterCount: _activeFilterCount,
             onStageSelected: (stage) {
               setState(() {
                 _selectedStage = stage;

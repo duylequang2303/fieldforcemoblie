@@ -73,16 +73,16 @@ const ExpenseSchema = CollectionSchema(
       name: r'orderOdooId',
       type: IsarType.long,
     ),
-    r'receiptImagePath': PropertySchema(
-      id: 11,
-      name: r'receiptImagePath',
-      type: IsarType.string,
-    ),
     r'receiptAttachmentId': PropertySchema(
-      id: 12,
+      id: 11,
       name: r'receiptAttachmentId',
       type: IsarType.long,
     ),
+    r'receiptImagePath': PropertySchema(
+      id: 12,
+      name: r'receiptImagePath',
+      type: IsarType.string,
+    )
   },
   estimateSize: _expenseEstimateSize,
   serialize: _expenseSerialize,
@@ -166,8 +166,8 @@ void _expenseSerialize(
   writer.writeString(offsets[8], object.note);
   writer.writeLong(offsets[9], object.odooId);
   writer.writeLong(offsets[10], object.orderOdooId);
-  writer.writeString(offsets[11], object.receiptImagePath);
-  writer.writeLong(offsets[12], object.receiptAttachmentId);
+  writer.writeLong(offsets[11], object.receiptAttachmentId);
+  writer.writeString(offsets[12], object.receiptImagePath);
 }
 
 Expense _expenseDeserialize(
@@ -190,8 +190,8 @@ Expense _expenseDeserialize(
   object.note = reader.readStringOrNull(offsets[8]);
   object.odooId = reader.readLongOrNull(offsets[9]);
   object.orderOdooId = reader.readLong(offsets[10]);
-  object.receiptImagePath = reader.readStringOrNull(offsets[11]);
-  object.receiptAttachmentId = reader.readLongOrNull(offsets[12]);
+  object.receiptAttachmentId = reader.readLongOrNull(offsets[11]);
+  object.receiptImagePath = reader.readStringOrNull(offsets[12]);
   return object;
 }
 
@@ -226,9 +226,9 @@ P _expenseDeserializeProp<P>(
     case 10:
       return (reader.readLong(offset)) as P;
     case 11:
-      return (reader.readStringOrNull(offset)) as P;
-    case 12:
       return (reader.readLongOrNull(offset)) as P;
+    case 12:
+      return (reader.readStringOrNull(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -1515,6 +1515,80 @@ extension ExpenseQueryFilter
   }
 
   QueryBuilder<Expense, Expense, QAfterFilterCondition>
+      receiptAttachmentIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'receiptAttachmentId',
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition>
+      receiptAttachmentIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'receiptAttachmentId',
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition>
+      receiptAttachmentIdEqualTo(int? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'receiptAttachmentId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition>
+      receiptAttachmentIdGreaterThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'receiptAttachmentId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition>
+      receiptAttachmentIdLessThan(
+    int? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'receiptAttachmentId',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition>
+      receiptAttachmentIdBetween(
+    int? lower,
+    int? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'receiptAttachmentId',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterFilterCondition>
       receiptImagePathIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1807,6 +1881,18 @@ extension ExpenseQuerySortBy on QueryBuilder<Expense, Expense, QSortBy> {
     });
   }
 
+  QueryBuilder<Expense, Expense, QAfterSortBy> sortByReceiptAttachmentId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receiptAttachmentId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterSortBy> sortByReceiptAttachmentIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receiptAttachmentId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Expense, Expense, QAfterSortBy> sortByReceiptImagePath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'receiptImagePath', Sort.asc);
@@ -1966,6 +2052,18 @@ extension ExpenseQuerySortThenBy
     });
   }
 
+  QueryBuilder<Expense, Expense, QAfterSortBy> thenByReceiptAttachmentId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receiptAttachmentId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Expense, Expense, QAfterSortBy> thenByReceiptAttachmentIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'receiptAttachmentId', Sort.desc);
+    });
+  }
+
   QueryBuilder<Expense, Expense, QAfterSortBy> thenByReceiptImagePath() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'receiptImagePath', Sort.asc);
@@ -2052,6 +2150,12 @@ extension ExpenseQueryWhereDistinct
     });
   }
 
+  QueryBuilder<Expense, Expense, QDistinct> distinctByReceiptAttachmentId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'receiptAttachmentId');
+    });
+  }
+
   QueryBuilder<Expense, Expense, QDistinct> distinctByReceiptImagePath(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -2132,6 +2236,12 @@ extension ExpenseQueryProperty
   QueryBuilder<Expense, int, QQueryOperations> orderOdooIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'orderOdooId');
+    });
+  }
+
+  QueryBuilder<Expense, int?, QQueryOperations> receiptAttachmentIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'receiptAttachmentId');
     });
   }
 

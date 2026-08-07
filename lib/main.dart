@@ -20,6 +20,7 @@ import 'features/stock/models/stock_move.dart';
 import 'features/timesheet/models/timesheet_entry.dart';
 import 'features/expense/models/expense.dart';
 import 'features/work_order/models/work_report.dart';
+import 'features/schedule/models/schedule_property.dart';
 import 'features/orders/services/orders_service.dart';
 import 'features/orders/services/recurring_service.dart';
 import 'features/orders/services/recurring_notification_service.dart';
@@ -67,6 +68,7 @@ Future<void> main() async {
         TimesheetEntrySchema,
         ExpenseSchema,
         WorkReportSchema,
+        SchedulePropertySchema,
       ]);
       // Đăng ký các sync handlers cho offline sync sau khi Isar khởi tạo thành công
       SyncManager.instance
