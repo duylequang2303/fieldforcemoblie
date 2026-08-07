@@ -29,7 +29,7 @@
 | SCH-UI-002 | Hardcoded mock data trong production code | `schedule_page.dart` lines 17-51, 106-151 | 🔴 Critical | ✅ Fixed | Đã xóa file mock implementation |
 | SCH-UI-003 | Inconsistent design systems (AppColors vs SfTokens) | `schedule_page.dart` vs `schedule_screen.dart` | 🟠 High | ✅ Fixed | Đã xóa old `SchedulePage`, toàn bộ UI dùng `SfTokens` + Material3 |
 | SCH-UI-004 | Missing empty state actions cho ScheduleScreen | `schedule_screen.dart` lines 166-171 | 🟠 High | ✅ Fixed | Empty state đã có message phù hợp, "Add Visit" button wired to OrdersListPage |
-| SCH-UI-005 | Filter chips không show active filter count | `filter_chips_row.dart` | 🟡 Medium | ⏸️ Skipped | Minor UI enhancement, không ảnh hưởng functionality |
+| SCH-UI-005 | Filter chips không show active filter count | `filter_chips_row.dart` | 🟡 Medium | ✅ Fixed | "All" chip hiển thị số lượng filter đang active, ví dụ "All (3)" |
 | SCH-UI-006 | Properties tab dùng hardcoded mock data | `schedule_page.dart` lines 106-151 | 🟠 High | ✅ Fixed | Đã xóa old page, Properties tab dùng `PropertiesService` thật qua AppShell |
 | SCH-UI-007 | ScheduleCard duration badge show "2 hrs" mock fallback | `schedule_card.dart` lines 21-25 | 🟡 Medium | ✅ Fixed | Đổi thành `'-- hrs'` khi data null |
 | SCH-UI-008 | No pull-to-refresh on old SchedulePage | `schedule_page.dart` | 🟡 Medium | ✅ Fixed | Đã xóa old page, `ScheduleScreen` có `RefreshIndicator` |
@@ -130,6 +130,9 @@
 ### Phase 3c: Sync UI
 29. ✅ **SCH-SYNC-002**: Thêm nút "Sync Now" với badge đếm pending orders trong `ScheduleTopBar`
 
+### Phase 3d: UX Polish
+30. ✅ **SCH-UI-005**: "All" filter chip hiển thị số lượng filter đang active, ví dụ "All (3)"
+
 ---
 
 ## ⏸️ Còn Lại (Future Work)
@@ -143,7 +146,6 @@
 - SCH-LOGIC-008: Real pricing instead of $50/hr mock
 
 ### Low Priority / Nice to Have
-- SCH-UI-005: Filter count badges
 - SCH-UI-009: Recurring visits UI trong detail
 - SCH-NAV-005: Deep link testing
 - SCH-NAV-007: Filter state persistence
@@ -171,11 +173,11 @@
 
 | Category | Total | Fixed | Remaining |
 |----------|-------|-------|-----------|
-| UI/UX | 10 | 10 | 0 |
+| UI/UX | 10 | 11 | 0 |
 | Logic/Functional | 14 | 14 | 0 |
 | Performance | 5 | 3 | 2 |
 | Offline/Sync | 5 | 2 | 3 |
 | Navigation/State | 8 | 8 | 0 |
-| **Total** | **42** | **37** | **5** |
+| **Total** | **42** | **38** | **5** |
 
-**Tỷ lệ hoàn thành**: 37/42 = **88%**
+**Tỷ lệ hoàn thành**: 38/42 = **90%**

@@ -175,6 +175,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ..sort();
   }
 
+  int get _activeFilterCount {
+    int count = 0;
+    if (_selectedStage != null) count++;
+    count += _filterStages.length;
+    count += _filterPersons.length;
+    count += _filterPriorities.length;
+    return count;
+  }
+
   Future<void> _openFilterSheet() async {
     final result = await showFilterBottomSheet(
       context: context,
@@ -377,6 +386,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
           FilterChipsRow(
             selectedStage: _selectedStage,
+            activeFilterCount: _activeFilterCount,
             onStageSelected: (stage) {
               setState(() {
                 _selectedStage = stage;
