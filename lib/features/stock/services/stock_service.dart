@@ -154,6 +154,13 @@ class StockService {
       await _isar.db.writeTxn(() async {
         await _isar.db.stockMoves.put(move!);
       });
+    } else {
+      // Cộng thêm qty vào pending move đã có (quét lại cùng sản phẩm)
+      await _isar.db.writeTxn(() async {
+        move!.doneQty += qty;
+        move.demandQty += qty;
+        await _isar.db.stockMoves.put(move);
+      });
     }
 
     final order = await _isar.db.fsmOrders.getByOdooId(orderOdooId);
@@ -182,12 +189,11 @@ class StockService {
   Future<void> syncPending() async {
     final currentUserId = _odoo.currentUserId;
     if (currentUserId == null) return;
-    final pending =
-        await _isar.db.stockMoves
-            .filter()
-            .isPendingSyncEqualTo(true)
-            .localOwnerIdEqualTo(currentUserId)
-            .findAll();
+    final pending = await _isar.db.stockMoves
+        .filter()
+        .isPendingSyncEqualTo(true)
+        .localOwnerIdEqualTo(currentUserId)
+        .findAll();
 
     for (final move in pending) {
       final order = await _isar.db.fsmOrders.getByOdooId(move.orderOdooId);

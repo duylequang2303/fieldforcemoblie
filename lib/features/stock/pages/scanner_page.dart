@@ -47,7 +47,10 @@ class _ScannerPageState extends State<ScannerPage> {
             child: Text(
               'Mã đơn hàng dịch vụ không hợp lệ. Không thể thực hiện quét vật tư.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: colorScheme.error, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                  fontSize: 16,
+                  color: colorScheme.error,
+                  fontWeight: FontWeight.w600),
             ),
           ),
         ),
@@ -71,9 +74,13 @@ class _ScannerPageState extends State<ScannerPage> {
                   _torchOn ? Icons.flash_on : Icons.flash_off,
                   color: _torchOn ? AppColors.warning : Colors.white,
                 ),
-                onPressed: () {
-                  _controller.toggleTorch();
-                  setState(() => _torchOn = !_torchOn);
+                onPressed: () async {
+                  try {
+                    await _controller.toggleTorch();
+                    setState(() => _torchOn = !_torchOn);
+                  } catch (e) {
+                    logger.w('ScannerPage: toggleTorch failed', error: e);
+                  }
                 },
               ),
             ],
@@ -128,13 +135,15 @@ class _ScannerPageState extends State<ScannerPage> {
                           ? _ProductFoundPanel(
                               product: provider.scannedProduct!,
                               onRecord: (qty) async {
-                                // Lấy orderId từ route params
-                                await provider.recordOut(
-                                  orderOdooId: widget.orderId,
-                                  qty: qty,
-                                );
-                                if (context.mounted) {
-                                  setState(() => _processingBarcode = false);
+                                try {
+                                  await provider.recordOut(
+                                    orderOdooId: widget.orderId,
+                                    qty: qty,
+                                  );
+                                } finally {
+                                  if (context.mounted) {
+                                    setState(() => _processingBarcode = false);
+                                  }
                                 }
                               },
                               onCancel: () {
@@ -335,7 +344,14 @@ class _ProductFoundPanelState extends State<_ProductFoundPanel> {
               Expanded(
                 child: FilledButton.icon(
                   onPressed: () {
-                    final qty = double.tryParse(_qtyController.text) ?? 1.0;
+                    final qty = double.tryParse(_qtyController.text) ?? 0.0;
+                    if (qty <= 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Số lượng phải lớn hơn 0')),
+                      );
+                      return;
+                    }
                     widget.onRecord(qty);
                   },
                   icon: const Icon(Icons.add_shopping_cart, size: 16),

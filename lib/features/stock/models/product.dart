@@ -35,6 +35,6 @@ class Product {
   static String? _strOrNull(dynamic v) =>
       (v == null || v == false) ? null : v as String;
 
-  static String _nameFromMany(dynamic v) =>
-      (v == null || v == false) ? '' : (v as List)[1] as String;
+  static String? _nameFromMany(dynamic v) =>
+      (v == null || v == false) ? null : (v as List)[1] as String?;
 }
