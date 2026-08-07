@@ -147,7 +147,7 @@ class WorkOrderService {
 
       // 2. Submit chữ ký bằng Wizard chuẩn của Odoo nếu chưa sync
       if (!report.isSignatureSynced &&
-          report.customerSignaturePath != null &&
+          report.customerSignaturePath?.trim().isNotEmpty == true &&
           report.customerName != null) {
         final sigFile = File(report.customerSignaturePath!);
         if (sigFile.existsSync()) {
@@ -211,7 +211,7 @@ class WorkOrderService {
       final allPhotosSynced = report.photoPaths
           .every((path) => report.syncedPhotoPaths.contains(path));
       final needsSignature =
-          report.customerSignaturePath != null && report.customerName != null;
+          report.customerSignaturePath?.trim().isNotEmpty == true && report.customerName != null;
       final signatureOk = !needsSignature || report.isSignatureSynced;
 
       if (report.isResolutionSynced && signatureOk && allPhotosSynced) {

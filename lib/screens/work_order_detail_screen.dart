@@ -339,11 +339,20 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
       report = await WorkOrderService.instance
           .uploadSinglePhoto(report, widget.order.odooId, path);
 
-      if (kDebugMode) {
-        debugPrint("📤 UPLOAD OK: ${path.split('/').last}");
+      final uploaded = report.syncedPhotoPaths.contains(path);
+      if (uploaded) {
+        if (kDebugMode) {
+          debugPrint("📤 UPLOAD OK: ${path.split('/').last}");
+        }
+        if (mounted) _showSnackBar('Photo uploaded.');
+      } else {
+        if (kDebugMode) {
+          debugPrint("📤 UPLOAD FAILED: ${path.split('/').last}");
+        }
+        if (mounted) _showSnackBar('Photo upload failed.');
+        report.photoPaths = [...report.photoPaths]..remove(path);
+        await WorkOrderService.instance.saveReport(report);
       }
-
-      if (mounted) _showSnackBar('Photo uploaded.');
     } on OdooApiException {
       if (kDebugMode) {
         debugPrint("📤 UPLOAD OFFLINE: ${path.split('/').last}");
@@ -454,7 +463,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
           .getOrCreateReport(widget.order.odooId);
 
       // X: đã ký rồi (local hoặc Odoo) thì không bắt ký lại, không chạy lại wizard.
-      final alreadySigned = report.customerSignaturePath != null;
+      final alreadySigned =
+          report.customerSignaturePath?.trim().isNotEmpty == true;
 
       if (widget.order.requireSignature && !alreadySigned) {
         if (_signatureController.isEmpty) {

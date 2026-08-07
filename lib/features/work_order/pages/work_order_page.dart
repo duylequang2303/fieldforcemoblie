@@ -412,10 +412,10 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
           _ReviewRow(
             icon: Icons.draw_outlined,
             label: 'Chữ ký khách hàng',
-            value: report.customerSignaturePath != null
+            value: report.customerSignaturePath?.trim().isNotEmpty == true
                 ? 'Đã ký: ${report.customerName ?? 'Khách hàng'}'
                 : 'Chưa có chữ ký',
-            isOk: report.customerSignaturePath != null,
+            isOk: report.customerSignaturePath?.trim().isNotEmpty == true,
           ),
         ],
       ),
@@ -526,7 +526,7 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
         return true;
       case 1:
         if (order?.requireSignature == true) {
-          return provider.report?.customerSignaturePath != null;
+          return provider.report?.customerSignaturePath?.trim().isNotEmpty == true;
         }
         return true;
       default:

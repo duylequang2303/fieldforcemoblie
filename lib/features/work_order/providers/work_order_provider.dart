@@ -23,7 +23,7 @@ class WorkOrderProvider extends ChangeNotifier with SessionGuard {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isSubmitting => _isSubmitting;
-  bool get hasSignature => _report?.customerSignaturePath != null;
+  bool get hasSignature => _report?.customerSignaturePath?.trim().isNotEmpty == true;
   FsmOrder? get order => _order;
 
   bool get isComplete {
@@ -38,7 +38,7 @@ class WorkOrderProvider extends ChangeNotifier with SessionGuard {
 
     // Check signature requirements
     if (_order?.requireSignature == true) {
-      return _report!.customerSignaturePath != null;
+      return _report!.customerSignaturePath?.trim().isNotEmpty == true;
     }
 
     return true;

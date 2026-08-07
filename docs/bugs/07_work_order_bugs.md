@@ -74,7 +74,7 @@
 | WO-LOGIC-001 | `_uploadPhoto` không còn xóa ảnh khỏi `photoPaths` sau upload; `uploadSinglePhoto` trả về report đã update synced paths | `work_order_detail_screen.dart`, `work_order_service.dart` |
 | WO-SYNC-001 | `uploadSinglePhoto` giờ nhận `WorkReport`, persist `syncedAttachmentEntries` (`path|attId`) và `syncedPhotoPaths` | `work_order_service.dart` |
 | WO-LOGIC-003 | `submitReport` validate `workDone.trim().isNotEmpty` trước khi gửi Odoo | `work_order_service.dart` |
-| WO-LOGIC-002 | `alreadySigned` kiểm tra cả `customerSignaturePath != null && signedAt != null` | `work_order_detail_screen.dart` |
+| WO-LOGIC-002 | `alreadySigned` kiểm tra `customerSignaturePath != null` (không yêu cầu `signedAt`) | `work_order_detail_screen.dart` |
 
 ### Phase 2 - High Impact
 | ID | Fix | File |
@@ -107,9 +107,9 @@
 - **Critical (P0)**: 4 → 3 Closed, 1 Open
 - **High (P1)**: 4 → 3 Closed, 1 Partial
 - **Medium (P2)**: 8 → 5 Closed, 3 Open
-- **Low (P3)**: 2 → 2 Closed, 0 Open
+- **Low (P3)**: 2 → 1 Closed, 1 Open
 
-**Closed/Fixed**: 13 | **Open/Partial**: 5
+**Closed/Fixed**: 15 | **Open/Partial**: 7
 
 ## 🎯 Kế hoạch Fix (Theo thứ tự ưu tiên)
 
@@ -141,3 +141,6 @@
 19. **P3 - WO-SYNC-004**: Add conflict detection for concurrent offline edits (2h)
 20. **P3 - WO-FORM-002**: Unify signature validation logic (1h)
 21. **P3 - WO-FORM-004**: Validate order stage before complete (30m)
+22. **P3 - WO-PERF-003**: Verify `SafeImageFile` cacheWidth implementation in detail screen (15m)
+
+> **Note**: The plan uses implementation priority (P0–P3), which may differ from bug severity (Critical/High/Medium/Low) based on technical dependencies and fix scope.

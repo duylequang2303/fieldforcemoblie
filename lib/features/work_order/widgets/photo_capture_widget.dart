@@ -123,8 +123,15 @@ class PhotoCaptureWidget extends StatelessWidget {
           continue;
         }
         validImages.add(img);
-      } catch (_) {
-        continue;
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Không thể đọc ảnh ${img.path.split('/').last}: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
       }
     }
 
