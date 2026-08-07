@@ -53,19 +53,28 @@ class _OrdersListPageState extends State<OrdersListPage> {
                               provider.fetchOrders();
                             },
                           )
-                        : filtered.isEmpty
-                            ? _buildEmptyState()
-                            : RefreshIndicator(
-                                onRefresh: provider.fetchOrders,
-                                color: AppColors.primary,
-                                child: ListView.builder(
-                                  padding:
-                                      const EdgeInsets.only(top: 8, bottom: 80),
-                                  itemCount: filtered.length,
-                                  itemBuilder: (context, i) =>
-                                      OrderCard(order: filtered[i]),
-                                ),
-                              ),
+                        : RefreshIndicator(
+                            onRefresh: provider.fetchOrders,
+                            color: AppColors.primary,
+                            child: filtered.isEmpty
+                                ? SingleChildScrollView(
+                                    physics:
+                                        const AlwaysScrollableScrollPhysics(),
+                                    child: SizedBox(
+                                      height:
+                                          MediaQuery.of(context).size.height *
+                                              0.6,
+                                      child: _buildEmptyState(),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    padding: const EdgeInsets.only(
+                                        top: 8, bottom: 80),
+                                    itemCount: filtered.length,
+                                    itemBuilder: (context, i) =>
+                                        OrderCard(order: filtered[i]),
+                                  ),
+                          ),
               ),
               // Offline banner nổi trên cùng
               if (provider.isOffline) const OfflineBanner(),

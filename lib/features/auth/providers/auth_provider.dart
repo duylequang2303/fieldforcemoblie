@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../../../core/auth/auth_service.dart';
+import '../../../core/auth/biometric_service.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/api/odoo_session_manager.dart';
 import '../../../features/orders/providers/orders_provider.dart';
@@ -53,7 +54,7 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
     _status = (restored && _sessionManager.isAuthenticated)
         ? AuthStatus.authenticated
         : AuthStatus.unauthenticated;
-    
+
     notifyListeners(); // Gom notify để tránh flash UI khi khởi tạo (A29)
   }
 
@@ -105,7 +106,8 @@ class AuthProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   Future<void> loginWithBiometric() async {
     _status = AuthStatus.loading;
-    _errorMessage = null; // Clear error cũ trước khi thực hiện biometric login (A14)
+    _errorMessage =
+        null; // Clear error cũ trước khi thực hiện biometric login (A14)
     notifyListeners();
 
     try {

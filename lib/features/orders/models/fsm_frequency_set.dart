@@ -64,11 +64,14 @@ class FsmFrequencySet {
   // Helper parse
   static FrequencyIntervalType _parseIntervalType(dynamic value) {
     if (value == null || value == false) return FrequencyIntervalType.weekly;
-    final str = value.toString().toLowerCase();
-    return FrequencyIntervalType.values.firstWhere(
-      (e) => e.name == str,
-      orElse: () => FrequencyIntervalType.weekly,
-    );
+    final str = value.toString().toLowerCase().trim();
+    return switch (str) {
+      'days' || 'day' || 'daily' => FrequencyIntervalType.daily,
+      'weeks' || 'week' || 'weekly' => FrequencyIntervalType.weekly,
+      'months' || 'month' || 'monthly' => FrequencyIntervalType.monthly,
+      'years' || 'year' || 'yearly' => FrequencyIntervalType.yearly,
+      _ => FrequencyIntervalType.weekly,
+    };
   }
 
   static String? _strOrNull(dynamic value) {

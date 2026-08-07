@@ -85,9 +85,10 @@ Future<void> main() async {
         try {
           await RecurringService.instance.fetchRecurringRules();
           await RecurringService.instance.generateOfflineInstances();
-          // Reschedule notifications for upcoming recurring orders (skip on Linux)
-          if (!Platform.isLinux) {
-            await RecurringNotificationService.instance.rescheduleAllRecurringReminders();
+          // Reschedule notifications for upcoming recurring orders (skip on Web and Linux)
+          if (!kIsWeb && !Platform.isLinux) {
+            await RecurringNotificationService.instance
+                .rescheduleAllRecurringReminders();
           }
         } on OdooApiException catch (e) {
           logger.e('Recurring sync handler failed: Odoo API Error', error: e);
@@ -97,11 +98,12 @@ Future<void> main() async {
         }
       });
 
-      // Khởi tạo recurring notification service (skip on Linux - zonedSchedule not supported)
-      if (!Platform.isLinux) {
+      // Khởi tạo recurring notification service (skip on Web and Linux - zonedSchedule not supported)
+      if (!kIsWeb && !Platform.isLinux) {
         await RecurringNotificationService.instance.init();
         // Schedule recurring reminders even on offline startup
-        await RecurringNotificationService.instance.rescheduleAllRecurringReminders();
+        await RecurringNotificationService.instance
+            .rescheduleAllRecurringReminders();
       }
 
       // Bắt đầu lắng nghe trạng thái mạng để tự động sync
