@@ -4,6 +4,14 @@ import '../../../core/theme/app_colors.dart';
 import '../models/expense.dart';
 import 'receipt_image_picker.dart';
 
+/// Parse Vietnamese-formatted amount string.
+/// Handles thousand separators (space, dot, comma) for integer VND amounts.
+double? parseAmount(String? text) {
+  if (text == null || text.trim().isEmpty) return null;
+  final cleaned = text.replaceAll(RegExp(r'[.,\s]'), '');
+  return double.tryParse(cleaned);
+}
+
 /// Form nhập thông tin một khoản chi phí.
 class ExpenseForm extends StatefulWidget {
   const ExpenseForm({
@@ -85,7 +93,7 @@ class _ExpenseFormState extends State<ExpenseForm> {
               suffixText: 'VND',
             ),
             validator: (v) {
-              final n = double.tryParse(v?.replaceAll(',', '') ?? '');
+              final n = parseAmount(v);
               if (n == null || n <= 0) return 'Nhập số tiền hợp lệ';
               return null;
             },
@@ -161,7 +169,7 @@ class _ExpenseFormState extends State<ExpenseForm> {
     final picked = await showDatePicker(
       context: context,
       initialDate: _date,
-      firstDate: DateTime.now().subtract(const Duration(days: 30)),
+      firstDate: DateTime(2020),
       lastDate: DateTime.now(),
     );
     if (picked != null) setState(() => _date = picked);
@@ -171,10 +179,16 @@ class _ExpenseFormState extends State<ExpenseForm> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
     try {
-      final rawAmount = _amountController.text.replaceAll(',', '');
+      final amount = parseAmount(_amountController.text);
+      if (amount == null || amount <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Số tiền không hợp lệ')),
+        );
+        return;
+      }
       await widget.onSubmit(
         name: _nameController.text.trim(),
-        amount: double.parse(rawAmount),
+        amount: amount,
         date: _date,
         category: _category,
         receiptImagePath: _receiptPath,
@@ -184,6 +198,7 @@ class _ExpenseFormState extends State<ExpenseForm> {
       _amountController.clear();
       _noteController.clear();
       setState(() {
+        _date = DateTime.now();
         _receiptPath = null;
         _category = ExpenseCategory.other;
       });
