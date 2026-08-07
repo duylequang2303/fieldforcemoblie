@@ -20,6 +20,8 @@ class ScheduleTopBar extends StatefulWidget {
   final VoidCallback onCalendarTap;
   final VoidCallback onFilterTap;
   final ValueChanged<String> onViewModeChanged;
+  final int pendingSyncCount;
+  final VoidCallback? onSyncTap;
 
   const ScheduleTopBar({
     super.key,
@@ -30,6 +32,8 @@ class ScheduleTopBar extends StatefulWidget {
     required this.onCalendarTap,
     required this.onFilterTap,
     required this.onViewModeChanged,
+    this.pendingSyncCount = 0,
+    this.onSyncTap,
   });
 
   @override
@@ -146,6 +150,13 @@ class _ScheduleTopBarState extends State<ScheduleTopBar> {
                     color: SfTokens.primaryLight,
                     onTap: widget.onFilterTap,
                   ),
+                  if (widget.pendingSyncCount > 0 && widget.onSyncTap != null) ...[
+                    const SizedBox(width: SfTokens.spacingSm),
+                    _SyncBadgeButton(
+                      count: widget.pendingSyncCount,
+                      onTap: widget.onSyncTap!,
+                    ),
+                  ],
                   const SizedBox(width: SfTokens.spacingSm),
 
                   // "Week ▾" toggle
@@ -336,14 +347,56 @@ class _WeekToggle extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(width: SfTokens.spacingXxs),
-            const Icon(
-              Icons.expand_more,
-              color: SfTokens.surface,
-              size: SfTokens.iconSm,
+             const SizedBox(width: SfTokens.spacingXxs),
+             const Icon(
+               Icons.expand_more,
+               color: SfTokens.surface,
+               size: SfTokens.iconSm,
+             ),
+           ],
+         ),
+       ),
+     );
+   }
+}
+
+/// Sync icon với badge đếm số pending orders.
+class _SyncBadgeButton extends StatelessWidget {
+  final int count;
+  final VoidCallback onTap;
+
+  const _SyncBadgeButton({required this.count, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(SfTokens.radiusFull),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Icon(Icons.sync, color: Theme.of(context).colorScheme.onPrimary, size: SfTokens.iconMd),
+          if (count > 0)
+            Positioned(
+              right: -6,
+              top: -6,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.error,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onError,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

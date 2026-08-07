@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:go_router/go_router.dart';
 import '../core/api/api_exception.dart';
 import '../core/utils/logger.dart';
 import '../widgets/in_app_camera_screen.dart';
@@ -22,6 +23,7 @@ import '../features/orders/services/recurring_service.dart';
 import '../features/stock/services/stock_service.dart';
 import '../features/stock/models/product.dart';
 import '../features/work_order/services/work_order_service.dart';
+import '../core/routing/route_names.dart';
 import 'package:fieldforce_mobile/shared/widgets/safe_image_file.dart';
 
 class _MaterialResult {
@@ -593,6 +595,13 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
     );
   }
 
+  void _onTimesheetTap() {
+    if (_isClosed) return;
+    context.push(
+      RouteNames.timesheet.replaceFirst(':orderId', '${widget.order.odooId}'),
+    );
+  }
+
   String _formatDate(DateTime? date) {
     if (date == null) return 'Date not specified';
     return '${date.day}/${date.month}/${date.year}';
@@ -763,6 +772,36 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                       ),
                       child: const Text('Mark complete',
                           style: TextStyle(fontWeight: FontWeight.w600)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton(
+                      key: const Key('btn_timesheet'),
+                      onPressed: _isClosed ? null : _onTimesheetTap,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(color: theme.dividerColor),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.access_time_outlined,
+                              size: 18,
+                              color: _isClosed
+                                  ? theme.colorScheme.onSurface.withOpacity(0.4)
+                                  : theme.colorScheme.primary),
+                          const SizedBox(width: 6),
+                          Text('Ghi nhận giờ công',
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: _isClosed
+                                      ? theme.colorScheme.onSurface.withOpacity(0.4)
+                                      : theme.colorScheme.onSurface)),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),

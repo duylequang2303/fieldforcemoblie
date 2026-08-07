@@ -9,11 +9,13 @@ import '../ui/theme/sf_tokens.dart';
 class FilterChipsRow extends StatelessWidget {
   final FsmOrderStage? selectedStage;
   final ValueChanged<FsmOrderStage?> onStageSelected;
+  final int activeFilterCount;
 
   const FilterChipsRow({
     super.key,
     required this.selectedStage,
     required this.onStageSelected,
+    this.activeFilterCount = 0,
   });
 
   /// Label hiển thị cho từng stage.
@@ -39,7 +41,7 @@ class FilterChipsRow extends StatelessWidget {
           children: [
             // ── "All" chip ──
             _Chip(
-              label: 'All',
+              label: 'All${activeFilterCount > 0 ? ' ($activeFilterCount)' : ''}',
               isSelected: selectedStage == null,
               onTap: () => onStageSelected(null),
             ),
