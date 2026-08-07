@@ -57,7 +57,7 @@
 ### Performance/Memory Bugs
 | ID | Mô tả bug | File/Location | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|---------------|--------|------------|---------|
-| SCH-PERF-001 | ScheduleScreen reloads all orders on mỗi filter change | `schedule_screen.dart` lines 77-104 | 🟡 Medium | ⏸️ Skipped | `_filteredOrders` là getter, rebuild khi `setState` gọi. Cần memoization sau |
+| SCH-PERF-001 | ScheduleScreen reloads all orders on mỗi filter change | `schedule_screen.dart` lines 77-104 | 🟡 Medium | ✅ Fixed | `_filteredOrders` giờ memoized, chỉ recompute khi inputs thay đổi |
 | SCH-PERF-002 | RecurringCalendar rebuilds entire grid | `recurring_calendar.dart` lines 122-210 | 🟡 Medium | ⏸️ Skipped | Cần `RepaintBoundary` optimization sau |
 | SCH-PERF-003 | Properties list load 100 items không pagination | `properties_service.dart` line 35 | 🟡 Medium | ⏸️ Skipped | Limit 100 là acceptable cho hiện tại |
 | SCH-PERF-004 | Multiple Isar queries trong RecurringService | `recurring_service.dart` lines 167-263 | 🟠 High | ⏸️ Skipped | N+1 query pattern - cần batch optimization |
@@ -123,6 +123,9 @@
 26. ✅ **SCH-LOGIC-014**: Date filtering UTC-safe với `DateTime.utc(...)`
 27. ✅ **SCH-NAV-006**: Xóa 2 pages disconnected, không còn standalone
 
+### Phase 3b: Performance
+28. ✅ **SCH-PERF-001**: Memoize `_filteredOrders` — chỉ recompute khi filter inputs thay đổi
+
 ---
 
 ## ⏸️ Còn Lại (Future Work)
@@ -133,7 +136,6 @@
 - SCH-SYNC-004: Conflict resolution enhancement
 
 ### Medium Priority
-- SCH-PERF-001: Memoize `_filteredOrders`
 - SCH-PERF-004: Batch Isar queries trong RecurringService
 - SCH-UI-010: Materials/Timesheet integration với real data
 - SCH-LOGIC-008: Real pricing instead of $50/hr mock
@@ -169,9 +171,9 @@
 |----------|-------|-------|-----------|
 | UI/UX | 10 | 10 | 0 |
 | Logic/Functional | 14 | 14 | 0 |
-| Performance | 5 | 1 | 4 |
+| Performance | 5 | 2 | 3 |
 | Offline/Sync | 5 | 1 | 4 |
 | Navigation/State | 8 | 8 | 0 |
-| **Total** | **42** | **34** | **8** |
+| **Total** | **42** | **35** | **7** |
 
-**Tỷ lệ hoàn thành**: 34/42 = **81%**
+**Tỷ lệ hoàn thành**: 35/42 = **83%**

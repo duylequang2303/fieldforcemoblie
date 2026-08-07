@@ -75,45 +75,76 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
       // Lọc orders theo ngày đã chọn và ẩn các đơn bị skip
-       List<FsmOrder> get _filteredOrders {
-        return _orders.where((order) {
-          if (order.isSkipped || order.isRecurringProcessed) return false;
-          if (order.scheduledDateStart == null) return false;
-          final orderDate = order.scheduledDateStart!;
-          final orderDay = DateTime.utc(orderDate.year, orderDate.month, orderDate.day);
-          if (_viewMode == 'Week') {
-            final startOfWeek = _selectedDate.subtract(
-                Duration(days: _selectedDate.weekday - 1));
-            final endOfWeek = startOfWeek.add(const Duration(days: 7));
-            final start = DateTime.utc(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-            final end = DateTime.utc(endOfWeek.year, endOfWeek.month, endOfWeek.day);
-            if (orderDay.isBefore(start) || !orderDay.isBefore(end)) {
-              return false;
-            }
-          } else {
-            final selectedDay = DateTime.utc(_selectedDate.year, _selectedDate.month, _selectedDate.day);
-            if (orderDay != selectedDay) return false;
-          }
-          if (_selectedStage != null && order.stage != _selectedStage) {
-            return false;
-          }
-          if (_selectedStage == null &&
-              _filterStages.isNotEmpty &&
-              !_filterStages.contains(order.stage)) {
-            return false;
-          }
-          if (_filterPersons.isNotEmpty &&
-              (order.personName == null ||
-                  !_filterPersons.contains(order.personName))) {
-            return false;
-          }
-          if (_filterPriorities.isNotEmpty &&
-              !_filterPriorities.contains(order.priority)) {
-            return false;
-          }
-          return true;
-        }).toList();
+  List<FsmOrder>? _cachedFilteredOrders;
+  List<FsmOrder>? _cachedOrdersRef;
+  DateTime? _cachedSelectedDate;
+  String? _cachedViewMode;
+  FsmOrderStage? _cachedSelectedStage;
+  Set<FsmOrderStage>? _cachedFilterStages;
+  Set<String>? _cachedFilterPersons;
+  Set<String>? _cachedFilterPriorities;
+
+  List<FsmOrder> get _filteredOrders {
+    if (_cachedFilteredOrders != null &&
+        _cachedOrdersRef == _orders &&
+        _cachedSelectedDate == _selectedDate &&
+        _cachedViewMode == _viewMode &&
+        _cachedSelectedStage == _selectedStage &&
+        _cachedFilterStages == _filterStages &&
+        _cachedFilterPersons == _filterPersons &&
+        _cachedFilterPriorities == _filterPriorities) {
+      return _cachedFilteredOrders!;
+    }
+
+    final result = _orders.where((order) {
+      if (order.isSkipped || order.isRecurringProcessed) return false;
+      if (order.scheduledDateStart == null) return false;
+      final orderDate = order.scheduledDateStart!;
+      final orderDay = DateTime.utc(orderDate.year, orderDate.month, orderDate.day);
+      if (_viewMode == 'Week') {
+        final startOfWeek = _selectedDate.subtract(
+            Duration(days: _selectedDate.weekday - 1));
+        final endOfWeek = startOfWeek.add(const Duration(days: 7));
+        final start = DateTime.utc(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+        final end = DateTime.utc(endOfWeek.year, endOfWeek.month, endOfWeek.day);
+        if (orderDay.isBefore(start) || !orderDay.isBefore(end)) {
+          return false;
+        }
+      } else {
+        final selectedDay = DateTime.utc(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+        if (orderDay != selectedDay) return false;
       }
+      if (_selectedStage != null && order.stage != _selectedStage) {
+        return false;
+      }
+      if (_selectedStage == null &&
+          _filterStages.isNotEmpty &&
+          !_filterStages.contains(order.stage)) {
+        return false;
+      }
+      if (_filterPersons.isNotEmpty &&
+          (order.personName == null ||
+              !_filterPersons.contains(order.personName))) {
+        return false;
+      }
+      if (_filterPriorities.isNotEmpty &&
+          !_filterPriorities.contains(order.priority)) {
+        return false;
+      }
+      return true;
+    }).toList();
+
+    _cachedOrdersRef = _orders;
+    _cachedSelectedDate = _selectedDate;
+    _cachedViewMode = _viewMode;
+    _cachedSelectedStage = _selectedStage;
+    _cachedFilterStages = _filterStages;
+    _cachedFilterPersons = _filterPersons;
+    _cachedFilterPriorities = _filterPriorities;
+    _cachedFilteredOrders = result;
+
+    return result;
+  }
 
   // Tính tổng giờ
   String _getSummaryText() {
