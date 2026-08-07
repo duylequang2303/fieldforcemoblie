@@ -8,8 +8,7 @@ import '../services/work_order_service.dart';
 import '../../orders/models/fsm_order.dart';
 
 class WorkOrderProvider extends ChangeNotifier with SessionGuard {
-  WorkOrderProvider._internal()
-      : _service = WorkOrderService.instance;
+  WorkOrderProvider._internal() : _service = WorkOrderService.instance;
   static final WorkOrderProvider instance = WorkOrderProvider._internal();
 
   final WorkOrderService _service;
@@ -24,13 +23,25 @@ class WorkOrderProvider extends ChangeNotifier with SessionGuard {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isSubmitting => _isSubmitting;
-  bool get hasSignature => _report?.customerSignaturePath != null;
+  bool get hasSignature => _report?.customerSignaturePath?.trim().isNotEmpty == true;
+  FsmOrder? get order => _order;
+
   bool get isComplete {
-    if (_report == null || _report!.workDone.isEmpty) return false;
-    if (_order?.requireSignature == true) {
-      return _report!.customerSignaturePath != null;
+    if (_report == null || _report!.workDone.trim().isEmpty) return false;
+
+    // Check photo requirements
+    if (_order?.requirePhoto == true) {
+      if (_report!.photoPaths.isEmpty && _report!.syncedPhotoPaths.isEmpty) {
+        return false;
+      }
     }
-    return true; // Nếu không yêu cầu chữ ký, chỉ cần có workDone là đủ
+
+    // Check signature requirements
+    if (_order?.requireSignature == true) {
+      return _report!.customerSignaturePath?.trim().isNotEmpty == true;
+    }
+
+    return true;
   }
 
   Future<void> loadReport(int orderOdooId) async {
@@ -68,9 +79,15 @@ class WorkOrderProvider extends ChangeNotifier with SessionGuard {
     notifyListeners();
   }
 
+  static const int _maxPhotos = 10;
+
   void addPhoto(String path) {
     if (_report == null) return;
+    if (_report!.photoPaths.length >= _maxPhotos) {
+      return;
+    }
     _report!.photoPaths = [..._report!.photoPaths, path];
+    _report!.isPendingSync = true;
     notifyListeners();
   }
 
@@ -78,6 +95,7 @@ class WorkOrderProvider extends ChangeNotifier with SessionGuard {
     if (_report == null) return;
     final list = [..._report!.photoPaths]..removeAt(index);
     _report!.photoPaths = list;
+    _report!.isPendingSync = true;
     notifyListeners();
   }
 

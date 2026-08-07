@@ -5,6 +5,9 @@ import '../../../shared/widgets/safe_image_file.dart';
 
 /// Widget chụp và hiển thị nhiều ảnh hiện trường.
 class PhotoCaptureWidget extends StatelessWidget {
+  static const int _maxPhotos = 10;
+  static const int _maxFileSizeBytes = 10 * 1024 * 1024; // 10MB
+
   const PhotoCaptureWidget({
     super.key,
     required this.photoPaths,
@@ -35,9 +38,6 @@ class PhotoCaptureWidget extends StatelessWidget {
           child: ListView(
             scrollDirection: Axis.horizontal,
             children: [
-              // Add button
-              _AddPhotoButton(onTap: () => _pickPhoto(context)),
-
               // Photo thumbnails
               ...photoPaths.asMap().entries.map(
                     (entry) => _PhotoThumbnail(
@@ -45,6 +45,8 @@ class PhotoCaptureWidget extends StatelessWidget {
                       onRemove: () => onRemove(entry.key),
                     ),
                   ),
+              // Add button
+              _AddPhotoButton(onTap: () => _pickPhoto(context)),
             ],
           ),
         ),
@@ -65,7 +67,7 @@ class PhotoCaptureWidget extends StatelessWidget {
               title: const Text('Chụp ảnh'),
               onTap: () async {
                 Navigator.pop(context);
-                await _captureFromSource(ImageSource.camera);
+                await _captureFromSource(context, ImageSource.camera);
               },
             ),
             ListTile(
@@ -74,7 +76,7 @@ class PhotoCaptureWidget extends StatelessWidget {
               title: const Text('Chọn từ thư viện'),
               onTap: () async {
                 Navigator.pop(context);
-                await _captureFromSource(ImageSource.gallery);
+                await _captureFromSource(context, ImageSource.gallery);
               },
             ),
           ],
@@ -83,7 +85,7 @@ class PhotoCaptureWidget extends StatelessWidget {
     );
   }
 
-  Future<void> _captureFromSource(ImageSource source) async {
+  Future<void> _captureFromSource(BuildContext context, ImageSource source) async {
     final picker = ImagePicker();
     final images = source == ImageSource.gallery
         ? await picker.pickMultiImage(imageQuality: 70, maxWidth: 1280)
@@ -92,8 +94,53 @@ class PhotoCaptureWidget extends StatelessWidget {
                 source: source, imageQuality: 70, maxWidth: 1280)
           ].whereType<XFile>().toList();
 
+    final currentCount = photoPaths.length;
+    final maxAllowed = _maxPhotos - currentCount;
+
+    final validImages = <XFile>[];
     for (final img in images) {
-      onAdd(img.path);
+      try {
+        final size = await img.length();
+        if (size > _maxFileSizeBytes) {
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Ảnh ${img.path.split('/').last} vượt quá 10MB, bỏ qua.'),
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
+            );
+          }
+          continue;
+        }
+        validImages.add(img);
+      } on Exception catch (e, _) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Không thể đọc ảnh ${img.path.split('/').last}: $e'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+          );
+        }
+      }
+    }
+
+    if (validImages.length > maxAllowed) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Tối đa $_maxPhotos ảnh. Có thể thêm $maxAllowed ảnh nữa.'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+      for (final img in validImages.take(maxAllowed)) {
+        onAdd(img.path);
+      }
+    } else if (validImages.isNotEmpty) {
+      for (final img in validImages) {
+        onAdd(img.path);
+      }
     }
   }
 }
@@ -157,6 +204,8 @@ class _PhotoThumbnail extends StatelessWidget {
             width: 88,
             height: 88,
             fit: BoxFit.cover,
+            cacheWidth: 176,
+            cacheHeight: 176,
             borderRadius: BorderRadius.circular(12),
           ),
           Positioned(

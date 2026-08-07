@@ -34,6 +34,7 @@ class _CustomerSignatureWidgetState extends State<CustomerSignatureWidget> {
   final _repaintKey = GlobalKey();
   bool _hasSigned = false;
   bool _isSaving = false;
+  Key _signaturePadKey = const Key('signature_pad');
 
   @override
   void initState() {
@@ -102,7 +103,13 @@ class _CustomerSignatureWidgetState extends State<CustomerSignatureWidget> {
               ),
               const Spacer(),
               TextButton(
-                onPressed: () => setState(() => _hasSigned = false),
+                onPressed: () {
+                  setState(() {
+                    _hasSigned = false;
+                    _signaturePadKey = Key('signature_pad_${DateTime.now().millisecondsSinceEpoch}');
+                    _nameController.clear();
+                  });
+                },
                 child: const Text('Ký lại'),
               ),
             ],
@@ -123,7 +130,7 @@ class _CustomerSignatureWidgetState extends State<CustomerSignatureWidget> {
           RepaintBoundary(
             key: _repaintKey,
             child: SignaturePad(
-              key: const Key('signature_pad'),
+              key: _signaturePadKey,
               onChanged: (bool hasDrawing) {
                 if (hasDrawing && !_hasSigned) {
                   setState(() => _hasSigned = true);

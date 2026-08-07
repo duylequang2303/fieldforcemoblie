@@ -49,6 +49,10 @@ class WorkOrderService {
   /// Lấy hoặc tạo mới báo cáo cho đơn.
   Future<WorkReport> getOrCreateReport(int orderOdooId) async {
     final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) {
+      throw const OdooAuthException('Không tìm thấy phiên làm việc hợp lệ.');
+    }
+
     final existing = await _isar.db.workReports
         .filter()
         .orderOdooIdEqualTo(orderOdooId)
@@ -94,7 +98,13 @@ class WorkOrderService {
           .where((p) => currentPhotos.contains(p))
           .toList();
       report.syncedAttachmentEntries = report.syncedAttachmentEntries
-          .where((e) => currentPhotos.contains(e.split('|').first))
+          .where((e) {
+            final parts = e.split('|');
+            if (parts.length == 2) {
+              return currentPhotos.contains(parts[0]) || currentPhotos.contains(parts[1]);
+            }
+            return currentPhotos.contains(e);
+          })
           .toList();
     } else {
       report.isResolutionSynced = false;
@@ -113,6 +123,9 @@ class WorkOrderService {
 
   /// Submit báo cáo lên Odoo (chỉ gọi khi online và có chữ ký).
   Future<void> submitReport(WorkReport report) async {
+    if (report.workDone.trim().isEmpty) {
+      throw Exception('Work done description is required.');
+    }
     try {
       // 1. Ghi resolution thay vì description nếu chưa sync
       if (!report.isResolutionSynced) {
@@ -134,7 +147,7 @@ class WorkOrderService {
 
       // 2. Submit chữ ký bằng Wizard chuẩn của Odoo nếu chưa sync
       if (!report.isSignatureSynced &&
-          report.customerSignaturePath != null &&
+          report.customerSignaturePath?.trim().isNotEmpty == true &&
           report.customerName != null) {
         final sigFile = File(report.customerSignaturePath!);
         if (sigFile.existsSync()) {
@@ -155,13 +168,31 @@ class WorkOrderService {
           ) as int;
 
           // Bước 2: Trigger action ký
-          await _odoo.callKw(
+          final result = await _odoo.callKw(
             model: 'fsm.order.sign.wizard',
             method: 'action_sign',
             args: [
               [wizardId]
             ],
           );
+
+          if (result == null || result is! Map || !(result['success'] as bool? ?? false)) {
+            throw Exception('Signature wizard did not return success.');
+          }
+
+          // Verify the signature was applied to fsm.order
+          final order = await _odoo.callKw(
+            model: 'fsm.order',
+            method: 'read',
+            args: [
+              [report.orderOdooId],
+              ['customer_signature']
+            ],
+          ) as List<dynamic>;
+
+          if (order.isEmpty || order[0]['customer_signature'] == null || order[0]['customer_signature'] == false || (order[0]['customer_signature'] is String && (order[0]['customer_signature'] as String).isEmpty)) {
+            throw Exception('Signature was not applied to fsm.order');
+          }
 
           report.isSignatureSynced = true;
           await _isar.db.writeTxn(() async {
@@ -180,7 +211,7 @@ class WorkOrderService {
       final allPhotosSynced = report.photoPaths
           .every((path) => report.syncedPhotoPaths.contains(path));
       final needsSignature =
-          report.customerSignaturePath != null && report.customerName != null;
+          report.customerSignaturePath?.trim().isNotEmpty == true && report.customerName != null;
       final signatureOk = !needsSignature || report.isSignatureSynced;
 
       if (report.isResolutionSynced && signatureOk && allPhotosSynced) {
@@ -313,15 +344,15 @@ class WorkOrderService {
   }
 
   /// Upload 1 ảnh duy nhất lên Odoo Chatter (real-time, gọi từ UI).
-  Future<void> uploadSinglePhoto(int orderOdooId, String path) async {
+  /// Cập nhật syncedPhotoPaths + syncedAttachmentEntries để tránh re-upload khi submitReport.
+  Future<WorkReport> uploadSinglePhoto(
+      WorkReport report, int orderOdooId, String path) async {
     final file = File(path);
-    if (!await file.exists()) return;
+    if (!await file.exists()) return report;
 
-    // ✅ Đẩy encode base64 sang background isolate — KHÔNG block UI thread
     final base64String = await compute(_encodeBase64Isolate, path);
     final filename = file.uri.pathSegments.last;
 
-    // 1. Tạo attachment (datas nhận base64 đúng 1 lần — KHÔNG double)
     final attId = await _odoo.callKw(
       model: 'ir.attachment',
       method: 'create',
@@ -336,7 +367,13 @@ class WorkOrderService {
       ],
     ) as int;
 
-    // 2. Post message link tới attachment (BỎ kwargs 'attachments')
+    final entry = '$path|$attId';
+    report.syncedAttachmentEntries = [...report.syncedAttachmentEntries, entry];
+
+    await _isar.db.writeTxn(() async {
+      await _isar.db.workReports.put(report);
+    });
+
     await _odoo.callKw(
       model: 'fsm.order',
       method: 'message_post',
@@ -350,6 +387,13 @@ class WorkOrderService {
         'attachment_ids': [attId],
       },
     );
+
+    report.syncedPhotoPaths = [...report.syncedPhotoPaths, path];
+    await _isar.db.writeTxn(() async {
+      await _isar.db.workReports.put(report);
+    });
+
+    return report;
   }
 
   /// Encode base64 trong isolate riêng — KHÔNG block UI thread.

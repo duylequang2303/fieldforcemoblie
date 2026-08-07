@@ -324,36 +324,39 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
   }
 
   /// Lưu ảnh vào WorkReport (Isar) + đẩy lên Odoo Chatter.
-  /// Online → upload ngay, xóa khỏi pending.
+  /// Online → upload ngay, cập nhật syncedPhotoPaths.
   /// Offline → giữ pending, sẽ upload batch khi submitReport.
   Future<void> _uploadPhoto(String path) async {
     try {
-      final report = await WorkOrderService.instance
+      var report = await WorkOrderService.instance
           .getOrCreateReport(widget.order.odooId);
 
-      // 1. Lưu vào Isar trước (offline safety)
       if (!report.photoPaths.contains(path)) {
         report.photoPaths = [...report.photoPaths, path];
         await WorkOrderService.instance.saveReport(report);
       }
 
-      // 2. Upload real-time lên Odoo Chatter
-      await WorkOrderService.instance
-          .uploadSinglePhoto(widget.order.odooId, path);
-      if (kDebugMode) {
-        debugPrint("📤 UPLOAD OK: ${path.split('/').last}");
+      report = await WorkOrderService.instance
+          .uploadSinglePhoto(report, widget.order.odooId, path);
+
+      final uploaded = report.syncedPhotoPaths.contains(path);
+      if (uploaded) {
+        if (kDebugMode) {
+          debugPrint("📤 UPLOAD OK: ${path.split('/').last}");
+        }
+        if (mounted) _showSnackBar('Photo uploaded.');
+      } else {
+        if (kDebugMode) {
+          debugPrint("📤 UPLOAD FAILED: ${path.split('/').last}");
+        }
+        if (mounted) _showSnackBar('Photo upload failed.');
+        report.photoPaths = [...report.photoPaths]..remove(path);
+        await WorkOrderService.instance.saveReport(report);
       }
-
-      // 3. Thành công → xóa khỏi pending (tránh trùng khi submit sau)
-      report.photoPaths = [...report.photoPaths]..remove(path);
-      await WorkOrderService.instance.saveReport(report);
-
-      if (mounted) _showSnackBar('Photo uploaded.');
     } on OdooApiException {
       if (kDebugMode) {
         debugPrint("📤 UPLOAD OFFLINE: ${path.split('/').last}");
       }
-      // Offline — ảnh đã lưu Isar, sẽ upload khi submitReport
       if (mounted) {
         _showSnackBar('Photo saved locally — will upload when online.');
       }
@@ -448,6 +451,10 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
 
   Future<void> _onComplete() async {
     if (_isProcessing) return;
+    if (_isClosed) {
+      _showSnackBar('Order is already closed or cancelled.');
+      return;
+    }
     setState(() {
       _isProcessing = true;
     });
@@ -456,7 +463,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
           .getOrCreateReport(widget.order.odooId);
 
       // X: đã ký rồi (local hoặc Odoo) thì không bắt ký lại, không chạy lại wizard.
-      final alreadySigned = report.signedAt != null;
+      final alreadySigned =
+          report.customerSignaturePath?.trim().isNotEmpty == true;
 
       if (widget.order.requireSignature && !alreadySigned) {
         if (_signatureController.isEmpty) {
@@ -565,7 +573,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
   }
 
   void _askSkip() {
-    showDialog(
+    showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Skip Order'),
