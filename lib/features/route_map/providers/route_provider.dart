@@ -144,10 +144,15 @@ unawaited(_ordersProvider?.updateOrderToDone(orderOdooId) ?? Future.value());
     }
 
     if (_stops.isNotEmpty) {
+      int? cumulative = 0;
       _stops[0].estimatedMinutes = 0;
+
       for (int i = 1; i < _stops.length; i++) {
-        _stops[i].estimatedMinutes =
-            (_stops[i].estimatedMinutes ?? 0) + (_stops[i - 1].estimatedMinutes ?? 0);
+        final segmentMinutes = _stops[i].estimatedMinutes;
+        cumulative = (cumulative != null && segmentMinutes != null)
+            ? cumulative + segmentMinutes
+            : null;
+        _stops[i].estimatedMinutes = cumulative;
       }
     }
   }
