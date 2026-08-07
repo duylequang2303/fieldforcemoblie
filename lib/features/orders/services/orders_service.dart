@@ -639,6 +639,12 @@ class OrdersService {
     }
   }
 
+  Future<int> pendingSyncCount() async {
+    final pending =
+        await _isar.db.fsmOrders.filter().isPendingSyncEqualTo(true).findAll();
+    return pending.length;
+  }
+
   /// Sync các order chưa push lên Odoo (isPendingSync = true).
   /// Đơn completed → gọi action_complete thay vì write stage_id raw.
   /// Đơn khác → write field data (stage_id, date_start, date_end) sang UTC.

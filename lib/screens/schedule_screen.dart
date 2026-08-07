@@ -30,6 +30,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Set<FsmOrderStage> _filterStages = {};
   Set<String> _filterPersons = {};
   Set<String> _filterPriorities = {};
+  int _pendingSyncCount = 0;
+  bool _isSyncing = false;
 
   // Dữ liệu thật — nạp từ OrdersService (Isar cache + Odoo), KHÔNG còn mock.
   List<FsmOrder> _orders = [];
@@ -38,6 +40,12 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   void initState() {
     super.initState();
     _loadInitial();
+  }
+
+  Future<void> _refreshPendingSyncCount() async {
+    final count = await OrdersService.instance.pendingSyncCount();
+    if (!mounted) return;
+    setState(() => _pendingSyncCount = count);
   }
 
   /// Offline-first: hiện cache Isar ngay, rồi pull Odoo nền.
@@ -55,6 +63,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
     // Lần đầu chưa có cache → hiện spinner; đã có cache → fetch nền lặng lẽ.
     await _fetchFromOdoo(showSpinner: cached.isEmpty);
+    await _refreshPendingSyncCount();
   }
 
   /// Pull dữ liệu thật từ Odoo (fetchMyOrders tự lưu Isar).
@@ -72,6 +81,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     } finally {
       if (showSpinner && mounted) setState(() => _isLoading = false);
     }
+    await _refreshPendingSyncCount();
   }
 
       // Lọc orders theo ngày đã chọn và ẩn các đơn bị skip
@@ -192,6 +202,27 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   Future<void> _onRefresh() async {
     await _fetchFromOdoo(showSpinner: true);
+  }
+
+  Future<void> _onSyncTap() async {
+    if (_isSyncing) return;
+    setState(() => _isSyncing = true);
+    try {
+      await OrdersService.instance.syncPending();
+      if (!mounted) return;
+      await _fetchFromOdoo(showSpinner: false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sync completed')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Sync failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isSyncing = false);
+    }
   }
 
   Widget _buildJobList() {
@@ -341,6 +372,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             onViewModeChanged: (mode) {
               setState(() => _viewMode = mode);
             },
+            pendingSyncCount: _pendingSyncCount,
+            onSyncTap: _isSyncing ? null : _onSyncTap,
           ),
           FilterChipsRow(
             selectedStage: _selectedStage,

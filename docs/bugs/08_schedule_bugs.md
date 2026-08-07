@@ -67,7 +67,7 @@
 | ID | Mô tả bug | File/Location | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|---------------|--------|------------|---------|
 | SCH-SYNC-001 | No offline indicator trên ScheduleScreen | `schedule_screen.dart` | 🟠 High | ✅ Fixed | `ScheduleTopBar` giờ có offline `wifi_off_rounded` icon khi `_isOffline = true`. Commit `1cbb85e` |
-| SCH-SYNC-002 | Sync pending orders không exposed to UI | `orders_service.dart` lines 645-755 | 🟠 High | ⏸️ Skipped | `syncPending()` tồn tại nhưng chưa có UI trigger. Cần "Sync Now" button |
+| SCH-SYNC-002 | Sync pending orders không exposed to UI | `orders_service.dart` lines 645-755 | 🟠 High | ✅ Fixed | Thêm nút "Sync Now" với badge đếm pending orders trong `ScheduleTopBar` |
 | SCH-SYNC-003 | Recurring rules sync không trigger | `recurring_service.dart` lines 20-142 | 🟡 Medium | ⏸️ Skipped | `fetchRecurringRules()` chỉ gọi manual. Cần periodic sync |
 | SCH-SYNC-004 | Conflict resolution cho recurring instances incomplete | `orders_service.dart` lines 759-816 | 🟠 High | ⏸️ Skipped | Chỉ handle `odooId < 0` local orders. Cần handle server-side changes |
 | SCH-SYNC-005 | Properties không cached offline | `properties_service.dart`, `schedule_properties_list_page.dart` | 🟠 High | ⏸️ Skipped | `PropertiesService` fetch từ Odoo mỗi lần, no Isar caching. Cần implement |
@@ -126,13 +126,15 @@
 ### Phase 3b: Performance
 28. ✅ **SCH-PERF-001**: Memoize `_filteredOrders` — chỉ recompute khi filter inputs thay đổi
 
+### Phase 3c: Sync UI
+29. ✅ **SCH-SYNC-002**: Thêm nút "Sync Now" với badge đếm pending orders trong `ScheduleTopBar`
+
 ---
 
 ## ⏸️ Còn Lại (Future Work)
 
 ### High Priority
 - SCH-SYNC-005: Properties offline caching (Isar)
-- SCH-SYNC-002: Background sync trigger UI
 - SCH-SYNC-004: Conflict resolution enhancement
 
 ### Medium Priority
@@ -172,8 +174,8 @@
 | UI/UX | 10 | 10 | 0 |
 | Logic/Functional | 14 | 14 | 0 |
 | Performance | 5 | 2 | 3 |
-| Offline/Sync | 5 | 1 | 4 |
+| Offline/Sync | 5 | 2 | 3 |
 | Navigation/State | 8 | 8 | 0 |
-| **Total** | **42** | **35** | **7** |
+| **Total** | **42** | **36** | **6** |
 
-**Tỷ lệ hoàn thành**: 35/42 = **83%**
+**Tỷ lệ hoàn thành**: 36/42 = **86%**
