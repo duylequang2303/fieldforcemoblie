@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/api/api_exception.dart';
 import '../../../../core/api/odoo_session_manager.dart';
 import '../../../../core/routing/route_names.dart';
+import '../../../../core/connectivity/connectivity_service.dart';
 import '../../../../core/settings/offline_storage_service.dart';
 import '../../../../core/settings/settings_repository.dart';
 import '../../../../core/settings/sync_status_provider.dart';
@@ -14,13 +15,14 @@ import '../../../core/database/sync_manager.dart';
 import '../../../../core/utils/logger.dart';
 import '../../../../ui/theme/sf_tokens.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../orders/services/orders_service.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 /// Connection state from a real session ping (no authenticate, no session overwrite).
 enum _ConnStatus { unknown, valid, invalid, offline, expired }
 
-const String _appVersion = '0.4.0';
-const int _buildNumber = 12;
+/// Status for sync capability verification
+enum _SyncCapabilityStatus { unknown, checking, ok, noWriteAccess, failed }
+
 const String _supportEmail = 'mobile@acme.vn';
 
 class SettingsPage extends StatefulWidget {
@@ -33,25 +35,53 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final SyncStatusProvider _sync = SyncStatusProvider();
 
+  bool get _isAnySyncRunning =>
+      _isSyncing || _isTesting || SyncManager.instance.isSyncing;
+
   _ConnStatus _connStatus = _ConnStatus.unknown;
+  _SyncCapabilityStatus _syncCapStatus = _SyncCapabilityStatus.unknown;
   bool _isTesting = false;
   bool _isSyncing = false;
+  bool _isLoading = true; // Track initial load state
   bool _wifiOnly = false;
   Timer? _clockTimer;
   int _autoSync = 15;
   String _storageLabel = '...';
+  String _appVersion = '...';
+  int _buildNumber = 0;
 
   @override
   void initState() {
     super.initState();
     _sync.addListener(_onSyncChanged);
+    SyncManager.instance
+        .addListener(_onSyncManagerChanged); // ✅ Nhận biết auto-sync
     _load();
+    _loadAppInfo(); // ✅ Đọc app info động
     // Đồng hồ 1 phút: tự vẽ lại để nhãn "Xm ago" nhảy + đọc lại last/pending.
     _clockTimer = Timer.periodic(const Duration(minutes: 1), (_) async {
       if (!mounted) return;
       await _sync.refresh();
       if (mounted) setState(() {});
     });
+  }
+
+  Future<void> _loadAppInfo() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _appVersion = info.version;
+          _buildNumber = int.tryParse(info.buildNumber) ?? 0;
+        });
+      }
+    } catch (e) {
+      logger.e('Failed to load app version', error: e);
+    }
+  }
+
+  void _onSyncManagerChanged() {
+    if (mounted) setState(() {});
   }
 
   void _onSyncChanged() {
@@ -67,6 +97,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _wifiOnly = repo.wifiOnly;
       _autoSync = repo.autoSyncMinutes;
       _storageLabel = storage;
+      _isLoading = false;
     });
     await _sync.refresh();
   }
@@ -75,6 +106,8 @@ class _SettingsPageState extends State<SettingsPage> {
   void dispose() {
     _clockTimer?.cancel();
     _sync.removeListener(_onSyncChanged);
+    SyncManager.instance
+        .removeListener(_onSyncManagerChanged); // ✅ Unregister listener
     _sync.dispose();
     super.dispose();
   }
@@ -124,8 +157,8 @@ class _SettingsPageState extends State<SettingsPage> {
     }
     setState(() => _isSyncing = true);
     try {
-      await OrdersService.instance.syncPending();
-      await OrdersService.instance.fetchMyOrders();
+      // ✅ Chỉ gọi syncPending - SyncManager sẽ chạy TẤT CẢ handlers đã đăng ký
+      await SyncManager.instance.syncPending();
       await SettingsRepository.instance.saveLastSyncedAt(DateTime.now());
       await _sync.refresh();
       if (!mounted) return;
@@ -204,6 +237,91 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Color _syncCapabilityColor(_SyncCapabilityStatus s) {
+    switch (s) {
+      case _SyncCapabilityStatus.ok:
+        return SfTokens.success;
+      case _SyncCapabilityStatus.noWriteAccess:
+        return SfTokens.warning;
+      case _SyncCapabilityStatus.failed:
+        return SfTokens.error;
+      case _SyncCapabilityStatus.checking:
+        return SfTokens.primary;
+      case _SyncCapabilityStatus.unknown:
+        return SfTokens.onSurfaceWeak;
+    }
+  }
+
+  String _syncCapabilityText(_SyncCapabilityStatus s) {
+    switch (s) {
+      case _SyncCapabilityStatus.ok:
+        return 'Full sync capability';
+      case _SyncCapabilityStatus.noWriteAccess:
+        return 'Read-only (no write access)';
+      case _SyncCapabilityStatus.failed:
+        return 'Verification failed';
+      case _SyncCapabilityStatus.checking:
+        return 'Checking...';
+      case _SyncCapabilityStatus.unknown:
+        return 'Tap Verify to check';
+    }
+  }
+
+  /// Verify if we have read/write access to FSM models needed for sync
+  Future<void> _verifySyncCapability() async {
+    final userId = OdooSessionManager.instance.currentUserId;
+    if (userId == null) {
+      setState(() => _syncCapStatus = _SyncCapabilityStatus.failed);
+      return;
+    }
+    setState(() => _syncCapStatus = _SyncCapabilityStatus.checking);
+    try {
+      // Test read access to fsm.order
+      await OdooSessionManager.instance.callKw(
+        model: 'fsm.order',
+        method: 'search_read',
+        args: [
+          [['person_id.user_id', '=', userId]]
+        ],
+        kwargs: {
+          'fields': ['id', 'name'],
+          'limit': 1,
+        },
+      );
+
+      // Test write access by trying to read a field that indicates write capability
+      // We check access rights for write on fsm.order
+      final accessResult = await OdooSessionManager.instance.callKw(
+        model: 'ir.model.access',
+        method: 'search_read',
+        args: [
+          [
+            ['model_id.model', '=', 'fsm.order'],
+            ['perm_write', '=', true],
+          ]
+        ],
+        kwargs: {
+          'fields': ['perm_write'],
+          'limit': 1,
+        },
+      );
+
+      if (mounted) {
+        if (accessResult is List && accessResult.isNotEmpty) {
+          setState(() => _syncCapStatus = _SyncCapabilityStatus.ok);
+        } else {
+          setState(() => _syncCapStatus = _SyncCapabilityStatus.noWriteAccess);
+        }
+      }
+    } on OdooConnectionException {
+      if (mounted) setState(() => _syncCapStatus = _SyncCapabilityStatus.failed);
+    } on OdooApiException {
+      if (mounted) setState(() => _syncCapStatus = _SyncCapabilityStatus.noWriteAccess);
+    } catch (_) {
+      if (mounted) setState(() => _syncCapStatus = _SyncCapabilityStatus.failed);
+    }
+  }
+
   // ── Build ──
 
   @override
@@ -215,19 +333,23 @@ class _SettingsPageState extends State<SettingsPage> {
         foregroundColor: SfTokens.surface,
         title: const Text('Settings'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(SfTokens.spacingMd),
-        children: [
-          _buildConnection(),
-          const SizedBox(height: SfTokens.spacingLg),
-          _buildSyncOffline(),
-          const SizedBox(height: SfTokens.spacingLg),
-          _buildAccount(),
-          const SizedBox(height: SfTokens.spacingLg),
-          _buildAbout(),
-          const SizedBox(height: SfTokens.spacingXl),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : ListView(
+              padding: const EdgeInsets.all(SfTokens.spacingMd),
+              children: [
+                _buildConnection(),
+                const SizedBox(height: SfTokens.spacingLg),
+                _buildSyncOffline(),
+                const SizedBox(height: SfTokens.spacingLg),
+                _buildAccount(),
+                const SizedBox(height: SfTokens.spacingLg),
+                _buildAbout(),
+                const SizedBox(height: SfTokens.spacingXl),
+              ],
+            ),
     );
   }
 
@@ -246,7 +368,7 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _isTesting ? null : _testConnection,
+                  onPressed: _isAnySyncRunning ? null : _testConnection,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: SfTokens.primary,
                     foregroundColor: SfTokens.surface,
@@ -275,6 +397,50 @@ class _SettingsPageState extends State<SettingsPage> {
                   style: TextStyle(
                     fontSize: 12,
                     color: _statusColor(_connStatus),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: SfTokens.spacingSm),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isAnySyncRunning ? null : _verifySyncCapability,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: SfTokens.primary,
+                    foregroundColor: SfTokens.surface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(SfTokens.radiusSm),
+                    ),
+                  ),
+                  child: _syncCapStatus == _SyncCapabilityStatus.checking
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: SfTokens.surface,
+                          ),
+                        )
+                      : const Text('Verify Sync Capability'),
+                ),
+              ),
+              const SizedBox(width: SfTokens.spacingSm),
+              Icon(
+                Icons.circle,
+                size: 12,
+                color: _syncCapabilityColor(_syncCapStatus),
+              ),
+              const SizedBox(width: SfTokens.spacingXxs),
+              Flexible(
+                child: Text(
+                  _syncCapabilityText(_syncCapStatus),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _syncCapabilityColor(_syncCapStatus),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -323,7 +489,7 @@ class _SettingsPageState extends State<SettingsPage> {
           _row(
             icon: Icons.sync,
             label: 'Sync now',
-            trailing: _isSyncing
+            trailing: _isAnySyncRunning
                 ? const SizedBox(
                     width: 18,
                     height: 18,
@@ -356,23 +522,28 @@ class _SettingsPageState extends State<SettingsPage> {
             trailing: DropdownButton<int>(
               value: _autoSync,
               underline: const SizedBox.shrink(),
-              onChanged: (v) async {
-                if (v == null) return;
-                final previousValue = _autoSync;
-                setState(() => _autoSync = v);
-                try {
-                  await SettingsRepository.instance.saveAutoSyncMinutes(v);
-                  SyncManager.instance.applyPreferences();
-                } catch (e) {
-                  logger.e('Failed to save auto-sync settings', error: e);
-                  if (mounted) {
-                    setState(() => _autoSync = previousValue);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Lưu cấu hình không thành công.')),
-                    );
-                  }
-                }
-              },
+              onChanged: _isAnySyncRunning
+                  ? null
+                  : (v) async {
+                      if (v == null) return;
+                      final previousValue = _autoSync;
+                      setState(() => _autoSync = v);
+                      try {
+                        await SettingsRepository.instance
+                            .saveAutoSyncMinutes(v);
+                        SyncManager.instance.applyPreferences();
+                      } catch (e) {
+                        logger.e('Failed to save auto-sync settings', error: e);
+                        if (mounted) {
+                          setState(() => _autoSync = previousValue);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content:
+                                    Text('Lưu cấu hình không thành công.')),
+                          );
+                        }
+                      }
+                    },
               items: const [
                 DropdownMenuItem(value: 0, child: Text('Off')),
                 DropdownMenuItem(value: 5, child: Text('5 min')),
@@ -389,22 +560,46 @@ class _SettingsPageState extends State<SettingsPage> {
             trailing: Switch(
               value: _wifiOnly,
               activeThumbColor: SfTokens.primary,
-              onChanged: (v) async {
-                final previousValue = _wifiOnly;
-                setState(() => _wifiOnly = v);
-                try {
-                  await SettingsRepository.instance.saveWifiOnly(v);
-                  SyncManager.instance.applyPreferences();
-                } catch (e) {
-                  logger.e('Failed to save wifi-only settings', error: e);
-                  if (mounted) {
-                    setState(() => _wifiOnly = previousValue);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Lưu cấu hình không thành công.')),
-                    );
-                  }
-                }
-              },
+              onChanged: _isAnySyncRunning
+                  ? null
+                  : (v) async {
+                      final previousValue = _wifiOnly;
+                      setState(() => _wifiOnly = v);
+                      try {
+                        await SettingsRepository.instance.saveWifiOnly(v);
+                        SyncManager.instance.applyPreferences();
+
+                        final connectivity = ConnectivityService.instance;
+                        final isOnline = await connectivity.isOnline;
+                        final isWifi = await connectivity.checkIsWifi();
+
+                        // Case 1: BẬT wifi-only (v == true)
+                        if (v) {
+                          // Nếu đang mobile data và có sync đang chạy → cancel nó
+                          if (isOnline &&
+                              !isWifi &&
+                              SyncManager.instance.isSyncing) {
+                            logger.w(
+                                'WiFi-only enabled on mobile data; pending sync will skip');
+                          }
+                        }
+
+                        // Case 2: TẮT wifi-only (v == false)
+                        if (isOnline && (!v || isWifi)) {
+                          unawaited(SyncManager.instance.syncPending());
+                        }
+                      } catch (e) {
+                        logger.e('Failed to save wifi-only settings', error: e);
+                        if (mounted) {
+                          setState(() => _wifiOnly = previousValue);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content:
+                                    Text('Lưu cấu hình không thành công.')),
+                          );
+                        }
+                      }
+                    },
             ),
           ),
           const Divider(height: 1, color: SfTokens.divider),
@@ -412,6 +607,46 @@ class _SettingsPageState extends State<SettingsPage> {
             icon: Icons.sd_storage_outlined,
             label: 'Offline data',
             value: _storageLabel,
+            trailing: _isAnySyncRunning
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.delete_sweep, color: SfTokens.error),
+                    onPressed: () async {
+                      final confirmed = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          title: const Text('Confirm Clear Cache'),
+                          content: const Text(
+                              'This will delete cached images and temporary files to free space. Your offline work data is completely safe.'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('Cancel'),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Clear'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirmed == true) {
+                        setState(() => _storageLabel = 'Clearing...');
+                        final cleared =
+                            await OfflineStorageService.instance.clearCache();
+                        final storage =
+                            await OfflineStorageService.instance.formatted();
+                        if (mounted) {
+                          setState(() => _storageLabel = storage);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                                content: Text(
+                                    'Cleared ${OfflineStorageService.instance.formatBytes(cleared)}.')),
+                          );
+                        }
+                      }
+                    },
+                  ),
           ),
         ],
       ),
@@ -446,8 +681,11 @@ class _SettingsPageState extends State<SettingsPage> {
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton(
-              onPressed: _onLogout,
-              style: TextButton.styleFrom(foregroundColor: SfTokens.error),
+              onPressed: _isAnySyncRunning ? null : _onLogout,
+              style: TextButton.styleFrom(
+                foregroundColor:
+                    _isAnySyncRunning ? SfTokens.onSurfaceWeak : SfTokens.error,
+              ),
               child: const Text('Log out',
                   style: TextStyle(fontWeight: FontWeight.w600)),
             ),

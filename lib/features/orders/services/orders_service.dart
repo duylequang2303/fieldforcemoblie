@@ -4,6 +4,7 @@ import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/database/isar_service.dart';
 import '../../../core/utils/logger.dart';
 import '../models/fsm_order.dart';
+import 'recurring_notification_service.dart';
 import 'recurring_service.dart';
 
 class OdooCreateResult {
@@ -310,6 +311,13 @@ class OrdersService {
     // Resolve conflicts và lưu vào Isar để dùng offline
     final saved = await _resolveConflictsAndSave(orders);
 
+    // Schedule upcoming visit reminders for fetched orders
+    try {
+      await RecurringNotificationService.instance.scheduleUpcomingReminders(saved);
+    } catch (e, stackTrace) {
+      logger.e('Failed to schedule upcoming reminders', error: e, stackTrace: stackTrace);
+    }
+
     return saved;
   }
 
@@ -442,6 +450,16 @@ class OrdersService {
         local.isPendingSync = true;
         await _isar.db.fsmOrders.put(local);
       });
+
+      // Cancel reminders if order is now done or cancelled
+      if (local.stage == FsmOrderStage.done || local.stage == FsmOrderStage.cancelled) {
+        try {
+          await RecurringNotificationService.instance.cancelUpcomingReminder(odooId);
+          await RecurringNotificationService.instance.cancelOrderReminders(odooId);
+        } catch (e, stackTrace) {
+          logger.e('Failed to cancel reminders on stage update', error: e, stackTrace: stackTrace);
+        }
+      }
     }
 
     // 2. Cố gắng ghi nhận lên Odoo
@@ -516,6 +534,14 @@ class OrdersService {
               'Error updating recurring occurrence logic on completion (State)',
               error: e);
         }
+      }
+
+      // Cancel upcoming and recurring reminders since order is now done
+      try {
+        await RecurringNotificationService.instance.cancelUpcomingReminder(odooId);
+        await RecurringNotificationService.instance.cancelOrderReminders(odooId);
+      } catch (e, stackTrace) {
+        logger.e('Failed to cancel reminders on completion', error: e, stackTrace: stackTrace);
       }
     }
 

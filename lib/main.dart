@@ -70,18 +70,18 @@ Future<void> main() async {
       ]);
       // Đăng ký các sync handlers cho offline sync sau khi Isar khởi tạo thành công
       SyncManager.instance
-          .registerSyncHandler(OrdersService.instance.syncPending);
+          .registerSyncHandler('orders', OrdersService.instance.syncPending);
+      SyncManager.instance.registerSyncHandler(
+          'timesheet', TimesheetService.instance.syncPending);
       SyncManager.instance
-          .registerSyncHandler(TimesheetService.instance.syncPending);
+          .registerSyncHandler('expense', ExpenseService.instance.syncPending);
       SyncManager.instance
-          .registerSyncHandler(ExpenseService.instance.syncPending);
-      SyncManager.instance
-          .registerSyncHandler(StockService.instance.syncPending);
-      SyncManager.instance
-          .registerSyncHandler(WorkOrderService.instance.syncPending);
+          .registerSyncHandler('stock', StockService.instance.syncPending);
+      SyncManager.instance.registerSyncHandler(
+          'workorder', WorkOrderService.instance.syncPending);
 
       // Đăng ký các sync handlers cho recurring lặp định kỳ
-      SyncManager.instance.registerSyncHandler(() async {
+      SyncManager.instance.registerSyncHandler('recurring', () async {
         try {
           await RecurringService.instance.fetchRecurringRules();
           await RecurringService.instance.generateOfflineInstances();
@@ -104,6 +104,9 @@ Future<void> main() async {
         // Schedule recurring reminders even on offline startup
         await RecurringNotificationService.instance
             .rescheduleAllRecurringReminders();
+        // Schedule upcoming visit reminders on app open
+        await RecurringNotificationService.instance
+            .rescheduleAllUpcomingReminders();
       }
 
       // Bắt đầu lắng nghe trạng thái mạng để tự động sync

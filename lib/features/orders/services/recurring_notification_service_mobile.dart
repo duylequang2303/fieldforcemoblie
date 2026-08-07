@@ -283,6 +283,77 @@ class RecurringNotificationService {
     return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
   }
 
+  static const int _upcomingReminderIdOffset = 100000000;
+
+  bool _shouldSkipUpcoming(FsmOrder order) {
+    return order.scheduledDateStart == null ||
+        order.stage == FsmOrderStage.done ||
+        order.stage == FsmOrderStage.cancelled ||
+        order.isSkipped;
+  }
+
+  String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> scheduleUpcomingReminders(List<FsmOrder> orders) async {
+    if (!_initialized) await init();
+    for (final order in orders) {
+      await scheduleUpcomingReminder(order);
+    }
+  }
+
+  Future<void> scheduleUpcomingReminder(FsmOrder order) async {
+    if (!_initialized) await init();
+    if (_shouldSkipUpcoming(order)) return;
+
+    final now = DateTime.now();
+    final scheduledStart = order.scheduledDateStart!;
+
+    if (scheduledStart.isBefore(now)) return;
+    if (scheduledStart.isAfter(now.add(const Duration(hours: 24)))) return;
+
+    final reminderTime = scheduledStart.subtract(const Duration(minutes: 30));
+    if (reminderTime.isBefore(now)) return;
+
+    await _scheduleNotification(
+      id: order.odooId + _upcomingReminderIdOffset,
+      title: 'Sắp có visit: ${order.locationAddress ?? order.name}',
+      body: 'Bắt đầu lúc ${_formatTime(scheduledStart)}',
+      scheduledDate: reminderTime,
+      payload: 'upcoming:${order.odooId}',
+    );
+  }
+
+  Future<void> cancelUpcomingReminder(int orderOdooId) async {
+    await _notifications.cancel(orderOdooId + _upcomingReminderIdOffset);
+  }
+
+  Future<void> rescheduleAllUpcomingReminders() async {
+    if (!_initialized) await init();
+
+    final now = DateTime.now();
+    final futureLimit = now.add(const Duration(hours: 24));
+
+    final upcomingOrders = await _isar.db.fsmOrders
+        .filter()
+        .scheduledDateStartGreaterThan(now)
+        .scheduledDateStartLessThan(futureLimit)
+        .and()
+        .not()
+        .stageEqualTo(FsmOrderStage.done)
+        .and()
+        .not()
+        .stageEqualTo(FsmOrderStage.cancelled)
+        .findAll();
+
+    for (final order in upcomingOrders) {
+      await scheduleUpcomingReminder(order);
+    }
+
+    logger.i('Rescheduled upcoming reminders for ${upcomingOrders.length} orders');
+  }
+
   /// Cleanup khi app đóng
   void dispose() {
     for (final timer in _pendingTimers.values) {

@@ -22,6 +22,22 @@ class RecurringNotificationService {
     // No-op trên Web
   }
 
+  Future<void> scheduleUpcomingReminders(List<FsmOrder> orders) async {
+    // No-op trên Web
+  }
+
+  Future<void> scheduleUpcomingReminder(FsmOrder order) async {
+    // No-op trên Web
+  }
+
+  Future<void> cancelUpcomingReminder(int orderOdooId) async {
+    // No-op trên Web
+  }
+
+  Future<void> rescheduleAllUpcomingReminders() async {
+    // No-op trên Web
+  }
+
   void dispose() {
     // No-op trên Web
   }
