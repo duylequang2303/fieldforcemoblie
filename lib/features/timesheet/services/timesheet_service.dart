@@ -19,18 +19,30 @@ class TimesheetService {
     return DateFormat('yyyy-MM-dd').format(date);
   }
 
-  /// Tải danh sách giờ công cho một đơn từ Isar local.
-  Future<List<TimesheetEntry>> getEntriesForOrder(int orderOdooId, {int limit = 100}) async {
+  Future<({List<TimesheetEntry> entries, bool hasMore})> getEntriesForOrder(
+    int orderOdooId, {
+    int offset = 0,
+    int limit = 100,
+  }) async {
     final currentUserId = _odoo.currentUserId;
-    if (currentUserId == null) return const <TimesheetEntry>[];
-    return _isar.db.timesheetEntrys
+    if (currentUserId == null) {
+      return (entries: const <TimesheetEntry>[], hasMore: false);
+    }
+    final entries = await _isar.db.timesheetEntrys
         .filter()
         .orderOdooIdEqualTo(orderOdooId)
         .and()
         .localOwnerIdEqualTo(currentUserId)
         .sortByDateDesc()
-        .limit(limit)
+        .offset(offset)
+        .limit(limit + 1)
         .findAll();
+
+    final hasMore = entries.length > limit;
+    if (hasMore) {
+      entries.removeLast();
+    }
+    return (entries: entries, hasMore: hasMore);
   }
 
   /// Thêm mới một dòng timesheet (offline-first).
@@ -61,21 +73,44 @@ class TimesheetService {
 
     // Cố gắng push lên Odoo ngay
     try {
-      final result = await _odoo.callKw(
+      int? remoteId;
+      final existingRemote = await _odoo.callKw(
         model: 'account.analytic.line',
-        method: 'create',
+        method: 'search_read',
         args: [
-          {
-            'name': description,
-            'date': _formatDate(date),
-            'unit_amount': hours,
-            'employee_id': _odoo.currentSession?.employeeId,
-            'fsm_order_id': orderOdooId,
-          },
+          [
+            '&',
+            ['employee_id', '=', _odoo.currentSession?.employeeId],
+            ['date', '=', _formatDate(date)],
+            ['fsm_order_id', '=', orderOdooId],
+            ['name', '=', description],
+            ['unit_amount', '=', hours],
+          ]
         ],
+        kwargs: {'fields': ['id'], 'limit': 1},
       );
+      if (existingRemote is List && existingRemote.isNotEmpty) {
+        remoteId = existingRemote.first['id'] as int?;
+      }
+
+      if (remoteId == null) {
+        remoteId = await _odoo.callKw(
+          model: 'account.analytic.line',
+          method: 'create',
+          args: [
+            {
+              'name': description,
+              'date': _formatDate(date),
+              'unit_amount': hours,
+              'employee_id': _odoo.currentSession?.employeeId,
+              'fsm_order_id': orderOdooId,
+            },
+          ],
+        ) as int?;
+      }
+
       await _isar.db.writeTxn(() async {
-        entry.odooId = result as int?;
+        entry.odooId = remoteId;
         entry.isPendingSync = false;
         await _isar.db.timesheetEntrys.put(entry);
       });
@@ -90,6 +125,8 @@ class TimesheetService {
   Future<void> syncPending() async {
     final currentUserId = _odoo.currentUserId;
     if (currentUserId == null) return;
+    final now = DateTime.now();
+
     final pending = await _isar.db.timesheetEntrys
         .filter()
         .isPendingSyncEqualTo(true)
@@ -98,6 +135,10 @@ class TimesheetService {
         .findAll();
 
     for (final entry in pending) {
+      if (entry.nextRetryAt != null && entry.nextRetryAt!.isAfter(now)) {
+        continue;
+      }
+
       final order = await _isar.db.fsmOrders.getByOdooId(entry.orderOdooId);
       if (order == null) {
         logger.w(
@@ -137,42 +178,70 @@ class TimesheetService {
         continue;
       }
 
+      int? remoteId;
       try {
-        final result = await _odoo.callKw(
+        final existingRemote = await _odoo.callKw(
           model: 'account.analytic.line',
-          method: 'create',
+          method: 'search_read',
           args: [
-            {
-              'name': entry.name,
-              'date': _formatDate(entry.date),
-              'unit_amount': entry.hours,
-              'employee_id': _odoo.currentSession?.employeeId,
-              'fsm_order_id': order.odooId,
-            },
+            [
+              '&',
+              ['employee_id', '=', _odoo.currentSession?.employeeId],
+              ['date', '=', _formatDate(entry.date)],
+              ['fsm_order_id', '=', order.odooId],
+              ['name', '=', entry.name],
+              ['unit_amount', '=', entry.hours],
+            ]
           ],
+          kwargs: {'fields': ['id'], 'limit': 1},
         );
+        if (existingRemote is List && existingRemote.isNotEmpty) {
+          remoteId = existingRemote.first['id'] as int?;
+        }
+
+        if (remoteId == null) {
+          remoteId = await _odoo.callKw(
+            model: 'account.analytic.line',
+            method: 'create',
+            args: [
+              {
+                'name': entry.name,
+                'date': _formatDate(entry.date),
+                'unit_amount': entry.hours,
+                'employee_id': _odoo.currentSession?.employeeId,
+                'fsm_order_id': order.odooId,
+              },
+            ],
+          ) as int?;
+        }
+
         await _isar.db.writeTxn(() async {
-          entry.odooId = result as int?;
+          entry.odooId = remoteId;
           entry.isPendingSync = false;
+          entry.syncRetryCount = 0;
+          entry.nextRetryAt = null;
           await _isar.db.timesheetEntrys.put(entry);
         });
-      } catch (e) {
+      } on OdooApiException catch (e) {
         entry.syncRetryCount++;
         if (entry.syncRetryCount >= 3) {
           await _isar.db.writeTxn(() async {
             entry.isSyncFailed = true;
             entry.isPendingSync = false;
+            entry.nextRetryAt = null;
             await _isar.db.timesheetEntrys.put(entry);
           });
           logger.w('TimesheetService.syncPending: permanently failed for entry ${entry.id}');
         } else {
+          final backoff = Duration(seconds: 1 << entry.syncRetryCount);
           await _isar.db.writeTxn(() async {
+            entry.nextRetryAt = now.add(backoff);
             await _isar.db.timesheetEntrys.put(entry);
           });
-          final backoffMs = 1000 * (1 << (entry.syncRetryCount - 1));
-          await Future.delayed(Duration(milliseconds: backoffMs)); // ignore: inference_failure_on_instance_creation
+          logger.w('TimesheetService.syncPending: failed (attempt ${entry.syncRetryCount}), retry at ${entry.nextRetryAt}', error: e);
         }
-        logger.w('TimesheetService.syncPending: failed (attempt ${entry.syncRetryCount})', error: e);
+      } catch (e) {
+        rethrow;
       }
     }
   }

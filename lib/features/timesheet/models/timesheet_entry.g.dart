@@ -42,24 +42,39 @@ const TimesheetEntrySchema = CollectionSchema(
       name: r'isPendingSync',
       type: IsarType.bool,
     ),
-    r'localOwnerId': PropertySchema(
+    r'isSyncFailed': PropertySchema(
       id: 5,
+      name: r'isSyncFailed',
+      type: IsarType.bool,
+    ),
+    r'localOwnerId': PropertySchema(
+      id: 6,
       name: r'localOwnerId',
       type: IsarType.long,
     ),
     r'name': PropertySchema(
-      id: 6,
+      id: 7,
       name: r'name',
       type: IsarType.string,
     ),
+    r'nextRetryAt': PropertySchema(
+      id: 8,
+      name: r'nextRetryAt',
+      type: IsarType.dateTime,
+    ),
     r'odooId': PropertySchema(
-      id: 7,
+      id: 9,
       name: r'odooId',
       type: IsarType.long,
     ),
     r'orderOdooId': PropertySchema(
-      id: 8,
+      id: 10,
       name: r'orderOdooId',
+      type: IsarType.long,
+    ),
+    r'syncRetryCount': PropertySchema(
+      id: 11,
+      name: r'syncRetryCount',
       type: IsarType.long,
     )
   },
@@ -131,10 +146,13 @@ void _timesheetEntrySerialize(
   writer.writeString(offsets[2], object.employeeName);
   writer.writeDouble(offsets[3], object.hours);
   writer.writeBool(offsets[4], object.isPendingSync);
-  writer.writeLong(offsets[5], object.localOwnerId);
-  writer.writeString(offsets[6], object.name);
-  writer.writeLong(offsets[7], object.odooId);
-  writer.writeLong(offsets[8], object.orderOdooId);
+  writer.writeBool(offsets[5], object.isSyncFailed);
+  writer.writeLong(offsets[6], object.localOwnerId);
+  writer.writeString(offsets[7], object.name);
+  writer.writeDateTime(offsets[8], object.nextRetryAt);
+  writer.writeLong(offsets[9], object.odooId);
+  writer.writeLong(offsets[10], object.orderOdooId);
+  writer.writeLong(offsets[11], object.syncRetryCount);
 }
 
 TimesheetEntry _timesheetEntryDeserialize(
@@ -150,10 +168,13 @@ TimesheetEntry _timesheetEntryDeserialize(
   object.hours = reader.readDouble(offsets[3]);
   object.id = id;
   object.isPendingSync = reader.readBool(offsets[4]);
-  object.localOwnerId = reader.readLongOrNull(offsets[5]);
-  object.name = reader.readString(offsets[6]);
-  object.odooId = reader.readLongOrNull(offsets[7]);
-  object.orderOdooId = reader.readLong(offsets[8]);
+  object.isSyncFailed = reader.readBool(offsets[5]);
+  object.localOwnerId = reader.readLongOrNull(offsets[6]);
+  object.name = reader.readString(offsets[7]);
+  object.nextRetryAt = reader.readDateTimeOrNull(offsets[8]);
+  object.odooId = reader.readLongOrNull(offsets[9]);
+  object.orderOdooId = reader.readLong(offsets[10]);
+  object.syncRetryCount = reader.readLong(offsets[11]);
   return object;
 }
 
@@ -175,12 +196,18 @@ P _timesheetEntryDeserializeProp<P>(
     case 4:
       return (reader.readBool(offset)) as P;
     case 5:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 6:
-      return (reader.readString(offset)) as P;
-    case 7:
       return (reader.readLongOrNull(offset)) as P;
+    case 7:
+      return (reader.readString(offset)) as P;
     case 8:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 9:
+      return (reader.readLongOrNull(offset)) as P;
+    case 10:
+      return (reader.readLong(offset)) as P;
+    case 11:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -905,6 +932,16 @@ extension TimesheetEntryQueryFilter
   }
 
   QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      isSyncFailedEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isSyncFailed',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
       localOwnerIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1115,6 +1152,80 @@ extension TimesheetEntryQueryFilter
   }
 
   QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      nextRetryAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'nextRetryAt',
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      nextRetryAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'nextRetryAt',
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      nextRetryAtEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'nextRetryAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      nextRetryAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'nextRetryAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      nextRetryAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'nextRetryAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      nextRetryAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'nextRetryAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
       odooIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1243,6 +1354,62 @@ extension TimesheetEntryQueryFilter
       ));
     });
   }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      syncRetryCountEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'syncRetryCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      syncRetryCountGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'syncRetryCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      syncRetryCountLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'syncRetryCount',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      syncRetryCountBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'syncRetryCount',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
 }
 
 extension TimesheetEntryQueryObject
@@ -1319,6 +1486,20 @@ extension TimesheetEntryQuerySortBy
   }
 
   QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      sortByIsSyncFailed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSyncFailed', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      sortByIsSyncFailedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSyncFailed', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
       sortByLocalOwnerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'localOwnerId', Sort.asc);
@@ -1341,6 +1522,20 @@ extension TimesheetEntryQuerySortBy
   QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy> sortByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      sortByNextRetryAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextRetryAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      sortByNextRetryAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextRetryAt', Sort.desc);
     });
   }
 
@@ -1368,6 +1563,20 @@ extension TimesheetEntryQuerySortBy
       sortByOrderOdooIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'orderOdooId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      sortBySyncRetryCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncRetryCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      sortBySyncRetryCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncRetryCount', Sort.desc);
     });
   }
 }
@@ -1452,6 +1661,20 @@ extension TimesheetEntryQuerySortThenBy
   }
 
   QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      thenByIsSyncFailed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSyncFailed', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      thenByIsSyncFailedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isSyncFailed', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
       thenByLocalOwnerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'localOwnerId', Sort.asc);
@@ -1474,6 +1697,20 @@ extension TimesheetEntryQuerySortThenBy
   QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy> thenByNameDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'name', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      thenByNextRetryAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextRetryAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      thenByNextRetryAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'nextRetryAt', Sort.desc);
     });
   }
 
@@ -1501,6 +1738,20 @@ extension TimesheetEntryQuerySortThenBy
       thenByOrderOdooIdDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'orderOdooId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      thenBySyncRetryCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncRetryCount', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      thenBySyncRetryCountDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'syncRetryCount', Sort.desc);
     });
   }
 }
@@ -1541,6 +1792,13 @@ extension TimesheetEntryQueryWhereDistinct
   }
 
   QueryBuilder<TimesheetEntry, TimesheetEntry, QDistinct>
+      distinctByIsSyncFailed() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isSyncFailed');
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QDistinct>
       distinctByLocalOwnerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'localOwnerId');
@@ -1554,6 +1812,13 @@ extension TimesheetEntryQueryWhereDistinct
     });
   }
 
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QDistinct>
+      distinctByNextRetryAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'nextRetryAt');
+    });
+  }
+
   QueryBuilder<TimesheetEntry, TimesheetEntry, QDistinct> distinctByOdooId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'odooId');
@@ -1564,6 +1829,13 @@ extension TimesheetEntryQueryWhereDistinct
       distinctByOrderOdooId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'orderOdooId');
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QDistinct>
+      distinctBySyncRetryCount() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'syncRetryCount');
     });
   }
 }
@@ -1607,6 +1879,12 @@ extension TimesheetEntryQueryProperty
     });
   }
 
+  QueryBuilder<TimesheetEntry, bool, QQueryOperations> isSyncFailedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isSyncFailed');
+    });
+  }
+
   QueryBuilder<TimesheetEntry, int?, QQueryOperations> localOwnerIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'localOwnerId');
@@ -1619,6 +1897,13 @@ extension TimesheetEntryQueryProperty
     });
   }
 
+  QueryBuilder<TimesheetEntry, DateTime?, QQueryOperations>
+      nextRetryAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'nextRetryAt');
+    });
+  }
+
   QueryBuilder<TimesheetEntry, int?, QQueryOperations> odooIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'odooId');
@@ -1628,6 +1913,12 @@ extension TimesheetEntryQueryProperty
   QueryBuilder<TimesheetEntry, int, QQueryOperations> orderOdooIdProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'orderOdooId');
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, int, QQueryOperations> syncRetryCountProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'syncRetryCount');
     });
   }
 }

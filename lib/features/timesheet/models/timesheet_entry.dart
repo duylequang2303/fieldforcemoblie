@@ -25,6 +25,9 @@ class TimesheetEntry {
   String? employeeName; // Tên nhân viên
 
   late bool isPendingSync;
+  int syncRetryCount = 0;
+  bool isSyncFailed = false;
+  DateTime? nextRetryAt;
   late DateTime createdAt;
 
   TimesheetEntry();
