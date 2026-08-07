@@ -25,6 +25,10 @@ class TimesheetEntry {
   String? employeeName; // Tên nhân viên
 
   late bool isPendingSync;
+  int syncRetryCount = 0;
+  bool isSyncFailed = false;
+  DateTime? nextRetryAt;
+  late DateTime lastSyncAt;
   late DateTime createdAt;
 
   TimesheetEntry();
@@ -43,6 +47,7 @@ class TimesheetEntry {
       ..name = description
       ..employeeName = employeeName
       ..isPendingSync = true
+      ..lastSyncAt = DateTime.now()
       ..createdAt = DateTime.now();
   }
 }
