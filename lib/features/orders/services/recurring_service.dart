@@ -164,6 +164,7 @@ class RecurringService {
           .findAll();
 
       int count = 0;
+      final freqSetCache = <int, FsmFrequencySet>{};
       for (final rule in activeRules) {
         if (rule.nextDate == null) continue;
 
@@ -172,11 +173,21 @@ class RecurringService {
           continue;
         }
 
-        // Lấy frequency set tương ứng
-        final freqSet = await _isar.db.fsmFrequencySets
-            .filter()
-            .odooIdEqualTo(rule.frequencySetId)
-            .findFirst();
+        if (rule.frequencySetId <= 0) {
+          logger.w('RecurringRule ${rule.odooId} has invalid frequencySetId ${rule.frequencySetId}');
+          continue;
+        }
+
+        FsmFrequencySet? freqSet = freqSetCache[rule.frequencySetId];
+        if (freqSet == null) {
+          freqSet = await _isar.db.fsmFrequencySets
+              .filter()
+              .odooIdEqualTo(rule.frequencySetId)
+              .findFirst();
+          if (freqSet != null) {
+            freqSetCache[rule.frequencySetId] = freqSet;
+          }
+        }
 
         if (freqSet == null) {
           logger.w('RecurringRule ${rule.odooId} missing frequency set ${rule.frequencySetId}');

@@ -60,7 +60,7 @@
 | SCH-PERF-001 | ScheduleScreen reloads all orders on mỗi filter change | `schedule_screen.dart` lines 77-104 | 🟡 Medium | ✅ Fixed | `_filteredOrders` giờ memoized, chỉ recompute khi inputs thay đổi |
 | SCH-PERF-002 | RecurringCalendar rebuilds entire grid | `recurring_calendar.dart` lines 122-210 | 🟡 Medium | ⏸️ Skipped | Cần `RepaintBoundary` optimization sau |
 | SCH-PERF-003 | Properties list load 100 items không pagination | `properties_service.dart` line 35 | 🟡 Medium | ⏸️ Skipped | Limit 100 là acceptable cho hiện tại |
-| SCH-PERF-004 | Multiple Isar queries trong RecurringService | `recurring_service.dart` lines 167-263 | 🟠 High | ⏸️ Skipped | N+1 query pattern - cần batch optimization |
+| SCH-PERF-004 | Multiple Isar queries trong RecurringService | `recurring_service.dart` lines 167-263 | 🟠 High | ✅ Fixed | `generateOfflineInstances()` giờ cache frequency sets trong loop, tránh N+1 query lặp lại |
 | SCH-PERF-005 | ScheduleScreen show stale data briefly | `schedule_screen.dart` lines 43-56 | 🟡 Medium | ✅ Fixed | Đã show cached data immediately, fetch background |
 
 ### Offline/Sync Bugs
@@ -125,6 +125,7 @@
 
 ### Phase 3b: Performance
 28. ✅ **SCH-PERF-001**: Memoize `_filteredOrders` — chỉ recompute khi filter inputs thay đổi
+29. ✅ **SCH-PERF-004**: Cache frequency sets trong `generateOfflineInstances()` loop, tránh N+1 query lặp lại
 
 ### Phase 3c: Sync UI
 29. ✅ **SCH-SYNC-002**: Thêm nút "Sync Now" với badge đếm pending orders trong `ScheduleTopBar`
@@ -138,7 +139,6 @@
 - SCH-SYNC-004: Conflict resolution enhancement
 
 ### Medium Priority
-- SCH-PERF-004: Batch Isar queries trong RecurringService
 - SCH-UI-010: Materials/Timesheet integration với real data
 - SCH-LOGIC-008: Real pricing instead of $50/hr mock
 
@@ -173,9 +173,9 @@
 |----------|-------|-------|-----------|
 | UI/UX | 10 | 10 | 0 |
 | Logic/Functional | 14 | 14 | 0 |
-| Performance | 5 | 2 | 3 |
+| Performance | 5 | 3 | 2 |
 | Offline/Sync | 5 | 2 | 3 |
 | Navigation/State | 8 | 8 | 0 |
-| **Total** | **42** | **36** | **6** |
+| **Total** | **42** | **37** | **5** |
 
-**Tỷ lệ hoàn thành**: 36/42 = **86%**
+**Tỷ lệ hoàn thành**: 37/42 = **88%**
