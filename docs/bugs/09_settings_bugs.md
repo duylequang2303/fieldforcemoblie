@@ -81,7 +81,7 @@
 
 **File**: `lib/features/settings/pages/settings_page.dart`
 
-**Code hiện tại (lines 118-156)**:
+**Code hiện tại (đã fix)**:
 ```dart
 Future<void> _onSyncNow() async {
   if (OdooSessionManager.instance.currentUserId == null) {
@@ -93,23 +93,40 @@ Future<void> _onSyncNow() async {
   setState(() => _isSyncing = true);
   try {
     // ✅ Chỉ gọi syncPending - SyncManager sẽ chạy TẤT CẢ handlers đã đăng ký
-    await SyncManager.instance.syncPending();
+    final failures = await SyncManager.instance.syncPending();
+    
+    // ✅ Chỉ lưu timestamp và báo thành công khi TẤT CẢ handlers đều thành công
+    if (failures.isEmpty) {
+      await SettingsRepository.instance.saveLastSyncedAt(DateTime.now());
+      await _sync.refresh();
 
-    await SettingsRepository.instance.saveLastSyncedAt(DateTime.now());
-    await _sync.refresh();
-
-    if (!mounted) return;
-    final stillPending = _sync.pendingCount;
-    if (stillPending > 0) {
+      if (!mounted) return;
+      final stillPending = _sync.pendingCount;
+      if (stillPending > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Synced, but $stillPending change(s) still pending.'),
+            backgroundColor: SfTokens.warning,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Synced successfully.')),
+        );
+      }
+    } else {
+      // Có handler thất bại
+      if (kDebugMode) {
+        for (final (name, error) in failures) {
+          debugPrint('SyncManager: handler "$name" failed: $error');
+        }
+      }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Synced, but $stillPending change(s) still pending.'),
-          backgroundColor: SfTokens.warning,
+          content: Text('Sync partially failed: ${failures.length} handler(s) errored.'),
+          backgroundColor: SfTokens.error,
         ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Synced successfully.')),
       );
     }
   } catch (e) {
@@ -124,40 +141,11 @@ Future<void> _onSyncNow() async {
 }
 ```
 
-**Fix**: Chỉ gọi `SyncManager.instance.syncPending()` - nó sẽ chạy tất cả handlers (Orders, Stock, Timesheet, Expense, WorkOrder, Recurring). `fetchMyOrders()` đã được đăng ký như một handler trong `main.dart` (nếu cần) hoặc gọi riêng trong auto-sync flow.
-
-```dart
-Future<void> _onSyncNow() async {
-  if (OdooSessionManager.instance.currentUserId == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Not signed in.')),
-    );
-    return;
-  }
-  setState(() => _isSyncing = true);
-  try {
-    // ✅ Chỉ gọi syncPending - SyncManager sẽ chạy TẤT CẢ handlers đã đăng ký
-    await SyncManager.instance.syncPending();
-    
-    // ✅ Lưu timestamp sau khi sync xong (cả auto và manual)
-    await SettingsRepository.instance.saveLastSyncedAt(DateTime.now());
-    await _sync.refresh();
-    
-    if (!mounted) return;
-    final stillPending = _sync.pendingCount;
-    if (stillPending > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Synced, but $stillPending change(s) still pending.'),
-          backgroundColor: SfTokens.warning,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Synced successfully.')),
-      );
-    }
-  } catch (e) {
+**Fix đã áp dụng**: 
+- `_onSyncNow()` chỉ gọi `SyncManager.instance.syncPending()` (trả về list failures)
+- `SyncManager._runHandlers()` thu thập tất cả lỗi từ các handler
+- Chỉ ghi `lastSyncedAt` và báo thành công khi TẤT CẢ handlers thành công
+- `SyncManager.syncPending()` trả về `List<(String, Object)>` - danh sách (tên handler, lỗi)
     logger.e('_onSyncNow failed', error: e);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
