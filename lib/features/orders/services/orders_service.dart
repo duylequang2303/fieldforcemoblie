@@ -88,7 +88,7 @@ class OrdersService {
       final rawList = await _odoo.callKw(
         model: 'fsm.stage',
         method: 'search_read',
-        args: [[]],
+        args: [<dynamic>[]],
         kwargs: {
           'fields': ['id', 'name']
         },
@@ -440,6 +440,7 @@ class OrdersService {
       await _isar.db.writeTxn(() async {
         _updateStageFields(local, newStageId);
         local.isPendingSync = true;
+        local.isStagePendingSync = true;
         await _isar.db.fsmOrders.put(local);
       });
     }
@@ -457,6 +458,7 @@ class OrdersService {
       if (local != null) {
         await _isar.db.writeTxn(() async {
           local.isPendingSync = false;
+          local.isStagePendingSync = false;
           await _isar.db.fsmOrders.put(local);
         });
       }
@@ -502,6 +504,7 @@ class OrdersService {
           local.stageId = doneStageId;
         }
         local.isPendingSync = true;
+        local.isStagePendingSync = true;
         await _isar.db.fsmOrders.put(local);
       });
       if (!wasCompleted) {
@@ -532,6 +535,7 @@ class OrdersService {
       if (local != null) {
         await _isar.db.writeTxn(() async {
           local.isPendingSync = false;
+          local.isStagePendingSync = false;
           await _isar.db.fsmOrders.put(local);
         });
       }
@@ -640,8 +644,13 @@ class OrdersService {
   }
 
   Future<int> pendingSyncCount() async {
-    final pending =
-        await _isar.db.fsmOrders.filter().isPendingSyncEqualTo(true).findAll();
+    final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) return 0;
+    final pending = await _isar.db.fsmOrders
+        .filter()
+        .localOwnerIdEqualTo(currentUserId)
+        .isPendingSyncEqualTo(true)
+        .findAll();
     return pending.length;
   }
 
@@ -649,8 +658,13 @@ class OrdersService {
   /// Đơn completed → gọi action_complete thay vì write stage_id raw.
   /// Đơn khác → write field data (stage_id, date_start, date_end) sang UTC.
   Future<void> syncPending() async {
-    final pending =
-        await _isar.db.fsmOrders.filter().isPendingSyncEqualTo(true).findAll();
+    final currentUserId = _odoo.currentUserId;
+    if (currentUserId == null) return;
+    final pending = await _isar.db.fsmOrders
+        .filter()
+        .localOwnerIdEqualTo(currentUserId)
+        .isPendingSyncEqualTo(true)
+        .findAll();
 
     for (final order in pending) {
       try {
@@ -747,6 +761,7 @@ class OrdersService {
         if (!isSkippedRejected) {
           await _isar.db.writeTxn(() async {
             order.isPendingSync = false;
+            order.isStagePendingSync = false;
             await _isar.db.fsmOrders.put(order);
           });
         } else {
@@ -795,6 +810,7 @@ class OrdersService {
             .odooIdLessThan(0)
             .recurringIdEqualTo(odooOrder.recurringId!)
             .scheduledDateStartEqualTo(odooOrder.scheduledDateStart)
+            .localOwnerIdEqualTo(currentUserId)
             .findFirst();
 
         if (localOnly != null) {
@@ -828,6 +844,7 @@ class OrdersService {
       final allLocalOrders = await isar.fsmOrders
           .filter()
           .odooIdGreaterThan(0)
+          .localOwnerIdEqualTo(currentUserId)
           .findAll();
 
       // Build set of server odooIds for quick lookup
@@ -849,7 +866,8 @@ class OrdersService {
             localOrder.stage != FsmOrderStage.draft;
 
         // Check if server has newer data (server's lastSyncAt would be updated on fetch)
-        final serverIsNewer = serverOrder.lastSyncAt.isAfter(localOrder.lastSyncAt);
+        final serverIsNewer =
+            serverOrder.lastSyncAt.isAfter(localOrder.lastSyncAt);
 
         if (localOrder.isPendingSync && localHasPendingChanges) {
           // Local has uncommitted changes - keep local, mark for sync
@@ -862,10 +880,12 @@ class OrdersService {
             localOrder.scheduledDateStart = serverOrder.scheduledDateStart;
             localOrder.scheduledDateEnd = serverOrder.scheduledDateEnd;
           }
-          // Update server's non-conflicting metadata
-          localOrder.stageId = serverOrder.stageId;
-          localOrder.stageName = serverOrder.stageName;
-          localOrder.stage = serverOrder.stage;
+          // Update server's non-conflicting metadata (preserve local stage when pending)
+          if (!localOrder.isStagePendingSync) {
+            localOrder.stageId = serverOrder.stageId;
+            localOrder.stageName = serverOrder.stageName;
+            localOrder.stage = serverOrder.stage;
+          }
           localOrder.personId = serverOrder.personId;
           localOrder.personName = serverOrder.personName;
           localOrder.priority = serverOrder.priority;
@@ -877,7 +897,8 @@ class OrdersService {
           await isar.fsmOrders.put(localOrder);
 
           // Replace in cleanOrders
-          final idx = cleanOrders.indexWhere((o) => o.odooId == localOrder.odooId);
+          final idx =
+              cleanOrders.indexWhere((o) => o.odooId == localOrder.odooId);
           if (idx != -1) cleanOrders[idx] = localOrder;
         } else if (serverIsNewer && !localHasPendingChanges) {
           // Server has newer data and local has no pending changes - use server
@@ -887,15 +908,18 @@ class OrdersService {
           await isar.fsmOrders.put(serverOrder);
 
           // Replace in cleanOrders
-          final idx = cleanOrders.indexWhere((o) => o.odooId == serverOrder.odooId);
+          final idx =
+              cleanOrders.indexWhere((o) => o.odooId == serverOrder.odooId);
           if (idx != -1) cleanOrders[idx] = serverOrder;
         } else {
           // Local has changes but not pending sync, or timestamps equal - keep local but update non-conflicting server fields
           logger.i(
               'Conflict Resolution: Order ${localOrder.odooId} - keeping local, merging server metadata.');
-          localOrder.stageId = serverOrder.stageId;
-          localOrder.stageName = serverOrder.stageName;
-          localOrder.stage = serverOrder.stage;
+          if (!localOrder.isStagePendingSync) {
+            localOrder.stageId = serverOrder.stageId;
+            localOrder.stageName = serverOrder.stageName;
+            localOrder.stage = serverOrder.stage;
+          }
           localOrder.personId = serverOrder.personId;
           localOrder.personName = serverOrder.personName;
           localOrder.priority = serverOrder.priority;
@@ -904,23 +928,32 @@ class OrdersService {
           localOrder.routeState = serverOrder.routeState;
           localOrder.lastSyncAt = DateTime.now();
           await isar.fsmOrders.put(localOrder);
+
+          // Replace in cleanOrders
+          final idx =
+              cleanOrders.indexWhere((o) => o.odooId == localOrder.odooId);
+          if (idx != -1) cleanOrders[idx] = localOrder;
         }
       }
 
       // 3. Handle local orders that server deleted (exist locally but not in server response)
       // Reuse allLocalOrders from earlier
-      final allLocalOrdersWithOdooId = allLocalOrders.where((o) => o.odooId > 0).toList();
+      final allLocalOrdersWithOdooId =
+          allLocalOrders.where((o) => o.odooId > 0).toList();
       final fetchedOdooIds = serverOdooIds;
 
       for (final localOrder in allLocalOrdersWithOdooId) {
         if (!fetchedOdooIds.contains(localOrder.odooId)) {
           // Server doesn't have this order anymore - it was deleted on server
-          if (localOrder.isPendingSync || localOrder.dateStart != null || localOrder.isSkipped) {
-            // Local has work - keep but mark for deletion sync
+          if (localOrder.isPendingSync ||
+              localOrder.dateStart != null ||
+              localOrder.isSkipped) {
+            // Local has work - keep record as cancelled, do not queue sync
             logger.i(
-                'Conflict Resolution: Server deleted order ${localOrder.odooId} but local has work. Marking for deletion sync.');
-            localOrder.isPendingSync = true;
+                'Conflict Resolution: Server deleted order ${localOrder.odooId} but local has work. Retaining cancelled local record.');
             localOrder.stage = FsmOrderStage.cancelled;
+            localOrder.isPendingSync = false;
+            localOrder.isStagePendingSync = false;
             await isar.fsmOrders.put(localOrder);
           } else {
             // Local is clean - safe to delete locally

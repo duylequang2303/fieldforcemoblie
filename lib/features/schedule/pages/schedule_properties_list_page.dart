@@ -17,7 +17,7 @@ class _SchedulePropertiesListPageState
     extends State<SchedulePropertiesListPage> {
   final TextEditingController _search = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  
+
   List<ScheduleProperty> _all = [];
   List<ScheduleProperty> _filtered = [];
   bool _loading = true;
@@ -94,28 +94,32 @@ class _SchedulePropertiesListPageState
 
   Future<void> _loadMore() async {
     if (_loadingMore || !_hasMore || _loading) return;
-    
+
     setState(() => _loadingMore = true);
-    
+
     try {
       _currentPage++;
       final nextPage = await PropertiesService.instance
           .fetchPropertiesPaginated(page: _currentPage);
-      
+
       if (!mounted) return;
-      
+
       setState(() {
         if (nextPage.isEmpty) {
           _hasMore = false;
         } else {
           _all.addAll(nextPage);
-          _filtered = _search.text.isEmpty 
-              ? _all 
+          _filtered = _search.text.isEmpty
+              ? _all
               : _all.where((p) => _matchesSearch(p)).toList();
           _hasMore = nextPage.length >= PropertiesService.defaultPageSize;
         }
         _loadingMore = false;
       });
+
+      if (_filtered.isEmpty && _hasMore && _search.text.trim().isNotEmpty) {
+        _loadMore();
+      }
     } catch (e) {
       logger.e('PropertiesListPage: failed to load more', error: e);
       if (!mounted) return;
@@ -131,17 +135,24 @@ class _SchedulePropertiesListPageState
         p.suburb.toLowerCase().contains(q);
   }
 
-void _onSearch(String q) {
+  void _onSearch(String q) {
     setState(() {
       if (q.trim().isEmpty) {
         _filtered = _all;
       } else {
         final s = q.trim().toLowerCase();
-        _filtered = _all.where((p) =>
-            p.address.toLowerCase().contains(s) ||
-            p.ownerName.toLowerCase().contains(s) ||
-            p.suburb.toLowerCase().contains(s)
-        ).toList();
+        _filtered = _all
+            .where((p) =>
+                p.address.toLowerCase().contains(s) ||
+                p.ownerName.toLowerCase().contains(s) ||
+                p.suburb.toLowerCase().contains(s))
+            .toList();
+      }
+      if (_filtered.isEmpty &&
+          _hasMore &&
+          !_loadingMore &&
+          q.trim().isNotEmpty) {
+        _loadMore();
       }
     });
   }
@@ -237,7 +248,7 @@ void _onSearch(String q) {
         ),
       );
     }
-    if (_filtered.isEmpty) {
+    if (_filtered.isEmpty && !_hasMore) {
       return Center(
           child: Text('No properties found', style: TextStyle(color: muted)));
     }
@@ -281,7 +292,8 @@ void _onSearch(String q) {
               ),
             ),
             trailing: Icon(Icons.chevron_right, color: weak),
-            onTap: () => context.push('/schedule-properties/${p.odooId}', extra: p),
+            onTap: () =>
+                context.push('/schedule-properties/${p.odooId}', extra: p),
           );
         },
       ),

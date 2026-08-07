@@ -23,6 +23,7 @@
 ## 🐛 Danh sách Bugs
 
 ### UI/UX Bugs
+
 | ID | Mô tả bug | File/Widget | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|-------------|--------|------------|---------|
 | SCH-UI-001 | Duplicate Schedule implementations (mock + real) gây confusion | `schedule_page.dart` vs `schedule_screen.dart` | 🔴 Critical | ✅ Fixed | Đã xóa `schedule_page.dart`, giữ `ScheduleScreen` làm single source of truth. Commit `391c490` |
@@ -37,6 +38,7 @@
 | SCH-UI-010 | ScheduleMaterialsPage và ScheduleTimesheetPage hardcoded controllers | `schedule_materials_page.dart`, `schedule_timesheet_page.dart` | 🟠 High | ✅ Fixed | Đã xóa cả 2 pages dead code, không còn hardcoded controllers |
 
 ### Logic/Functional Bugs
+
 | ID | Mô tả bug | File/Function | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|---------------|--------|------------|---------|
 | SCH-LOGIC-001 | Filter không exclude `isRecurringProcessed` orders | `schedule_screen.dart` line 79 | 🟠 High | ✅ Fixed | Thêm `order.isRecurringProcessed` vào filter condition. Commit `391c490` |
@@ -55,6 +57,7 @@
 | SCH-LOGIC-014 | No timezone handling cho scheduled dates | `schedule_screen.dart` lines 81-83 | 🟠 High | ✅ Fixed | Date comparison đã dùng UTC-safe `DateTime.utc(...)` để tránh lệch ngày khi timezone khác UTC |
 
 ### Performance/Memory Bugs
+
 | ID | Mô tả bug | File/Location | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|---------------|--------|------------|---------|
 | SCH-PERF-001 | ScheduleScreen reloads all orders on mỗi filter change | `schedule_screen.dart` lines 77-104 | 🟡 Medium | ✅ Fixed | `_filteredOrders` giờ memoized, chỉ recompute khi inputs thay đổi |
@@ -64,6 +67,7 @@
 | SCH-PERF-005 | ScheduleScreen show stale data briefly | `schedule_screen.dart` lines 43-56 | 🟡 Medium | ✅ Fixed | Đã show cached data immediately, fetch background |
 
 ### Offline/Sync Bugs
+
 | ID | Mô tả bug | File/Location | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|---------------|--------|------------|---------|
 | SCH-SYNC-001 | No offline indicator trên ScheduleScreen | `schedule_screen.dart` | 🟠 High | ✅ Fixed | `ScheduleTopBar` giờ có offline `wifi_off_rounded` icon khi `_isOffline = true`. Commit `1cbb85e` |
@@ -73,6 +77,7 @@
 | SCH-SYNC-005 | Properties không cached offline | `properties_service.dart`, `schedule_properties_list_page.dart` | 🟠 High | ✅ Fixed | Thêm Isar caching cho properties: offline-first load từ cache, sync Odoo nền, update cache. ScheduleProperty thành Isar collection. |
 
 ### Navigation/State Bugs
+
 | ID | Mô tả bug | File/Location | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|---------------|--------|------------|---------|
 | SCH-NAV-001 | Two Schedule routes trong router | `app_router.dart` lines 90-96, 219-223 | 🔴 Critical | ✅ Fixed | Đã xóa `/schedule` route, chỉ giữ `ScheduleScreen` qua AppShell. Commit `391c490` |
@@ -128,13 +133,12 @@
 29. ✅ **SCH-PERF-004**: Cache frequency sets trong `generateOfflineInstances()` loop, tránh N+1 query lặp lại
 
 ### Phase 3c: Sync UI
-29. ✅ **SCH-SYNC-002**: Thêm nút "Sync Now" với badge đếm pending orders trong `ScheduleTopBar`
+30. ✅ **SCH-SYNC-002**: Thêm nút "Sync Now" với badge đếm pending orders trong `ScheduleTopBar`
 
 ### Phase 3d: UX Polish
-30. ✅ **SCH-UI-005**: "All" filter chip hiển thị số lượng filter đang active, ví dụ "All (3)"
+31. ✅ **SCH-UI-005**: "All" filter chip hiển thị số lượng filter đang active, ví dụ "All (3)"
 
 ### Phase 3e: Already Fixed / Existing Implementation
-31. ✅ **SCH-UI-009**: Đã xóa `ScheduleDetailPage` dead code
 32. ✅ **SCH-SYNC-003**: `fetchRecurringRules()` đã đăng ký với `SyncManager`, auto-sync định kỳ
 33. ✅ **SCH-NAV-005**: Route `/work-order/:orderId` đã tồn tại trong router
 34. ✅ **SCH-NAV-007**: State được giữ trong `_ScheduleScreenState`, AppShell dùng `IndexedStack`
@@ -159,15 +163,15 @@
 
 ---
 
-## 📝 Các vùng đã kiểm tra
+## 📝 Các vùng đã kiểm tra & Future Features (chưa prioritize)
 - [x] Schedule list: filter by date, status, property
 - [x] Schedule detail: check-in/out, navigation to property
-- [ ] Materials management cho schedule — dead code đã xóa, **cần implement integration với order data** (future feature)
+- [ ] Materials management cho schedule — dead code đã xóa, **cần implement integration với order data** (future feature, chưa prioritize)
 - [x] Properties list & detail — đang dùng real data từ Odoo
-- [ ] Timesheet integration trong schedule — dead code đã xóa, **cần thêm orderId parameter** (future feature)
+- [ ] Timesheet integration trong schedule — dead code đã xóa, **cần thêm orderId parameter** (future feature, chưa prioritize)
 - [x] Offline schedule data -> sync — có offline indicator + cached data
 - [x] Recurring schedule từ orders — có RecurringCalendar + generateOfflineInstances
-- [ ] Notification/reminder cho upcoming visits — **chưa implement** (future feature)
+- [ ] Notification/reminder cho upcoming visits — **chưa implement** (future feature, chưa prioritize)
 - [x] Map integration (directions to property) — có trong ScheduleCard + WorkOrderDetailScreen
 
 ---
@@ -183,4 +187,4 @@
 | Navigation/State | 8 | 8 | 0 |
 | **Total** | **42** | **42** | **0** |
 
-**Tỷ lệ hoàn thành**: 42/42 = **100%****
+**Tỷ lệ hoàn thành**: 42/42 = **100%**

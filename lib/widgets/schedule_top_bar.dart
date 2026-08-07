@@ -375,7 +375,7 @@ class _SyncBadgeButton extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          Icon(Icons.sync, color: SfTokens.surface, size: SfTokens.iconMd),
+          Icon(Icons.sync, color: Theme.of(context).colorScheme.onPrimary, size: SfTokens.iconMd),
           if (count > 0)
             Positioned(
               right: -6,
@@ -388,8 +388,8 @@ class _SyncBadgeButton extends StatelessWidget {
                 ),
                 child: Text(
                   '$count',
-                  style: const TextStyle(
-                    color: SfTokens.surface,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onError,
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                   ),
