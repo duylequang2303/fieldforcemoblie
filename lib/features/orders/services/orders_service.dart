@@ -460,9 +460,15 @@ class OrdersService {
       if (local.stage == FsmOrderStage.done || local.stage == FsmOrderStage.cancelled) {
         try {
           await RecurringNotificationService.instance.cancelUpcomingReminder(odooId);
+        } catch (e, stackTrace) {
+          logger.e('Failed to cancel upcoming reminder on stage update',
+              error: e, stackTrace: stackTrace);
+        }
+        try {
           await RecurringNotificationService.instance.cancelOrderReminders(odooId);
         } catch (e, stackTrace) {
-          logger.e('Failed to cancel reminders on stage update', error: e, stackTrace: stackTrace);
+          logger.e('Failed to cancel order reminders on stage update',
+              error: e, stackTrace: stackTrace);
         }
       }
     }
@@ -544,9 +550,15 @@ class OrdersService {
       // Cancel upcoming and recurring reminders since order is now done
       try {
         await RecurringNotificationService.instance.cancelUpcomingReminder(odooId);
+      } catch (e, stackTrace) {
+        logger.e('Failed to cancel upcoming reminder on completion',
+            error: e, stackTrace: stackTrace);
+      }
+      try {
         await RecurringNotificationService.instance.cancelOrderReminders(odooId);
       } catch (e, stackTrace) {
-        logger.e('Failed to cancel reminders on completion', error: e, stackTrace: stackTrace);
+        logger.e('Failed to cancel order reminders on completion',
+            error: e, stackTrace: stackTrace);
       }
     }
 

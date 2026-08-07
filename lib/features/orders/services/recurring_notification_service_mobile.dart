@@ -301,7 +301,12 @@ class RecurringNotificationService {
   Future<void> scheduleUpcomingReminders(List<FsmOrder> orders) async {
     if (!_initialized) await init();
     for (final order in orders) {
-      await scheduleUpcomingReminder(order);
+      try {
+        await scheduleUpcomingReminder(order);
+      } catch (e, stackTrace) {
+        logger.e('Failed to schedule upcoming reminder for order ${order.odooId}',
+            error: e, stackTrace: stackTrace);
+      }
     }
   }
 
