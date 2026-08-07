@@ -484,6 +484,10 @@ class OrdersService {
         throw StateError(
             'Đơn hàng đã hoàn thành, bị huỷ hoặc bỏ qua. Không thể hoàn thành.');
       }
+      if (local.stage != FsmOrderStage.inProgress) {
+        throw StateError(
+            'Đơn hàng không ở trạng thái "In Progress". Không thể hoàn thành.');
+      }
     }
     final doneStageId = await getCompletedStageId() ??
         await getStageIdByKeywords(['done', 'completed']);

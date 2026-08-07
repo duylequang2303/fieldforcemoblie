@@ -52,7 +52,7 @@
 | WO-FORM-001 | Không có client-side validation required fields. `WorkOrderPage` cho phép qua Step 2/3 mà không cần `workDone`. Submit button chỉ disable bởi `isComplete` không validate ảnh | `lib/features/work_order/pages/work_order_page.dart:452` | High | 🟢 Closed | Nút "Tiếp theo" giờ disable nếu step hiện tại chưa valid (workDone + ảnh nếu required) |
 | WO-FORM-002 | Validation customer name signature không nhất quán: `CustomerSignatureWidget` validate ở confirm (line 163-167), `WorkOrderDetailScreen` validate riêng (line 466-468) | `lib/features/work_order/widgets/customer_signature_widget.dart:163` | Medium | 🔴 Open | Chưa unify. Cả 2 nơi đều validate nhưng logic vẫn tách biệt |
 | WO-FORM-003 | Không giới hạn số lượng ảnh, không validate file size. User có thể thêm unlimited large photos gây OOM hoặc sync fail | `lib/features/work_order/widgets/photo_capture_widget.dart` | Medium | 🟢 Closed | Giới hạn 10 ảnh, reject file > 10MB |
-| WO-FORM-004 | `completeOrder` có thể gọi từ bất kỳ stage nào, không kiểm tra order đang ở `inProgress` trước khi complete | `lib/screens/work_order_detail_screen.dart:503` | Medium | 🟢 Closed | `_onComplete` giờ guard bằng `_isClosed` trước khi xử lý |
+| WO-FORM-004 | `completeOrder` có thể gọi từ bất kỳ stage nào, không kiểm tra order đang ở `inProgress` trước khi complete | `lib/features/orders/services/orders_service.dart:477` | Medium | 🟢 Closed | `completeOrder` giờ reject nếu order không ở `inProgress` hoặc đã ở terminal state |
 
 ---
 
