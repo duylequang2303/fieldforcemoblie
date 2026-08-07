@@ -11,6 +11,7 @@ import '../../orders/providers/orders_provider.dart';
 import '../models/route_stop.dart';
 import '../providers/route_provider.dart';
 import '../services/location_service.dart';
+import '../utils/stop_status_ui.dart';
 
 /// Trang bản đồ lộ trình — hiển thị danh sách điểm đến trong ngày.
 /// Dùng RouteInfoPanel (list view) thay vì bản đồ thực tế
@@ -26,6 +27,8 @@ class _RouteMapPageState extends State<RouteMapPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  RouteProvider? _routeProvider;
+
   @override
   void initState() {
     super.initState();
@@ -35,20 +38,21 @@ class _RouteMapPageState extends State<RouteMapPage>
 
   @override
   void dispose() {
+    _routeProvider?.stopTracking();
     _tabController.dispose();
     super.dispose();
   }
 
   Future<void> _initialize() async {
     final ordersProvider = context.read<OrdersProvider>();
-    final routeProvider = context.read<RouteProvider>();
+    _routeProvider = context.read<RouteProvider>();
 
     if (ordersProvider.orders.isEmpty) {
       await ordersProvider.fetchOrders();
     }
-    await routeProvider.buildRoute(ordersProvider.orders);
-    await routeProvider.refreshLocation();
-    routeProvider.startTracking();
+    await _routeProvider!.buildRoute(ordersProvider.orders);
+    await _routeProvider!.refreshLocation();
+    _routeProvider!.startTracking();
   }
 
   @override
@@ -230,24 +234,64 @@ class _RouteMapPageState extends State<RouteMapPage>
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => LocationService.instance.openLocationSettings(),
+              icon: const Icon(Icons.settings_outlined),
+              label: const Text('Cài đặt GPS'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.onSurfaceMuted,
+                side: BorderSide(color: AppColors.divider, width: 1),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
           ],
         ),
       );
     }
 
-    // Show map with worker's location
+    // Show map with worker's location and route stops
+    final routePoints = provider.stops
+        .where((s) => s.latitude != null && s.longitude != null)
+        .map((s) => LatLng(s.latitude!, s.longitude!))
+        .toList();
+
+    // Fit map to show all stops + current location
+    LatLng initialCenter = LatLng(pos.latitude, pos.longitude);
+    if (routePoints.isNotEmpty) {
+      final allPoints = [...routePoints, LatLng(pos.latitude, pos.longitude)];
+      final latlngs = LatLngBounds.fromPoints(allPoints);
+      initialCenter = latlngs.center;
+    }
+
     return FlutterMap(
       options: MapOptions(
-        initialCenter: LatLng(pos.latitude, pos.longitude),
-        initialZoom: 16,
+        initialCenter: initialCenter,
+        initialZoom: routePoints.isEmpty ? 16 : 12,
       ),
       children: [
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.example.fieldforce_mobile',
         ),
+        if (routePoints.length >= 2)
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: routePoints,
+                color: AppColors.accent,
+                strokeWidth: 4.0,
+                strokeCap: StrokeCap.round,
+              ),
+            ],
+          ),
         MarkerLayer(
           markers: [
+            // Current position marker
             Marker(
               point: LatLng(pos.latitude, pos.longitude),
               width: 80,
@@ -271,6 +315,39 @@ class _RouteMapPageState extends State<RouteMapPage>
                 ),
               ),
             ),
+            // Route stop markers
+            ...provider.stops.where((s) => s.latitude != null && s.longitude != null).map((stop) {
+              return Marker(
+                point: LatLng(stop.latitude!, stop.longitude!),
+                width: 40,
+                height: 40,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: StopStatusUI.color(stop.status),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: stop.status == StopStatus.completed
+                      ? const Icon(Icons.check, size: 20, color: Colors.white)
+                      : Center(
+                          child: Text(
+                            '${stop.sequence + 1}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                ),
+              );
+            }),
           ],
         ),
       ],
@@ -346,18 +423,19 @@ class _RouteMapPageState extends State<RouteMapPage>
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: _getStatusColor(stop.status).withOpacity(0.15),
+                          color: StopStatusUI.color(stop.status)
+                              .withOpacity(0.15),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                              color: _getStatusColor(stop.status)
-                                  .withOpacity(0.3)),
+                              color:
+                                  StopStatusUI.color(stop.status).withOpacity(0.3)),
                         ),
                         child: Text(
-                          _getStatusLabel(stop.status),
+                          StopStatusUI.label(stop.status),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: _getStatusColor(stop.status),
+                            color: StopStatusUI.color(stop.status),
                           ),
                         ),
                       ),
@@ -456,32 +534,6 @@ class _RouteMapPageState extends State<RouteMapPage>
     );
   }
 
-  Color _getStatusColor(StopStatus status) {
-    switch (status) {
-      case StopStatus.pending:
-        return AppColors.onSurfaceMuted;
-      case StopStatus.current:
-        return AppColors.info;
-      case StopStatus.completed:
-        return AppColors.success;
-      case StopStatus.skipped:
-        return AppColors.warning;
-    }
-  }
-
-  String _getStatusLabel(StopStatus status) {
-    switch (status) {
-      case StopStatus.pending:
-        return 'Sắp tới';
-      case StopStatus.current:
-        return 'Đang làm';
-      case StopStatus.completed:
-        return 'Đã hoàn thành';
-      case StopStatus.skipped:
-        return 'Bỏ qua';
-    }
-  }
-
   Future<void> _openNavigation(RouteStop stop) async {
     if (stop.latitude == null || stop.longitude == null) {
       if (context.mounted) {
@@ -526,32 +578,6 @@ class _RouteStopCard extends StatelessWidget {
     required this.onTap,
     required this.onNavigate,
   });
-
-  Color _getStatusColor(StopStatus status) {
-    switch (status) {
-      case StopStatus.pending:
-        return AppColors.onSurfaceMuted;
-      case StopStatus.current:
-        return AppColors.info;
-      case StopStatus.completed:
-        return AppColors.success;
-      case StopStatus.skipped:
-        return AppColors.warning;
-    }
-  }
-
-  String _getStatusLabel(StopStatus status) {
-    switch (status) {
-      case StopStatus.pending:
-        return 'Sắp tới';
-      case StopStatus.current:
-        return 'Đang làm';
-      case StopStatus.completed:
-        return 'Đã hoàn thành';
-      case StopStatus.skipped:
-        return 'Bỏ qua';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -633,22 +659,22 @@ class _RouteStopCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   // Status badge
-                  Container(
+                    Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(stop.status).withOpacity(0.15),
+                      color: StopStatusUI.color(stop.status).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: _getStatusColor(stop.status).withOpacity(0.3),
+                        color: StopStatusUI.color(stop.status).withOpacity(0.3),
                       ),
                     ),
                     child: Text(
-                      _getStatusLabel(stop.status),
+                      StopStatusUI.label(stop.status),
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: _getStatusColor(stop.status),
+                        color: StopStatusUI.color(stop.status),
                       ),
                     ),
                   ),
