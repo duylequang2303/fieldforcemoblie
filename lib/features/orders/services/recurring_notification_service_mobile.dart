@@ -5,6 +5,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
+import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/database/isar_service.dart';
 import '../../../core/utils/logger.dart';
 import '../models/fsm_order.dart';
@@ -281,6 +282,97 @@ class RecurringNotificationService {
 
   String _formatDate(DateTime dt) {
     return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+  }
+
+  static const int _upcomingReminderIdOffset = 100000000;
+
+  bool _shouldSkipUpcoming(FsmOrder order) {
+    return order.scheduledDateStart == null ||
+        order.dateStart != null ||
+        order.stage == FsmOrderStage.done ||
+        order.stage == FsmOrderStage.cancelled ||
+        order.isSkipped;
+  }
+
+  String _formatTime(DateTime time) {
+    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> scheduleUpcomingReminders(List<FsmOrder> orders) async {
+    if (!_initialized) await init();
+    for (final order in orders) {
+      try {
+        await scheduleUpcomingReminder(order);
+      } catch (e, stackTrace) {
+        logger.e('Failed to schedule upcoming reminder for order ${order.odooId}',
+            error: e, stackTrace: stackTrace);
+      }
+    }
+  }
+
+  Future<void> scheduleUpcomingReminder(FsmOrder order) async {
+    if (!_initialized) await init();
+    final reminderId = order.odooId + _upcomingReminderIdOffset;
+    await _cancelUpcomingNotification(reminderId);
+    if (_shouldSkipUpcoming(order)) return;
+
+    final now = DateTime.now();
+    final scheduledStart = order.scheduledDateStart!;
+
+    if (scheduledStart.isBefore(now)) return;
+    if (scheduledStart.isAfter(now.add(const Duration(hours: 24)))) return;
+
+    final reminderTime = scheduledStart.subtract(const Duration(minutes: 30));
+    if (reminderTime.isBefore(now)) return;
+
+    await _scheduleNotification(
+      id: reminderId,
+      title: 'Sắp có visit: ${order.locationAddress ?? order.name}',
+      body: 'Bắt đầu lúc ${_formatTime(scheduledStart)}',
+      scheduledDate: reminderTime,
+      payload: 'upcoming:${order.odooId}',
+    );
+  }
+
+  Future<void> cancelUpcomingReminder(int orderOdooId) async {
+    await _cancelUpcomingNotification(orderOdooId + _upcomingReminderIdOffset);
+  }
+
+  Future<void> _cancelUpcomingNotification(int reminderId) async {
+    _pendingTimers.remove(reminderId)?.cancel();
+    await _notifications.cancel(reminderId);
+  }
+
+  Future<void> rescheduleAllUpcomingReminders() async {
+    if (!_initialized) await init();
+    final currentUserId = OdooSessionManager.instance.currentUserId;
+    if (currentUserId == null) {
+      logger.w('Skip rescheduleAllUpcomingReminders: no active user');
+      return;
+    }
+
+    final now = DateTime.now();
+    final futureLimit = now.add(const Duration(hours: 24));
+
+    final upcomingOrders = await _isar.db.fsmOrders
+        .filter()
+        .localOwnerIdEqualTo(currentUserId)
+        .and()
+        .scheduledDateStartGreaterThan(now)
+        .scheduledDateStartLessThan(futureLimit)
+        .and()
+        .not()
+        .stageEqualTo(FsmOrderStage.done)
+        .and()
+        .not()
+        .stageEqualTo(FsmOrderStage.cancelled)
+        .findAll();
+
+    for (final order in upcomingOrders) {
+      await scheduleUpcomingReminder(order);
+    }
+
+    logger.i('Rescheduled upcoming reminders for ${upcomingOrders.length} orders');
   }
 
   /// Cleanup khi app đóng

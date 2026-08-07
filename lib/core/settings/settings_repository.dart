@@ -1,9 +1,11 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'settings_local_storage.dart';
 
-/// Lưu tuỳ chọn đồng bộ của Settings (wifi-only, auto-sync, last synced).
+/// Lưu tuỳ chọn đồng bộ của Settings (wifi-only, auto-sync, last synced). State được lưu ở SharedPreferences.
 ///
 /// LƯU Ý: creds (server/db/user/pass) KHÔNG lưu ở đây — chúng thuộc
-/// SecureStorageService (màn Login ghi). Lát 5b đã dọn bộ key ff_settings_* cũ.
+/// SecureStorageService (màn Login ghi).
 class SettingsRepository {
   SettingsRepository._();
   static final SettingsRepository instance = SettingsRepository._();
@@ -12,58 +14,81 @@ class SettingsRepository {
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
 
-  // ── Keys ──
+  // 旧 Keys dùng để migration
   static const _kWifiOnly = 'ff_settings_wifi_only';
   static const _kAutoSyncMin = 'ff_settings_auto_sync_min';
   static const _kLastSyncedAt = 'ff_settings_last_synced_at';
+  static const _kMigratedKey = 'settings_migrated_v1';
 
-  // ── In-memory cache ──
-  bool wifiOnly = false;
-  int autoSyncMinutes = 15; // 0 = off
-  DateTime? lastSyncedAt;
+  final _localStorage = SettingsLocalStorage.instance;
+
+  // Delegation getters/setters cho in-memory cache
+  bool get wifiOnly => _localStorage.wifiOnly;
+  set wifiOnly(bool value) => _localStorage.wifiOnly = value;
+
+  int get autoSyncMinutes => _localStorage.autoSyncMinutes;
+  set autoSyncMinutes(int value) => _localStorage.autoSyncMinutes = value;
+
+  DateTime? get lastSyncedAt => _localStorage.lastSyncedAt;
+  set lastSyncedAt(DateTime? value) => _localStorage.lastSyncedAt = value;
 
   /// Load tuỳ chọn từ storage. Gọi 1 lần khi mở Settings.
-  /// Chỉ đọc 3 key ff_settings_* riêng biệt thay vì readAll() để tránh kéo
-  /// auth/session entries của SecureStorageService.
   Future<void> loadAll() async {
     try {
-      final wifiVal = await _storage.read(key: _kWifiOnly);
-      wifiOnly = (wifiVal ?? 'false') == 'true';
-      final autoVal = await _storage.read(key: _kAutoSyncMin);
-      autoSyncMinutes = int.tryParse(autoVal ?? '15') ?? 15;
-      final tsVal = await _storage.read(key: _kLastSyncedAt);
-      final ts = int.tryParse(tsVal ?? '');
-      lastSyncedAt =
-          ts == null ? null : DateTime.fromMillisecondsSinceEpoch(ts);
+      final prefs = await SharedPreferences.getInstance();
 
-      // Purge credentials cũ (ff_settings_*) còn sót từ bản 4/4.5.
-      // Bản 5b không dùng chúng nữa; để trong két là rác bảo mật.
-      // delete key không tồn tại thì vô hại → chạy mỗi lần loadAll vẫn an toàn (idempotent, không cần cờ one-time).
+      // Perform one-time migration nếu chưa làm
+      if (!prefs.containsKey(_kMigratedKey)) {
+        // Đọc giá trị cũ từ secure storage
+        final wifiVal = await _storage.read(key: _kWifiOnly);
+        final oldWifiOnly = (wifiVal ?? 'false') == 'true';
+
+        final autoVal = await _storage.read(key: _kAutoSyncMin);
+        final oldAutoSyncMinutes = int.tryParse(autoVal ?? '15') ?? 15;
+
+        final tsVal = await _storage.read(key: _kLastSyncedAt);
+        final ts = int.tryParse(tsVal ?? '');
+        final oldLastSyncedAt =
+            ts == null || ts == 0 ? null : DateTime.fromMillisecondsSinceEpoch(ts);
+
+        // Lưu vào SharedPreferences mới
+        await _localStorage.saveWifiOnly(oldWifiOnly);
+        await _localStorage.saveAutoSyncMinutes(oldAutoSyncMinutes);
+        await _localStorage.saveLastSyncedAt(oldLastSyncedAt);
+
+        // Đánh dấu đã migrate
+        await prefs.setBool(_kMigratedKey, true);
+
+        // Xoá rác ở secure storage
+        await _storage.delete(key: _kWifiOnly);
+        await _storage.delete(key: _kAutoSyncMin);
+        await _storage.delete(key: _kLastSyncedAt);
+      } else {
+        // Đọc bình thường từ SharedPreferences
+        await _localStorage.loadAll();
+      }
+
+      // Purge credentials cũ (ff_settings_*) còn sót từ bản cũ để bảo mật
       await _storage.delete(key: 'ff_settings_server_url');
       await _storage.delete(key: 'ff_settings_database');
       await _storage.delete(key: 'ff_settings_username');
       await _storage.delete(key: 'ff_settings_password');
       await _storage.delete(key: 'ff_settings_api_key');
     } catch (_) {
-      // Storage chưa sẵn sàng — giữ mặc định.
+      // Fallback nếu có lỗi
+      await _localStorage.loadAll();
     }
   }
 
   Future<void> saveWifiOnly(bool value) async {
-    wifiOnly = value;
-    await _storage.write(key: _kWifiOnly, value: value.toString());
+    await _localStorage.saveWifiOnly(value);
   }
 
   Future<void> saveAutoSyncMinutes(int minutes) async {
-    autoSyncMinutes = minutes;
-    await _storage.write(key: _kAutoSyncMin, value: minutes.toString());
+    await _localStorage.saveAutoSyncMinutes(minutes);
   }
 
   Future<void> saveLastSyncedAt(DateTime? when) async {
-    lastSyncedAt = when;
-    await _storage.write(
-      key: _kLastSyncedAt,
-      value: when?.millisecondsSinceEpoch.toString(),
-    );
+    await _localStorage.saveLastSyncedAt(when);
   }
 }

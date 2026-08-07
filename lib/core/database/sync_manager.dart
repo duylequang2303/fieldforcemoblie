@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 
 import '../connectivity/connectivity_service.dart';
 import '../settings/settings_repository.dart';
@@ -13,7 +14,7 @@ import '../api/odoo_session_manager.dart';
 /// Cả hai tôn trọng "chỉ WiFi" ([SettingsRepository.wifiOnly]).
 /// LƯU Ý: chỉ chạy khi app mở (foreground). Sync nền lúc app bị kill cần
 /// background service riêng — chưa làm ở lát này.
-class SyncManager {
+class SyncManager extends ChangeNotifier {
   SyncManager._();
   static final SyncManager instance = SyncManager._();
 
@@ -35,7 +36,8 @@ class SyncManager {
           _isInitialized = true;
           _initCompleter!.complete();
         } else {
-          _initCompleter!.completeError(StateError('SyncManager was disposed during initialization'));
+          _initCompleter!.completeError(
+              StateError('SyncManager was disposed during initialization'));
         }
       } catch (e) {
         _initCompleter!.completeError(e);
@@ -53,11 +55,21 @@ class SyncManager {
   Future<void> startListening() async {
     await _waitForInitialization();
     _connectivitySubscription?.cancel();
-    _connectivitySubscription = _connectivity.onConnectivityChanged.listen((results) async {
+    _connectivitySubscription =
+        _connectivity.onConnectivityChanged.listen((results) async {
       final isOnline = await _connectivity.isOnline;
       // Fix Thread #1: Gate sync on authentication
-      if (isOnline && !_isSyncing && await _allowedByNetworkPref() && OdooSessionManager.instance.isAuthenticated) {
-        await syncPending();
+      if (isOnline &&
+          !_isSyncing &&
+          await _allowedByNetworkPref() &&
+          OdooSessionManager.instance.isAuthenticated) {
+        try {
+          await syncPending();
+        } on SyncHandlersFailedException catch (e, st) {
+          if (kDebugMode) {
+            debugPrint('Auto-sync handler failed: $e\n$st');
+          }
+        }
       }
     });
   }
@@ -136,25 +148,32 @@ class SyncManager {
       return;
     }
     _isSyncing = true;
+    notifyListeners(); // ✅ Notify khi bắt đầu sync
     _activeSyncFuture = _runHandlers();
     try {
       await _activeSyncFuture;
     } finally {
       _isSyncing = false;
+      notifyListeners(); // ✅ Notify khi kết thúc sync
       _activeSyncFuture = null;
     }
   }
 
   Future<void> _runHandlers() async {
-    for (final handler in _syncHandlers) {
+    final failures = <_SyncHandlerFailure>[];
+    for (final namedHandler in _syncHandlers) {
       try {
-        await handler();
+        await namedHandler.handler();
       } catch (e, stackTrace) {
+        failures.add(_SyncHandlerFailure(namedHandler.name, e, stackTrace));
         if (kDebugMode) {
-          debugPrint('SyncManager: handler failed: $e\n$stackTrace');
+          debugPrint(
+              'SyncManager: handler "${namedHandler.name}" failed: $e\n$stackTrace');
         }
-        // Log error but continue with other handlers
       }
+    }
+    if (failures.isNotEmpty) {
+      throw SyncHandlersFailedException(failures);
     }
   }
 
@@ -183,17 +202,27 @@ class SyncManager {
     if (!await _allowedByNetworkPref()) {
       return;
     }
-    await syncPending();
+    try {
+      await syncPending();
+    } on SyncHandlersFailedException catch (e, st) {
+      if (kDebugMode) {
+        debugPrint('syncAfterAuth handler failed: $e\n$st');
+      }
+    }
   }
 
-  final List<Future<void> Function()> _syncHandlers = [];
+  final List<_NamedHandler> _syncHandlers = [];
 
-  void registerSyncHandler(Future<void> Function() handler) {
-    // Prevent duplicate handlers
-    if (!_syncHandlers.contains(handler)) {
-      _syncHandlers.add(handler);
+  void registerSyncHandler(String name, Future<void> Function() handler) {
+    final named = _NamedHandler(name, handler);
+    // Prevent duplicate handlers by name
+    if (!_syncHandlers.contains(named)) {
+      _syncHandlers.add(named);
+      if (kDebugMode) {
+        debugPrint('SyncManager: registered handler "$name"');
+      }
     } else if (kDebugMode) {
-      debugPrint('SyncManager: duplicate handler registration ignored');
+      debugPrint('SyncManager: duplicate handler "$name" registration ignored');
     }
   }
 
@@ -208,7 +237,8 @@ class SyncManager {
   Future<void> dispose() async {
     _disposed = true;
     if (_initCompleter != null && !_initCompleter!.isCompleted) {
-      _initCompleter!.completeError(StateError('SyncManager was disposed during initialization'));
+      _initCompleter!.completeError(
+          StateError('SyncManager was disposed during initialization'));
     }
     _initCompleter = null;
 
@@ -231,4 +261,41 @@ class SyncManager {
     _isSyncing = false;
     _isInitialized = false;
   }
+}
+
+class SyncHandlersFailedException implements Exception {
+  final List<_SyncHandlerFailure> failures;
+
+  SyncHandlersFailedException(this.failures);
+
+  @override
+  String toString() {
+    final names = failures.map((f) => f.name).join(', ');
+    return 'Sync handlers failed: $names';
+  }
+}
+
+class _NamedHandler {
+  final String name;
+  final Future<void> Function() handler;
+
+  _NamedHandler(this.name, this.handler);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _NamedHandler &&
+          runtimeType == other.runtimeType &&
+          name == other.name;
+
+  @override
+  int get hashCode => name.hashCode;
+}
+
+class _SyncHandlerFailure {
+  final String name;
+  final Object error;
+  final StackTrace stackTrace;
+
+  _SyncHandlerFailure(this.name, this.error, this.stackTrace);
 }
