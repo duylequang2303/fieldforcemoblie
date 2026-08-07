@@ -162,12 +162,12 @@
 ## 📝 Các vùng đã kiểm tra
 - [x] Schedule list: filter by date, status, property
 - [x] Schedule detail: check-in/out, navigation to property
-- [ ] Materials management cho schedule — đã xóa dead code, cần integration với order data sau
+- [ ] Materials management cho schedule — dead code đã xóa, **cần implement integration với order data** (future feature)
 - [x] Properties list & detail — đang dùng real data từ Odoo
-- [ ] Timesheet integration trong schedule — đã xóa dead code, cần orderId parameter sau
+- [ ] Timesheet integration trong schedule — dead code đã xóa, **cần thêm orderId parameter** (future feature)
 - [x] Offline schedule data -> sync — có offline indicator + cached data
 - [x] Recurring schedule từ orders — có RecurringCalendar + generateOfflineInstances
-- [ ] Notification/reminder cho upcoming visits — chưa implement
+- [ ] Notification/reminder cho upcoming visits — **chưa implement** (future feature)
 - [x] Map integration (directions to property) — có trong ScheduleCard + WorkOrderDetailScreen
 
 ---
