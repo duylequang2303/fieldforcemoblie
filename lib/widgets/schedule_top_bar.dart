@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
+import '../../core/connectivity/connectivity_service.dart';
 import '../ui/theme/sf_tokens.dart';
 
 /// Sortscape-style top bar cho tab Schedule.
@@ -9,7 +11,7 @@ import '../ui/theme/sf_tokens.dart';
 /// [selectedDate]: ngày đang chọn (để render badge).
 /// Callbacks: [onPrevious], [onNext], [onCalendarTap], [onFilterTap],
 ///            [onViewModeChanged].
-class ScheduleTopBar extends StatelessWidget {
+class ScheduleTopBar extends StatefulWidget {
   final String viewMode;
   final DateTime selectedDate;
   final VoidCallback onPrevious;
@@ -29,10 +31,47 @@ class ScheduleTopBar extends StatelessWidget {
     required this.onViewModeChanged,
   });
 
+  @override
+  State<ScheduleTopBar> createState() => _ScheduleTopBarState();
+}
+
+class _ScheduleTopBarState extends State<ScheduleTopBar> {
+  final _connectivity = ConnectivityService.instance;
+  bool _isOffline = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkInitial();
+    _connectivity.onConnectivityChanged.listen(_onConnectivityChanged);
+  }
+
+  Future<void> _checkInitial() async {
+    final online = await _connectivity.checkConnectivity();
+    if (mounted) setState(() => _isOffline = !online);
+  }
+
+  void _onConnectivityChanged(List<ConnectivityResult> results) async {
+    final online = await _connectivity.checkConnectivity();
+    if (mounted) setState(() => _isOffline = !online);
+  }
+
+  @override
+  void dispose() {
+    _connectivity.onConnectivityChanged.drain<void>();
+    super.dispose();
+  }
+
   /// Format "MON, 27 JUL" từ selectedDate.
   String get _dateBadgeText {
     final f = DateFormat('EEE, dd MMM', 'en_US');
-    return f.format(selectedDate).toUpperCase();
+    if (widget.viewMode == 'Week') {
+      final startOfWeek = widget.selectedDate.subtract(
+          Duration(days: widget.selectedDate.weekday - 1));
+      final endOfWeek = startOfWeek.add(const Duration(days: 6));
+      return '${f.format(startOfWeek)} - ${f.format(endOfWeek)}';
+    }
+    return f.format(widget.selectedDate).toUpperCase();
   }
 
   @override
@@ -66,24 +105,35 @@ class ScheduleTopBar extends StatelessWidget {
                 children: [
                   // "Today" / "Week" pill
                   _ViewModePill(
-                    label: viewMode,
+                    label: widget.viewMode,
                     onTap: () => _showViewModeMenu(context),
                   ),
                   const SizedBox(width: SfTokens.spacingXs),
 
                   // ◀ arrow
-                  _ArrowButton(icon: Icons.chevron_left, onTap: onPrevious),
+                  _ArrowButton(icon: Icons.chevron_left, onTap: widget.onPrevious),
 
                   // ▶ arrow
-                  _ArrowButton(icon: Icons.chevron_right, onTap: onNext),
+                  _ArrowButton(icon: Icons.chevron_right, onTap: widget.onNext),
 
                   const Spacer(),
+
+                  // Offline indicator
+                  if (_isOffline)
+                    Padding(
+                      padding: const EdgeInsets.only(right: SfTokens.spacingSm),
+                      child: Icon(
+                        Icons.wifi_off_rounded,
+                        color: SfTokens.surface.withValues(alpha: 0.8),
+                        size: SfTokens.iconMd,
+                      ),
+                    ),
 
                   // 📅 calendar
                   _TopBarIconButton(
                     icon: Icons.calendar_today,
                     color: SfTokens.surface,
-                    onTap: onCalendarTap,
+                    onTap: widget.onCalendarTap,
                   ),
                   const SizedBox(width: SfTokens.spacingSm),
 
@@ -91,13 +141,13 @@ class ScheduleTopBar extends StatelessWidget {
                   _TopBarIconButton(
                     icon: Icons.filter_list,
                     color: SfTokens.primaryLight,
-                    onTap: onFilterTap,
+                    onTap: widget.onFilterTap,
                   ),
                   const SizedBox(width: SfTokens.spacingSm),
 
                   // "Week ▾" toggle
                   _WeekToggle(
-                    currentMode: viewMode,
+                    currentMode: widget.viewMode,
                     onTap: () => _showViewModeMenu(context),
                   ),
                 ],
@@ -146,7 +196,7 @@ class ScheduleTopBar extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: ['Today', 'Week', 'Month'].map((mode) {
-              final isActive = mode == viewMode;
+              final isActive = mode == widget.viewMode;
               return ListTile(
                 leading: Icon(
                   isActive
@@ -163,7 +213,7 @@ class ScheduleTopBar extends StatelessWidget {
                 ),
                 onTap: () {
                   Navigator.pop(ctx);
-                  onViewModeChanged(mode);
+                  widget.onViewModeChanged(mode);
                 },
               );
             }).toList(),

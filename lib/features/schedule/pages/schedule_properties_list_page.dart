@@ -219,7 +219,7 @@ class _SchedulePropertiesListPageState
               ),
             ),
             trailing: Icon(Icons.chevron_right, color: weak),
-            onTap: () => context.push('/schedule-properties/$index', extra: p),
+            onTap: () => context.push('/schedule-properties/${p.id}', extra: p),
           );
         },
       ),

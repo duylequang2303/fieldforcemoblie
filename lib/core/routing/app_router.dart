@@ -26,15 +26,9 @@ import '../../features/work_order/pages/work_order_page.dart';
 import '../../screens/schedule_screen.dart';
 import '../../screens/work_order_detail_screen.dart';
 // Schedule pages
-import '../../features/schedule/pages/schedule_page.dart';
 import '../../features/schedule/pages/schedule_properties_list_page.dart';
 import '../../features/schedule/pages/schedule_property_detail_page.dart';
-import '../../features/schedule/pages/schedule_detail_page.dart';
-import '../../features/schedule/pages/schedule_timesheet_page.dart';
-import '../../features/schedule/pages/schedule_materials_page.dart';
-import '../../features/schedule/models/schedule_property.dart';
-import '../../features/schedule/models/schedule_visit.dart';
-// Shell navigation
+import '../../features/schedule/models/schedule_property.dart';// Shell navigation
 import '../../ui/shell/app_shell.dart';
 // Settings page
 import '../../features/settings/pages/settings_page.dart';
@@ -215,17 +209,7 @@ final GoRouter appRouter = GoRouter(
         return WorkOrderDetailScreen(order: order);
       },
     ),
-    // Schedule routes
-    GoRoute(
-      path: '/schedule',
-      name: 'schedule',
-      builder: (context, state) => const SchedulePage(),
-    ),
-    GoRoute(
-      path: '/schedule-properties',
-      name: 'scheduleProperties',
-      builder: (context, state) => const SchedulePropertiesListPage(),
-    ),
+    // Old schedule routes removed - using ScheduleScreen and SchedulePropertiesListPage via AppShell
     GoRoute(
       path: '/schedule-properties/:id',
       name: 'schedulePropertyDetail',
@@ -246,26 +230,6 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
-    GoRoute(
-      path: '/schedule-detail',
-      name: 'scheduleDetail',
-      builder: (context, state) {
-        final extra = state.extra;
-        if (extra is ScheduleVisit) {
-          return ScheduleDetailPage(visit: extra);
-        }
-        return const SizedBox.shrink();
-      },
-    ),
-    GoRoute(
-      path: '/schedule-timesheet',
-      name: 'scheduleTimesheet',
-      builder: (context, state) => const ScheduleTimesheetPage(),
-    ),
-    GoRoute(
-      path: '/schedule-materials',
-      name: 'scheduleMaterials',
-      builder: (context, state) => const ScheduleMaterialsPage(),
-    ),
+
   ],
 );

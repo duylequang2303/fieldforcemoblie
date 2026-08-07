@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../widgets/empty_state_widget.dart';
 import '../widgets/schedule_top_bar.dart';
 import '../widgets/filter_chips_row.dart';
@@ -74,34 +75,48 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
       // Lọc orders theo ngày đã chọn và ẩn các đơn bị skip
-      List<FsmOrder> get _filteredOrders {
+       List<FsmOrder> get _filteredOrders {
         return _orders.where((order) {
-          if (order.isSkipped) return false;
+          if (order.isSkipped || order.isRecurringProcessed) return false;
           if (order.scheduledDateStart == null) return false;
-      final matchDate = order.scheduledDateStart!.year == _selectedDate.year &&
-          order.scheduledDateStart!.month == _selectedDate.month &&
-          order.scheduledDateStart!.day == _selectedDate.day;
-      if (!matchDate) return false;
-      if (_selectedStage != null && order.stage != _selectedStage) {
-        return false;
+          final orderDate = order.scheduledDateStart!;
+          if (_viewMode == 'Week') {
+            final startOfWeek = _selectedDate.subtract(
+                Duration(days: _selectedDate.weekday - 1));
+            final endOfWeek = startOfWeek.add(const Duration(days: 7));
+            final orderDateTime = DateTime(
+                orderDate.year, orderDate.month, orderDate.day);
+            final start = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+            final end = DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day);
+            if (orderDateTime.isBefore(start) || orderDateTime.isAfter(end)) {
+              return false;
+            }
+          } else {
+            final matchDate = orderDate.year == _selectedDate.year &&
+                orderDate.month == _selectedDate.month &&
+                orderDate.day == _selectedDate.day;
+            if (!matchDate) return false;
+          }
+          if (_selectedStage != null && order.stage != _selectedStage) {
+            return false;
+          }
+          if (_selectedStage == null &&
+              _filterStages.isNotEmpty &&
+              !_filterStages.contains(order.stage)) {
+            return false;
+          }
+          if (_filterPersons.isNotEmpty &&
+              (order.personName == null ||
+                  !_filterPersons.contains(order.personName))) {
+            return false;
+          }
+          if (_filterPriorities.isNotEmpty &&
+              !_filterPriorities.contains(order.priority)) {
+            return false;
+          }
+          return true;
+        }).toList();
       }
-      if (_selectedStage == null &&
-          _filterStages.isNotEmpty &&
-          !_filterStages.contains(order.stage)) {
-        return false;
-      }
-      if (_filterPersons.isNotEmpty &&
-          (order.personName == null ||
-              !_filterPersons.contains(order.personName))) {
-        return false;
-      }
-      if (_filterPriorities.isNotEmpty &&
-          !_filterPriorities.contains(order.priority)) {
-        return false;
-      }
-      return true;
-    }).toList();
-  }
 
   // Tính tổng giờ và giả lập tính tiền
   String _getSummaryText() {
@@ -187,6 +202,21 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             onChatTap: () {
               // TODO: Mở màn hình chat/ghi chú
             },
+            onCallTap: () {
+              final phone = order.partnerPhone;
+              if (phone == null || phone.isEmpty) return;
+              launchUrl(Uri(scheme: 'tel', path: phone),
+                  mode: LaunchMode.externalApplication);
+            },
+            onDirectionsTap: () {
+              final lat = order.locationLat;
+              final lng = order.locationLng;
+              if (lat == null || lng == null) return;
+              launchUrl(
+                  Uri.parse(
+                      'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng'),
+                  mode: LaunchMode.externalApplication);
+            },
           );
         },
       ),
@@ -218,7 +248,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
             OutlinedButton.icon(
               onPressed: () {
-                // TODO: Tạo công việc mới
+                context.push(RouteNames.orders);
               },
               icon: Icon(Icons.add, color: theme.colorScheme.primary),
               label: Text(
