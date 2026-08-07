@@ -40,7 +40,8 @@ class ExpandableSection extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: theme.dividerColor.withOpacity(0.5)),
+                top: BorderSide(
+                    color: theme.dividerColor.withValues(alpha: 0.5)),
               ),
             ),
             child: child,

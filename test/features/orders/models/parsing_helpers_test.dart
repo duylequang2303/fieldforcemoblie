@@ -32,7 +32,7 @@ void main() {
       };
 
       final order = FsmOrder.fromJson(jsonPayload);
-      
+
       expect(order.odooId, 123);
       expect(order.name, 'WO/2024/001');
       expect(order.description, isNull);
@@ -60,7 +60,9 @@ void main() {
       expect(order.warehouseId, isNull);
     });
 
-    test('fromJson should handle raw inputs and type variations safely (no crash)', () {
+    test(
+        'fromJson should handle raw inputs and type variations safely (no crash)',
+        () {
       final jsonPayload = {
         'id': 123.0, // double ID parsed safe
         'name': 'WO/2024/002',
@@ -95,8 +97,9 @@ void main() {
         }
       };
 
-      final order = FsmOrder.fromJson(jsonPayload, locationCoordinates: locationCoordinates);
-      
+      final order = FsmOrder.fromJson(jsonPayload,
+          locationCoordinates: locationCoordinates);
+
       expect(order.odooId, 123);
       expect(order.description, 'Mô tả test');
       expect(order.stageId, 99);
@@ -123,7 +126,8 @@ void main() {
 
       final jsonPayloadWithListLocation = Map<String, dynamic>.from(jsonPayload)
         ..['location_id'] = [12, 'Location A'];
-      final orderWithCoords = FsmOrder.fromJson(jsonPayloadWithListLocation, locationCoordinates: locationCoordinates);
+      final orderWithCoords = FsmOrder.fromJson(jsonPayloadWithListLocation,
+          locationCoordinates: locationCoordinates);
       expect(orderWithCoords.locationLat, 10.7769);
       expect(orderWithCoords.locationLng, 106.7009);
       expect(orderWithCoords.partnerId, 50);
@@ -138,8 +142,9 @@ void main() {
         'id': 10,
         'name': 'Weekly Recurring Test',
         'fsm_frequency_set_id': [2, 'Weekly'],
-        'fsm_order_template_id': false, // unset Many2one -> should parse to null
-        'company_id': false,            // unset Many2one -> should parse to null
+        'fsm_order_template_id':
+            false, // unset Many2one -> should parse to null
+        'company_id': false, // unset Many2one -> should parse to null
         'start_date': '2026-08-01',
         'end_date': false,
         'next_date': false,
@@ -147,8 +152,8 @@ void main() {
         'active': false,
         'recurrence_rule_type': false,
         'recurrence_completion_interval': false, // empty int -> 0
-        'recurrence_completed_count': '3',       // string int -> 3
-        'recurrence_skipped_count': 1.0          // double int -> 1
+        'recurrence_completed_count': '3', // string int -> 3
+        'recurrence_skipped_count': 1.0 // double int -> 1
       };
 
       final recurring = FsmRecurring.fromJson(jsonPayload);
@@ -175,9 +180,9 @@ void main() {
       final jsonPayload = {
         'id': 5,
         'name': 'Bi-Weekly',
-        'interval': false,      // unset -> fallback to 1
+        'interval': false, // unset -> fallback to 1
         'interval_type': false, // unset -> fallback to weekly
-        'duration': false,      // unset -> null
+        'duration': false, // unset -> null
       };
 
       final freqSet = FsmFrequencySet.fromJson(jsonPayload);
@@ -187,6 +192,35 @@ void main() {
       expect(freqSet.interval, 1);
       expect(freqSet.intervalType, FrequencyIntervalType.weekly);
       expect(freqSet.duration, isNull);
+    });
+
+    test('fromJson should parse Odoo interval types correctly', () {
+      final dailyJson = {
+        'id': 1,
+        'name': 'Daily',
+        'interval': 1,
+        'interval_type': 'days',
+      };
+      final monthlyJson = {
+        'id': 2,
+        'name': 'Monthly',
+        'interval': 1,
+        'interval_type': 'months',
+      };
+      final yearlyJson = {
+        'id': 3,
+        'name': 'Yearly',
+        'interval': 1,
+        'interval_type': 'years',
+      };
+
+      final dailySet = FsmFrequencySet.fromJson(dailyJson);
+      final monthlySet = FsmFrequencySet.fromJson(monthlyJson);
+      final yearlySet = FsmFrequencySet.fromJson(yearlyJson);
+
+      expect(dailySet.intervalType, FrequencyIntervalType.daily);
+      expect(monthlySet.intervalType, FrequencyIntervalType.monthly);
+      expect(yearlySet.intervalType, FrequencyIntervalType.yearly);
     });
   });
 }
