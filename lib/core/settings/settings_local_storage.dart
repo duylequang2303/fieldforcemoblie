@@ -25,23 +25,38 @@ class SettingsLocalStorage {
   }
 
   Future<void> saveWifiOnly(bool value) async {
+    final prefs = await _instance;
+    final success = await prefs.setBool(_kWifiOnly, value);
+    if (!success) {
+      throw StateError('Failed to persist wifi-only setting');
+    }
     wifiOnly = value;
-    await (await _instance).setBool(_kWifiOnly, value);
   }
 
   Future<void> saveAutoSyncMinutes(int minutes) async {
+    final prefs = await _instance;
+    final success = await prefs.setInt(_kAutoSyncMin, minutes);
+    if (!success) {
+      throw StateError('Failed to persist auto-sync setting');
+    }
     autoSyncMinutes = minutes;
-    await (await _instance).setInt(_kAutoSyncMin, minutes);
   }
 
   Future<void> saveLastSyncedAt(DateTime? when) async {
-    lastSyncedAt = when;
+    final prefs = await _instance;
     if (when == null) {
-      await (await _instance).remove(_kLastSyncedAt);
+      final success = await prefs.remove(_kLastSyncedAt);
+      if (!success) {
+        throw StateError('Failed to clear last-synced setting');
+      }
     } else {
-      await (await _instance)
-          .setInt(_kLastSyncedAt, when.millisecondsSinceEpoch);
+      final success =
+          await prefs.setInt(_kLastSyncedAt, when.millisecondsSinceEpoch);
+      if (!success) {
+        throw StateError('Failed to persist last-synced setting');
+      }
     }
+    lastSyncedAt = when;
   }
 
   // In-memory cache

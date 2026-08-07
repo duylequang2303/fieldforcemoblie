@@ -19,12 +19,14 @@
 ## 🐛 Danh sách Bugs
 
 ### UI/UX Bugs
+
 | ID | Mô tả bug | File/Widget | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|-------------|--------|------------|---------|
 | SET-UI-001 | Không vô hiệu hóa các nút tương tác nhạy cảm (Logout, thay đổi cài đặt) khi đang đồng bộ thủ công (`isSyncing == true`) hoặc đang kiểm tra mạng (`isTesting == true`). | `settings_page.dart` | 🟠 High | 🟢 Fixed | **Mở rộng**: Cũng không disable khi **auto-sync đang chạy nền** (SyncManager.isSyncing). Có nguy cơ race condition dọn dẹp DB Isar khi logout trong lúc đang ghi dữ liệu. |
 | SET-UI-002 | Thiếu chức năng xóa bộ nhớ đệm / dữ liệu offline (Clear Cache / Offline Data) tại mục "Offline data". | `settings_page.dart` | 🟡 Medium | 🟢 Fixed | Người dùng chỉ thấy dung lượng mà không giải phóng được bộ nhớ đệm. `OfflineStorageService` chỉ có `bytes()` và `formatted()`. |
 
 ### Logic/Functional Bugs
+
 | ID | Mô tả bug | File/Function | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|---------------|--------|------------|---------|
 | SET-LOGIC-001 | Đồng bộ thủ công ở nút "Sync now" thực hiện code cứng (hardcode) gọi trực tiếp OrdersService, hoàn toàn bỏ qua kiến trúc đăng ký động của `SyncManager`. | `settings_page.dart` -> `_onSyncNow` | 🔴 Critical | 🟢 Fixed | **Chi tiết**: Line 127-128 gọi `SyncManager.instance.syncPending()` sau đó `OrdersService.instance.fetchMyOrders()`. Các handler khác (Stock, Timesheet, Expense, WorkOrder, Recurring) đăng ký ở `main.dart:73-99` **không bao giờ chạy** khi bấm Sync now. |
@@ -32,12 +34,14 @@
 | SET-LOGIC-003 | **MỚI**: `fetchMyOrders()` trong manual sync không có error handling riêng - throw exception bị catch chung thành "Sync failed". | `settings_page.dart:128` | 🟡 Medium | 🟢 Fixed | Nếu push lên Odoo thành công nhưng pull orders fail (network error, auth expired), user thấy "Sync failed" generic mà không biết push đã thành công. |
 
 ### Performance/Memory Bugs
+
 | ID | Mô tả bug | File/Location | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|---------------|--------|------------|---------|
 | SET-PERF-001 | Crash/Rò rỉ bộ nhớ do gọi `notifyListeners()` trên `SyncStatusProvider` khi instance đã bị dispose. | `sync_status_provider.dart` -> `refresh()` | 🟠 High | 🟢 Fixed | **Race condition**: Timer 1 phút (line 50-54) gọi `refresh()` → `await _countPendingFromIsar()` → `notifyListeners()`. Nếu user thoát màn Settings nhanh, `dispose()` set `_disposed=true` nhưng in-flight `refresh()` hoàn thành sau và vẫn gọi `notifyListeners()`. |
 | SET-PERF-002 | **MỚI**: Timer `_clockTimer` trong Settings page có thể leak callback sau khi dispose. | `settings_page.dart:50-54, 76` | 🔴 Critical | 🟢 Fixed | `_clockTimer.cancel()` ở `dispose()` nhưng callback đang `await _sync.refresh()` vẫn tiếp tục chạy đến cuối và gọi `setState()` trên widget đã disposed. |
 
 ### Data/Persistence Bugs
+
 | ID | Mô tả bug | File/Location | Mức độ | Trạng thái | Ghi chú |
 |----|-----------|---------------|--------|------------|---------|
 | SET-DATA-001 | Sử dụng `FlutterSecureStorage` cho cấu hình UI không bảo mật (wifi only, auto sync) tăng tỷ lệ lỗi đọc/ghi và giảm tốc độ khởi động do cơ chế mã hóa. | `settings_repository.dart` | 🟡 Medium | 🟢 Fixed | Keychain/Keystore có thể bị locked bất thình lình khi app chạy dưới nền, gây mất cấu hình người dùng. Settings này không nhạy cảm (không phải password/token). |
@@ -48,6 +52,7 @@
 ## 🔍 Bugs Mới Phát Hiện (Additional Discovered Bugs)
 
 ### Critical
+
 | ID | Mô tả bug | File/Location | Mức độ | Ghi chú |
 |----|-----------|---------------|--------|---------|
 | SET-ADD-001 | **Duplicate sync handlers khi hot reload** | `main.dart:72-99`, `sync_manager.dart:191-198` | 🔴 Critical | `registerSyncHandler` dùng `contains()` so sánh function reference. Hot reload tạo function instance mới → `contains()` trả về false → đăng ký trùng lặp → mỗi sync chạy handler nhiều lần. |
@@ -55,11 +60,13 @@
 | SET-ADD-003 | **Offline storage size bao gồm Isar DB files** | `offline_storage_service.dart:13-23` | 🟡 Medium | `getApplicationDocumentsDirectory()` scan toàn bộ folder. User không phân biệt được Isar DB (cần thiết) vs cached images/temp files (có thể xóa). |
 
 ### High
+
 | ID | Mô tả bug | File/Location | Mức độ | Ghi chú |
 |----|-----------|---------------|--------|---------|
 | SET-ADD-004 | **Connection test chỉ check session, không verify sync capability** | `settings_page.dart:94-103` | 🟢 Low | Chỉ đọc `res.users` của chính user. Không kiểm tra: quyền read/write `fsm.order`, network latency, API endpoints có hoạt động. |
 
 ### Medium
+
 | ID | Mô tả bug | File/Location | Mức độ | Ghi chú |
 |----|-----------|---------------|--------|---------|
 | SET-ADD-005 | **Không có loading state khi load settings lần đầu** | `settings_page.dart:61-72` | 🟢 Low | `_load()` đọc SecureStorage (chậm) + scan files. UI hiển thị giá trị mặc định/stale cho đến khi complete. |
@@ -87,16 +94,30 @@ Future<void> _onSyncNow() async {
   try {
     // ✅ Chỉ gọi syncPending - SyncManager sẽ chạy TẤT CẢ handlers đã đăng ký
     await SyncManager.instance.syncPending();
-    
-    // ✅ Lưu timestamp sau khi sync xong (cả auto và manual)
+
     await SettingsRepository.instance.saveLastSyncedAt(DateTime.now());
     await _sync.refresh();
-    
+
     if (!mounted) return;
     final stillPending = _sync.pendingCount;
     if (stillPending > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Synced, but $stillPending change(s) still pending.'),
+          backgroundColor: SfTokens.warning,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Synced successfully.')),
+      );
+    }
   } catch (e) {
-    // ...
+    logger.e('_onSyncNow failed', error: e);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Sync failed — check connection.')),
+    );
   } finally {
     if (mounted) setState(() => _isSyncing = false);
   }
@@ -823,6 +844,7 @@ bool get _isAnySyncRunning => _isSyncing || _isTesting || SyncManager.instance.i
 
 ## 📋 Tóm Tắt Độ Ưu Tiên Fix
 
+
 | Priority | Bug IDs | Mô tả |
 |----------|---------|-------|
 | **P0 - Critical (Fix ngay)** | SET-LOGIC-001, SET-ADD-001, SET-ADD-002, SET-PERF-002 | Manual sync broken, duplicate handlers, sync state not exposed, timer leak |
@@ -834,6 +856,7 @@ bool get _isAnySyncRunning => _isSyncing || _isTesting || SyncManager.instance.i
 
 ## 🔗 Liên Kết File Cần Sửa
 
+
 | File | Bugs liên quan |
 |------|----------------|
 | `lib/features/settings/pages/settings_page.dart` | SET-UI-001, SET-UI-002, SET-LOGIC-001, SET-LOGIC-002, SET-LOGIC-003, SET-PERF-002, SET-DATA-002, SET-ADD-004, SET-ADD-005 |
@@ -842,6 +865,7 @@ bool get _isAnySyncRunning => _isSyncing || _isTesting || SyncManager.instance.i
 | `lib/core/database/sync_manager.dart` | SET-LOGIC-001, SET-LOGIC-002, SET-ADD-001, SET-ADD-002 |
 | `lib/core/settings/offline_storage_service.dart` | SET-UI-002, SET-ADD-003 |
 | `lib/main.dart` | SET-ADD-001 |
+
 
 ---
 

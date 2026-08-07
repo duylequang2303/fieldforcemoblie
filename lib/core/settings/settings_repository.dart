@@ -49,7 +49,7 @@ class SettingsRepository {
         final tsVal = await _storage.read(key: _kLastSyncedAt);
         final ts = int.tryParse(tsVal ?? '');
         final oldLastSyncedAt =
-            ts == null ? null : DateTime.fromMillisecondsSinceEpoch(ts);
+            ts == null || ts == 0 ? null : DateTime.fromMillisecondsSinceEpoch(ts);
 
         // Lưu vào SharedPreferences mới
         await _localStorage.saveWifiOnly(oldWifiOnly);

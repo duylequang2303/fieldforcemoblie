@@ -26,19 +26,23 @@ class OfflineStorageService {
     }
   }
 
+  Future<Directory?> _cacheDirectory() async {
+    try {
+      return await getTemporaryDirectory();
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Lấy dung lượng có thể xóa (hạt nhân là ảnh cached và temp, KHÔNG bao gồm Isar DB)
   Future<int> clearableBytes() async {
     try {
-      final dir = await getApplicationDocumentsDirectory();
+      final dir = await _cacheDirectory();
+      if (dir == null || !await dir.exists()) return 0;
       int total = 0;
       await for (final entity
           in dir.list(recursive: true, followLinks: false)) {
         if (entity is File) {
-          final name = entity.path.split('/').last;
-          // Bỏ qua Isar database files
-          if (name.endsWith('.isar') || name.endsWith('.isar.lock')) continue;
-          // Bỏ qua SQLite & shared_preferences settings
-          if (name.contains('shared_prefs') || name.endsWith('.db')) continue;
           try {
             total += await entity.length();
           } catch (_) {}
@@ -53,14 +57,12 @@ class OfflineStorageService {
   /// Xóa cache files (hình ảnh, temp - KHÔNG xóa Isar DB)
   Future<int> clearCache() async {
     try {
-      final dir = await getApplicationDocumentsDirectory();
+      final dir = await _cacheDirectory();
+      if (dir == null || !await dir.exists()) return 0;
       int cleared = 0;
       await for (final entity
           in dir.list(recursive: true, followLinks: false)) {
         if (entity is File) {
-          final name = entity.path.split('/').last;
-          if (name.endsWith('.isar') || name.endsWith('.isar.lock')) continue;
-          if (name.contains('shared_prefs') || name.endsWith('.db')) continue;
           try {
             final size = await entity.length();
             await entity.delete();

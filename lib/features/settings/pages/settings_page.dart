@@ -4,16 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../../../core/api/api_exception.dart';
-import '../../../../core/api/odoo_session_manager.dart';
-import '../../../../core/routing/route_names.dart';
-import '../../../../core/connectivity/connectivity_service.dart';
-import '../../../../core/settings/offline_storage_service.dart';
-import '../../../../core/settings/settings_repository.dart';
-import '../../../../core/settings/sync_status_provider.dart';
+import '../../../core/api/api_exception.dart';
+import '../../../core/api/odoo_session_manager.dart';
+import '../../../core/routing/route_names.dart';
+import '../../../core/connectivity/connectivity_service.dart';
+import '../../../core/settings/offline_storage_service.dart';
+import '../../../core/settings/settings_repository.dart';
+import '../../../core/settings/sync_status_provider.dart';
 import '../../../core/database/sync_manager.dart';
-import '../../../../core/utils/logger.dart';
-import '../../../../ui/theme/sf_tokens.dart';
+import '../../../core/utils/logger.dart';
+import '../../../ui/theme/sf_tokens.dart';
 import '../../auth/providers/auth_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -36,7 +36,10 @@ class _SettingsPageState extends State<SettingsPage> {
   final SyncStatusProvider _sync = SyncStatusProvider();
 
   bool get _isAnySyncRunning =>
-      _isSyncing || _isTesting || SyncManager.instance.isSyncing;
+      _isSyncing ||
+      _isTesting ||
+      _syncCapStatus == _SyncCapabilityStatus.checking ||
+      SyncManager.instance.isSyncing;
 
   _ConnStatus _connStatus = _ConnStatus.unknown;
   _SyncCapabilityStatus _syncCapStatus = _SyncCapabilityStatus.unknown;
@@ -237,18 +240,18 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Color _syncCapabilityColor(_SyncCapabilityStatus s) {
+  Color _syncCapabilityColor(_SyncCapabilityStatus s, ColorScheme scheme) {
     switch (s) {
       case _SyncCapabilityStatus.ok:
-        return SfTokens.success;
+        return scheme.primary;
       case _SyncCapabilityStatus.noWriteAccess:
-        return SfTokens.warning;
+        return scheme.secondary;
       case _SyncCapabilityStatus.failed:
-        return SfTokens.error;
+        return scheme.error;
       case _SyncCapabilityStatus.checking:
-        return SfTokens.primary;
+        return scheme.primary;
       case _SyncCapabilityStatus.unknown:
-        return SfTokens.onSurfaceWeak;
+        return scheme.onSurfaceVariant;
     }
   }
 
@@ -269,6 +272,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   /// Verify if we have read/write access to FSM models needed for sync
   Future<void> _verifySyncCapability() async {
+    if (_syncCapStatus == _SyncCapabilityStatus.checking) return;
     final userId = OdooSessionManager.instance.currentUserId;
     if (userId == null) {
       setState(() => _syncCapStatus = _SyncCapabilityStatus.failed);
@@ -289,25 +293,17 @@ class _SettingsPageState extends State<SettingsPage> {
         },
       );
 
-      // Test write access by trying to read a field that indicates write capability
-      // We check access rights for write on fsm.order
       final accessResult = await OdooSessionManager.instance.callKw(
-        model: 'ir.model.access',
-        method: 'search_read',
-        args: [
-          [
-            ['model_id.model', '=', 'fsm.order'],
-            ['perm_write', '=', true],
-          ]
-        ],
+        model: 'fsm.order',
+        method: 'check_access_rights',
+        args: ['write'],
         kwargs: {
-          'fields': ['perm_write'],
-          'limit': 1,
+          'raise_exception': false,
         },
       );
 
       if (mounted) {
-        if (accessResult is List && accessResult.isNotEmpty) {
+        if (accessResult == true) {
           setState(() => _syncCapStatus = _SyncCapabilityStatus.ok);
         } else {
           setState(() => _syncCapStatus = _SyncCapabilityStatus.noWriteAccess);
@@ -354,6 +350,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildConnection() {
+    final colorScheme = Theme.of(context).colorScheme;
     final session = OdooSessionManager.instance.currentSession;
     return _Card(
       title: 'Odoo Connection',
@@ -410,19 +407,19 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: ElevatedButton(
                   onPressed: _isAnySyncRunning ? null : _verifySyncCapability,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: SfTokens.primary,
-                    foregroundColor: SfTokens.surface,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(SfTokens.radiusSm),
                     ),
                   ),
                   child: _syncCapStatus == _SyncCapabilityStatus.checking
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 18,
                           height: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: SfTokens.surface,
+                            color: colorScheme.onPrimary,
                           ),
                         )
                       : const Text('Verify Sync Capability'),
@@ -432,7 +429,7 @@ class _SettingsPageState extends State<SettingsPage> {
               Icon(
                 Icons.circle,
                 size: 12,
-                color: _syncCapabilityColor(_syncCapStatus),
+                color: _syncCapabilityColor(_syncCapStatus, colorScheme),
               ),
               const SizedBox(width: SfTokens.spacingXxs),
               Flexible(
@@ -440,7 +437,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   _syncCapabilityText(_syncCapStatus),
                   style: TextStyle(
                     fontSize: 12,
-                    color: _syncCapabilityColor(_syncCapStatus),
+                    color: _syncCapabilityColor(_syncCapStatus, colorScheme),
                     fontWeight: FontWeight.w600,
                   ),
                 ),

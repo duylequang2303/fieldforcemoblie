@@ -5,6 +5,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import 'package:flutter_timezone/flutter_timezone.dart';
+import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/database/isar_service.dart';
 import '../../../core/utils/logger.dart';
 import '../models/fsm_order.dart';
@@ -305,6 +306,8 @@ class RecurringNotificationService {
 
   Future<void> scheduleUpcomingReminder(FsmOrder order) async {
     if (!_initialized) await init();
+    final reminderId = order.odooId + _upcomingReminderIdOffset;
+    await _cancelUpcomingNotification(reminderId);
     if (_shouldSkipUpcoming(order)) return;
 
     final now = DateTime.now();
@@ -317,7 +320,7 @@ class RecurringNotificationService {
     if (reminderTime.isBefore(now)) return;
 
     await _scheduleNotification(
-      id: order.odooId + _upcomingReminderIdOffset,
+      id: reminderId,
       title: 'Sắp có visit: ${order.locationAddress ?? order.name}',
       body: 'Bắt đầu lúc ${_formatTime(scheduledStart)}',
       scheduledDate: reminderTime,
@@ -326,17 +329,29 @@ class RecurringNotificationService {
   }
 
   Future<void> cancelUpcomingReminder(int orderOdooId) async {
-    await _notifications.cancel(orderOdooId + _upcomingReminderIdOffset);
+    await _cancelUpcomingNotification(orderOdooId + _upcomingReminderIdOffset);
+  }
+
+  Future<void> _cancelUpcomingNotification(int reminderId) async {
+    _pendingTimers.remove(reminderId)?.cancel();
+    await _notifications.cancel(reminderId);
   }
 
   Future<void> rescheduleAllUpcomingReminders() async {
     if (!_initialized) await init();
+    final currentUserId = OdooSessionManager.instance.currentUserId;
+    if (currentUserId == null) {
+      logger.w('Skip rescheduleAllUpcomingReminders: no active user');
+      return;
+    }
 
     final now = DateTime.now();
     final futureLimit = now.add(const Duration(hours: 24));
 
     final upcomingOrders = await _isar.db.fsmOrders
         .filter()
+        .localOwnerIdEqualTo(currentUserId)
+        .and()
         .scheduledDateStartGreaterThan(now)
         .scheduledDateStartLessThan(futureLimit)
         .and()

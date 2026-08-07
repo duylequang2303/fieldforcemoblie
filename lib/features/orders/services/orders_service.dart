@@ -311,12 +311,7 @@ class OrdersService {
     // Resolve conflicts và lưu vào Isar để dùng offline
     final saved = await _resolveConflictsAndSave(orders);
 
-    // Schedule upcoming visit reminders for fetched orders
-    try {
-      await RecurringNotificationService.instance.scheduleUpcomingReminders(saved);
-    } catch (e, stackTrace) {
-      logger.e('Failed to schedule upcoming reminders', error: e, stackTrace: stackTrace);
-    }
+    await _scheduleUpcomingRemindersSafely(saved);
 
     return saved;
   }
@@ -394,12 +389,22 @@ class OrdersService {
       }).toList();
 
       final saved = await _resolveConflictsAndSave(orders);
+      await _scheduleUpcomingRemindersSafely(saved);
 
       return saved;
     } catch (e) {
       logger.w('OrdersService._tryFetchOrders: Error fetching with domain',
           error: e);
       return [];
+    }
+  }
+
+  Future<void> _scheduleUpcomingRemindersSafely(List<FsmOrder> orders) async {
+    try {
+      await RecurringNotificationService.instance.scheduleUpcomingReminders(orders);
+    } catch (e, stackTrace) {
+      logger.e('Failed to schedule upcoming reminders',
+          error: e, stackTrace: stackTrace);
     }
   }
 

@@ -154,16 +154,20 @@ class SyncManager extends ChangeNotifier {
   }
 
   Future<void> _runHandlers() async {
+    final failures = <_SyncHandlerFailure>[];
     for (final namedHandler in _syncHandlers) {
       try {
         await namedHandler.handler();
       } catch (e, stackTrace) {
+        failures.add(_SyncHandlerFailure(namedHandler.name, e, stackTrace));
         if (kDebugMode) {
           debugPrint(
               'SyncManager: handler "${namedHandler.name}" failed: $e\n$stackTrace');
         }
-        // Log error but continue with other handlers
       }
+    }
+    if (failures.isNotEmpty) {
+      throw SyncHandlersFailedException(failures);
     }
   }
 
@@ -244,7 +248,18 @@ class SyncManager extends ChangeNotifier {
 
     _isSyncing = false;
     _isInitialized = false;
-    super.dispose();
+  }
+}
+
+class SyncHandlersFailedException implements Exception {
+  final List<_SyncHandlerFailure> failures;
+
+  SyncHandlersFailedException(this.failures);
+
+  @override
+  String toString() {
+    final names = failures.map((f) => f.name).join(', ');
+    return 'Sync handlers failed: $names';
   }
 }
 
@@ -263,4 +278,12 @@ class _NamedHandler {
 
   @override
   int get hashCode => name.hashCode;
+}
+
+class _SyncHandlerFailure {
+  final String name;
+  final Object error;
+  final StackTrace stackTrace;
+
+  _SyncHandlerFailure(this.name, this.error, this.stackTrace);
 }
