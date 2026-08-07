@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_colors.dart';
-import '../models/route_stop.dart';
+import 'package:fieldforce_mobile/core/theme/app_colors.dart';
+import 'package:fieldforce_mobile/features/route_map/models/route_stop.dart';
 
 class StopStatusUI {
   static Color color(StopStatus status) => switch (status) {

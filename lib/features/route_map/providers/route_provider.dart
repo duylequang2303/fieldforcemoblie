@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import '../../../core/api/api_exception.dart';
-import '../../../core/utils/logger.dart';
-import '../../orders/models/fsm_order.dart';
-import '../../orders/providers/orders_provider.dart';
-import '../models/route_stop.dart';
-import '../services/location_service.dart';
+import 'package:fieldforce_mobile/core/api/api_exception.dart';
+import 'package:fieldforce_mobile/core/utils/logger.dart';
+import 'package:fieldforce_mobile/features/orders/models/fsm_order.dart';
+import 'package:fieldforce_mobile/features/orders/providers/orders_provider.dart';
+import 'package:fieldforce_mobile/features/route_map/models/route_stop.dart';
+import 'package:fieldforce_mobile/features/route_map/services/location_service.dart';
 
 /// State management cho bản đồ lộ trình.
 class RouteProvider extends ChangeNotifier {
@@ -105,9 +105,20 @@ class RouteProvider extends ChangeNotifier {
   }
 
   /// Đánh dấu một điểm dừng là đã hoàn thành.
-  void markStopCompleted(int orderOdooId) {
+  /// Returns true if local state was updated successfully.
+  Future<bool> markStopCompleted(int orderOdooId) async {
     final idx = _stops.indexWhere((s) => s.orderOdooId == orderOdooId);
-    if (idx != -1) {
+    if (idx == -1) return false;
+
+    bool localOk = true;
+    try {
+      _ordersProvider?.updateOrderToDone(orderOdooId);
+    } catch (e) {
+      localOk = false;
+      logger.w('RouteProvider.markStopCompleted: error updating order', error: e);
+    }
+
+    if (localOk) {
       _stops[idx]
         ..status = StopStatus.completed
         ..completedAt = DateTime.now();
@@ -116,9 +127,12 @@ class RouteProvider extends ChangeNotifier {
       if (idx + 1 < _stops.length) {
         _stops[idx + 1].status = StopStatus.current;
       }
-unawaited(_ordersProvider?.updateOrderToDone(orderOdooId) ?? Future.value());
+
+      _errorMessage = null;
       notifyListeners();
     }
+
+    return localOk;
   }
 
   /// Tính khoảng cách giữa các điểm dừng liên tiếp.
