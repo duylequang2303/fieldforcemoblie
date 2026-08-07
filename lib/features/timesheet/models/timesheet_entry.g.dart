@@ -47,33 +47,38 @@ const TimesheetEntrySchema = CollectionSchema(
       name: r'isSyncFailed',
       type: IsarType.bool,
     ),
-    r'localOwnerId': PropertySchema(
+    r'lastSyncAt': PropertySchema(
       id: 6,
+      name: r'lastSyncAt',
+      type: IsarType.dateTime,
+    ),
+    r'localOwnerId': PropertySchema(
+      id: 7,
       name: r'localOwnerId',
       type: IsarType.long,
     ),
     r'name': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'name',
       type: IsarType.string,
     ),
     r'nextRetryAt': PropertySchema(
-      id: 8,
+      id: 9,
       name: r'nextRetryAt',
       type: IsarType.dateTime,
     ),
     r'odooId': PropertySchema(
-      id: 9,
+      id: 10,
       name: r'odooId',
       type: IsarType.long,
     ),
     r'orderOdooId': PropertySchema(
-      id: 10,
+      id: 11,
       name: r'orderOdooId',
       type: IsarType.long,
     ),
     r'syncRetryCount': PropertySchema(
-      id: 11,
+      id: 12,
       name: r'syncRetryCount',
       type: IsarType.long,
     )
@@ -147,12 +152,13 @@ void _timesheetEntrySerialize(
   writer.writeDouble(offsets[3], object.hours);
   writer.writeBool(offsets[4], object.isPendingSync);
   writer.writeBool(offsets[5], object.isSyncFailed);
-  writer.writeLong(offsets[6], object.localOwnerId);
-  writer.writeString(offsets[7], object.name);
-  writer.writeDateTime(offsets[8], object.nextRetryAt);
-  writer.writeLong(offsets[9], object.odooId);
-  writer.writeLong(offsets[10], object.orderOdooId);
-  writer.writeLong(offsets[11], object.syncRetryCount);
+  writer.writeDateTime(offsets[6], object.lastSyncAt);
+  writer.writeLong(offsets[7], object.localOwnerId);
+  writer.writeString(offsets[8], object.name);
+  writer.writeDateTime(offsets[9], object.nextRetryAt);
+  writer.writeLong(offsets[10], object.odooId);
+  writer.writeLong(offsets[11], object.orderOdooId);
+  writer.writeLong(offsets[12], object.syncRetryCount);
 }
 
 TimesheetEntry _timesheetEntryDeserialize(
@@ -169,12 +175,13 @@ TimesheetEntry _timesheetEntryDeserialize(
   object.id = id;
   object.isPendingSync = reader.readBool(offsets[4]);
   object.isSyncFailed = reader.readBool(offsets[5]);
-  object.localOwnerId = reader.readLongOrNull(offsets[6]);
-  object.name = reader.readString(offsets[7]);
-  object.nextRetryAt = reader.readDateTimeOrNull(offsets[8]);
-  object.odooId = reader.readLongOrNull(offsets[9]);
-  object.orderOdooId = reader.readLong(offsets[10]);
-  object.syncRetryCount = reader.readLong(offsets[11]);
+  object.lastSyncAt = reader.readDateTime(offsets[6]);
+  object.localOwnerId = reader.readLongOrNull(offsets[7]);
+  object.name = reader.readString(offsets[8]);
+  object.nextRetryAt = reader.readDateTimeOrNull(offsets[9]);
+  object.odooId = reader.readLongOrNull(offsets[10]);
+  object.orderOdooId = reader.readLong(offsets[11]);
+  object.syncRetryCount = reader.readLong(offsets[12]);
   return object;
 }
 
@@ -198,16 +205,18 @@ P _timesheetEntryDeserializeProp<P>(
     case 5:
       return (reader.readBool(offset)) as P;
     case 6:
-      return (reader.readLongOrNull(offset)) as P;
+      return (reader.readDateTime(offset)) as P;
     case 7:
-      return (reader.readString(offset)) as P;
-    case 8:
-      return (reader.readDateTimeOrNull(offset)) as P;
-    case 9:
       return (reader.readLongOrNull(offset)) as P;
+    case 8:
+      return (reader.readString(offset)) as P;
+    case 9:
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 10:
-      return (reader.readLong(offset)) as P;
+      return (reader.readLongOrNull(offset)) as P;
     case 11:
+      return (reader.readLong(offset)) as P;
+    case 12:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -942,6 +951,62 @@ extension TimesheetEntryQueryFilter
   }
 
   QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      lastSyncAtEqualTo(DateTime value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'lastSyncAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      lastSyncAtGreaterThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'lastSyncAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      lastSyncAtLessThan(
+    DateTime value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'lastSyncAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
+      lastSyncAtBetween(
+    DateTime lower,
+    DateTime upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'lastSyncAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterFilterCondition>
       localOwnerIdIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1500,6 +1565,20 @@ extension TimesheetEntryQuerySortBy
   }
 
   QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      sortByLastSyncAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      sortByLastSyncAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
       sortByLocalOwnerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'localOwnerId', Sort.asc);
@@ -1675,6 +1754,20 @@ extension TimesheetEntryQuerySortThenBy
   }
 
   QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      thenByLastSyncAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
+      thenByLastSyncAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'lastSyncAt', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QAfterSortBy>
       thenByLocalOwnerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'localOwnerId', Sort.asc);
@@ -1799,6 +1892,13 @@ extension TimesheetEntryQueryWhereDistinct
   }
 
   QueryBuilder<TimesheetEntry, TimesheetEntry, QDistinct>
+      distinctByLastSyncAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'lastSyncAt');
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, TimesheetEntry, QDistinct>
       distinctByLocalOwnerId() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'localOwnerId');
@@ -1882,6 +1982,13 @@ extension TimesheetEntryQueryProperty
   QueryBuilder<TimesheetEntry, bool, QQueryOperations> isSyncFailedProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isSyncFailed');
+    });
+  }
+
+  QueryBuilder<TimesheetEntry, DateTime, QQueryOperations>
+      lastSyncAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'lastSyncAt');
     });
   }
 

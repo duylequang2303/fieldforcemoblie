@@ -79,7 +79,6 @@ class TimesheetService {
         method: 'search_read',
         args: [
           [
-            '&',
             ['employee_id', '=', _odoo.currentSession?.employeeId],
             ['date', '=', _formatDate(date)],
             ['fsm_order_id', '=', orderOdooId],
@@ -149,6 +148,7 @@ class TimesheetService {
       if (entry.odooId != null) {
         await _isar.db.writeTxn(() async {
           entry.isPendingSync = false;
+          entry.lastSyncAt = DateTime.now();
           await _isar.db.timesheetEntrys.put(entry);
         });
         continue;
@@ -173,6 +173,7 @@ class TimesheetService {
         await _isar.db.writeTxn(() async {
           entry.odooId = existing.odooId;
           entry.isPendingSync = false;
+          entry.lastSyncAt = DateTime.now();
           await _isar.db.timesheetEntrys.put(entry);
         });
         continue;
@@ -185,7 +186,6 @@ class TimesheetService {
           method: 'search_read',
           args: [
             [
-              '&',
               ['employee_id', '=', _odoo.currentSession?.employeeId],
               ['date', '=', _formatDate(entry.date)],
               ['fsm_order_id', '=', order.odooId],
@@ -215,14 +215,15 @@ class TimesheetService {
           ) as int?;
         }
 
-        await _isar.db.writeTxn(() async {
-          entry.odooId = remoteId;
-          entry.isPendingSync = false;
-          entry.syncRetryCount = 0;
-          entry.nextRetryAt = null;
-          await _isar.db.timesheetEntrys.put(entry);
-        });
-      } on OdooApiException catch (e) {
+      await _isar.db.writeTxn(() async {
+        entry.odooId = remoteId;
+        entry.isPendingSync = false;
+        entry.syncRetryCount = 0;
+        entry.nextRetryAt = null;
+        entry.lastSyncAt = DateTime.now();
+        await _isar.db.timesheetEntrys.put(entry);
+      });
+    } on OdooApiException catch (e) {
         entry.syncRetryCount++;
         if (entry.syncRetryCount >= 3) {
           await _isar.db.writeTxn(() async {
@@ -233,15 +234,13 @@ class TimesheetService {
           });
           logger.w('TimesheetService.syncPending: permanently failed for entry ${entry.id}');
         } else {
-          final backoff = Duration(seconds: 1 << entry.syncRetryCount);
+          final backoff = Duration(seconds: 1 << (entry.syncRetryCount - 1));
           await _isar.db.writeTxn(() async {
             entry.nextRetryAt = now.add(backoff);
             await _isar.db.timesheetEntrys.put(entry);
           });
           logger.w('TimesheetService.syncPending: failed (attempt ${entry.syncRetryCount}), retry at ${entry.nextRetryAt}', error: e);
         }
-      } catch (e) {
-        rethrow;
       }
     }
   }
