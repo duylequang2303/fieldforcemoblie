@@ -47,9 +47,33 @@ class _TimesheetPageState extends State<TimesheetPage> {
               if (provider.entries.isNotEmpty)
                 IconButton(
                   icon: const Icon(Icons.info_outline),
-                  onPressed: () {
-                    // TODO: Show help/info
-                  },
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('Hướng dẫn ghi giờ công'),
+                      content: const SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('• Nhấn "Thêm giờ công" để tạo mới.'),
+                            SizedBox(height: 8),
+                            Text('• Chọn ngày làm việc trong vòng 30 ngày.'),
+                            SizedBox(height: 8),
+                            Text('• Nhập số giờ > 0 và mô tả công việc.'),
+                            SizedBox(height: 8),
+                            Text('• Dữ liệu sẽ tự động đồng bộ khi có mạng.'),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Đóng'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
             ],
           ),
