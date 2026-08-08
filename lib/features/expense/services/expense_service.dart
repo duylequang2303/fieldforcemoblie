@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
+import 'package:meta/meta.dart' show visibleForTesting;
 import 'package:path_provider/path_provider.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/api/odoo_session_manager.dart';
@@ -46,11 +47,19 @@ String getMimeFromExtension(String path) {
 }
 
 class ExpenseService {
-  ExpenseService._();
+  ExpenseService._({OdooSessionManager? odoo, IsarService? isar})
+      : _odoo = odoo ?? OdooSessionManager.instance,
+        _isar = isar ?? IsarService.instance;
   static final ExpenseService instance = ExpenseService._();
 
-  final _odoo = OdooSessionManager.instance;
-  final _isar = IsarService.instance;
+  @visibleForTesting
+  factory ExpenseService.testConstructor(
+      OdooSessionManager odoo, IsarService isar) {
+    return ExpenseService._(odoo: odoo, isar: isar);
+  }
+
+  final OdooSessionManager _odoo;
+  final IsarService _isar;
 
   static const _maxRetries = 3;
   String? _lastProductCacheKey;
@@ -239,19 +248,20 @@ class ExpenseService {
   }) async {
     try {
       final dateStr = date.toIso8601String().substring(0, 10);
+      final trimmedName = name.trim();
       final results = await _odoo.callKw(
         model: 'hr.expense',
         method: 'search_read',
         args: [
           [
-            ['name', '=', name],
+            ['name', '=', trimmedName],
             ['date', '=', dateStr],
             ['employee_id', '=', employeeId],
             ['fsm_order_id', '=', orderOdooId],
           ]
         ],
         kwargs: {
-          'fields': ['id', 'total_amount'],
+          'fields': ['id', 'name', 'total_amount'],
           'limit': 1,
         },
       );
@@ -259,7 +269,10 @@ class ExpenseService {
         final item = results.first as Map<String, dynamic>;
         final rawAmount = item['total_amount'];
         final odooAmount = rawAmount is num ? rawAmount.toDouble() : 0.0;
-        if ((odooAmount - amount).abs() < 0.01) {
+        final remoteName = (item['name'] as String?)?.trim();
+        if (remoteName != null &&
+            remoteName == trimmedName &&
+            (odooAmount - amount).abs() < 0.01) {
           return item['id'] as int?;
         }
       }

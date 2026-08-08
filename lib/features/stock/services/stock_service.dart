@@ -418,14 +418,19 @@ class StockService {
         ],
       );
 
-      // Validate
-      await _odoo.callKw(
+      // Validate - handle True, action dict, or thrown ValidationError
+      final validateResult = await _odoo.callKw(
         model: 'stock.picking',
         method: 'button_validate',
         args: [
           [pickingId]
         ],
       );
+
+      if (validateResult != true && validateResult is! Map) {
+        throw const OdooBusinessException(
+            'Phiếu xuất kho validate thất bại.');
+      }
 
       state = 'done';
       await _isar.db.writeTxn(() async {

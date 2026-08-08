@@ -1,4 +1,5 @@
 import 'package:isar_community/isar.dart';
+import 'package:meta/meta.dart' show visibleForTesting;
 import '../../../core/api/api_exception.dart';
 import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/database/isar_service.dart';
@@ -16,16 +17,23 @@ class OdooCreateResult {
 /// Service giao tiếp với Odoo API cho fsm.order.
 /// Tất cả Odoo call đi qua đây, không gọi trực tiếp từ Provider hay Widget.
 class OrdersService {
-  OrdersService._();
+  OrdersService._({OdooSessionManager? odoo, IsarService? isar})
+      : _odoo = odoo ?? OdooSessionManager.instance,
+        _isar = isar ?? IsarService.instance;
   static final OrdersService instance = OrdersService._();
 
-  final _odoo = OdooSessionManager.instance;
-  final _isar = IsarService.instance;
+  @visibleForTesting
+  factory OrdersService.testConstructor(
+      OdooSessionManager odoo, IsarService isar) {
+    return OrdersService._(odoo: odoo, isar: isar);
+  }
+
+  final OdooSessionManager _odoo;
+  final IsarService _isar;
 
   static const _model = 'fsm.order';
 
-  // Fields cơ bản cho fsm.order
-  static const _fields = [
+  static const _coreFields = [
     'id',
     'name',
     'description',
@@ -55,8 +63,16 @@ class OrdersService {
     'color',
     'todo',
     'require_photo',
+  ];
+
+  static const _optionalFields = [
     'fsm_recurring_id',
   ];
+
+  static List<String> get _fields => [
+        ..._coreFields,
+        ..._optionalFields,
+      ];
 
   static const _locationFields = [
     'id',
@@ -160,26 +176,14 @@ class OrdersService {
         args: [domain],
         kwargs: {'fields': _fields, 'order': 'scheduled_date_start asc'},
       ) as List<dynamic>;
-    } on OdooBusinessException catch (be) {
-      final msg = be.message;
-      final List<String> fieldsToRemove = [];
-      if (msg.contains('fsm_recurring_id')) {
-        fieldsToRemove.add('fsm_recurring_id');
-      }
-      // Generic ValueError without specific field -> rethrow
-      if (fieldsToRemove.isEmpty) {
-        rethrow;
-      }
+    } on OdooBusinessException catch (_) {
       logger.w(
-          'Odoo search_read rejected custom fields: ${fieldsToRemove.join(', ')}, retrying without them...',
-          error: be);
-      final reducedFields = List<String>.from(_fields)
-        ..removeWhere(fieldsToRemove.contains);
+          'Odoo search_read rejected optional fields, retrying with core fields only...');
       return await _odoo.callKw(
         model: _model,
         method: 'search_read',
         args: [domain],
-        kwargs: {'fields': reducedFields, 'order': 'scheduled_date_start asc'},
+        kwargs: {'fields': _coreFields, 'order': 'scheduled_date_start asc'},
       ) as List<dynamic>;
     }
   }

@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fieldforce_mobile/core/api/odoo_session_manager.dart';
+import 'package:fieldforce_mobile/core/database/isar_service.dart';
 import 'package:fieldforce_mobile/features/orders/models/fsm_order.dart';
 import 'package:fieldforce_mobile/features/orders/services/orders_service.dart';
 import 'package:fieldforce_mobile/features/stock/models/stock_move.dart';
@@ -168,6 +169,63 @@ void main() {
       );
       expect(session.serverVersion, '19');
       expect(session.employeeId, isNull);
+    });
+
+    test('FsmOrder parseStageName handles Vietnamese and English stage names', () {
+      expect(FsmOrder.parseStageName('New'), FsmOrderStage.draft);
+      expect(FsmOrder.parseStageName('Mới'), FsmOrderStage.draft);
+      expect(FsmOrder.parseStageName('In Progress'), FsmOrderStage.inProgress);
+      expect(FsmOrder.parseStageName('Đang thực hiện'), FsmOrderStage.inProgress);
+      expect(FsmOrder.parseStageName('Completed'), FsmOrderStage.done);
+      expect(FsmOrder.parseStageName('Hoàn thành'), FsmOrderStage.done);
+      expect(FsmOrder.parseStageName('Cancelled'), FsmOrderStage.cancelled);
+      expect(FsmOrder.parseStageName('Đã hủy'), FsmOrderStage.cancelled);
+    });
+
+    test('ExpenseService buildOdooPayload includes quantity for hr.expense', () {
+      final payload = ExpenseService.instance.buildOdooPayload(
+        name: 'Test',
+        amount: 1000,
+        date: DateTime(2026, 1, 1),
+        employeeId: 1,
+        productId: 5,
+        orderOdooId: 99,
+      );
+
+      expect(payload['quantity'], equals(1));
+      expect(payload['unit_amount'], equals(1000));
+      expect(payload['total_amount'], equals(1000));
+    });
+
+    test('OrdersService has testConstructor for dependency injection', () {
+      expect(OrdersService.testConstructor, isNotNull);
+      expect(() => OrdersService.testConstructor(
+            OdooSessionManager.instance,
+            IsarService.instance,
+          ), returnsNormally);
+    });
+
+    test('ExpenseService has testConstructor for dependency injection', () {
+      expect(ExpenseService.testConstructor, isNotNull);
+      expect(() => ExpenseService.testConstructor(
+            OdooSessionManager.instance,
+            IsarService.instance,
+          ), returnsNormally);
+    });
+
+    test('FsmOrder fromJson handles route_state injection', () {
+      final json = {
+        'id': 1,
+        'name': 'Test',
+        'stage_id': ['New', 1],
+        'route_id': [10, 'Route A'],
+        'route_state': 'planned',
+        'fsm_recurring_id': [null, 0],
+      };
+
+      final order = FsmOrder.fromJson(json, locationCoordinates: {});
+      expect(order.routeId, equals(10));
+      expect(order.routeState, equals('planned'));
     });
   });
 }
