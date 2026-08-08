@@ -6,7 +6,7 @@
       "type": "sse",
       "url": "https://agent-router-backend-1023201593264.europe-west1.run.app/mcp/sse",
       "headers": {
-        "Authorization": "a2a_Fv5Jsb-aHrtQM3GgATd-htQeWb1Ux3_R-cXJ6yWao7Q"
+        "Authorization": "${env:A2A_PLATFORM_TOKEN}"
       }
     },
     "dart": {
@@ -21,10 +21,10 @@
       "timeout": 60,
       "type": "stdio",
       "env": {
-        "ODOO_URL": "https://demo002.crmhub.vn",
-        "ODOO_DB": "demo002.crmhub.vn",
-        "ODOO_USERNAME": "admin",
-        "ODOO_PASSWORD": "YOUR_ODOO_PASSWORD_HERE"
+        "ODOO_URL": "${env:ODOO_URL}",
+        "ODOO_DB": "${env:ODOO_DB}",
+        "ODOO_USERNAME": "${env:ODOO_TEST_USER}",
+        "ODOO_PASSWORD": "${env:ODOO_TEST_PASSWORD}"
       }
     }
   }

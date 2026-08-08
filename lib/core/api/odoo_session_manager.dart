@@ -39,6 +39,20 @@ class OdooSessionManager {
 
   OdooSessionData? _currentSession;
 
+  /// Reject any server URL that is not a well-formed HTTPS endpoint so that
+  /// credentials and session cookies can never travel over cleartext HTTP.
+  /// Returns the trimmed URL that callers must use from then on.
+  static String _normalizeHttpsServerUrl(String serverUrl) {
+    final normalized = serverUrl.trim();
+    final uri = Uri.tryParse(normalized);
+    if (uri == null || uri.scheme.toLowerCase() != 'https' || uri.host.isEmpty) {
+      throw const OdooConnectionException(
+        'URL server không hợp lệ. Chỉ chấp nhận địa chỉ https://',
+      );
+    }
+    return normalized;
+  }
+
   bool get isAuthenticated => _currentSession != null;
   OdooSessionData? get currentSession => _currentSession;
   int? get currentUserId => _currentSession?.userId;
@@ -51,8 +65,9 @@ class OdooSessionManager {
     required String username,
     required String password,
   }) async {
+    final normalizedServerUrl = _normalizeHttpsServerUrl(serverUrl);
     try {
-      OdooApiClient.instance.initialize(serverUrl);
+      OdooApiClient.instance.initialize(normalizedServerUrl);
       final client = OdooApiClient.instance.client;
 
       // odoo_rpc authenticate signature: (db, login, password)
@@ -113,7 +128,7 @@ class OdooSessionManager {
       }
 
       _currentSession = OdooSessionData(
-        serverUrl: serverUrl,
+        serverUrl: normalizedServerUrl,
         database: database,
         username: username,
         userId: session.userId,
@@ -132,7 +147,8 @@ class OdooSessionManager {
       );
     } catch (e) {
       if (e is OdooApiException) rethrow;
-      throw OdooConnectionException('Không thể kết nối tới $serverUrl: $e');
+      throw OdooConnectionException(
+          'Không thể kết nối tới $normalizedServerUrl: $e');
     }
   }
 
@@ -153,6 +169,7 @@ class OdooSessionManager {
     int? employeeId,
   }) async {
     try {
+      final normalizedServerUrl = _normalizeHttpsServerUrl(serverUrl);
       // Dựng OdooSession từ dữ liệu đã lưu. Chỉ id + userId là quan trọng
       // cho RPC; các field còn lại là metadata, đặt default an toàn.
       final session = OdooSession(
@@ -171,12 +188,12 @@ class OdooSessionManager {
       );
 
       // FIX TẦNG 1: nạp session vào client → mọi callKw online gửi cookie session_id.
-      OdooApiClient.instance.initializeWithSession(serverUrl, session);
+      OdooApiClient.instance.initializeWithSession(normalizedServerUrl, session);
 
       // FIX TẦNG 2: dựng lại _currentSession. Thiếu bước này thì
       // currentUserId = null → OrdersService.fetchMyOrders() trả về [] sau mỗi lần mở app.
       _currentSession = OdooSessionData(
-        serverUrl: serverUrl,
+        serverUrl: normalizedServerUrl,
         database: database,
         username: username,
         userId: savedUserId,

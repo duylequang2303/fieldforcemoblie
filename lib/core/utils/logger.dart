@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:logger/logger.dart';
 
 /// Logger singleton dùng chung toàn app.
@@ -19,5 +20,7 @@ final Logger logger = Logger(
     printEmojis: true,
     dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
   ),
-  level: Level.debug,
+  // Release builds only keep errors: debug/info logs contain server URLs,
+  // customer data and session details that must not reach device logs.
+  level: kReleaseMode ? Level.error : Level.debug,
 );

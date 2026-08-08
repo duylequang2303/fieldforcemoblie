@@ -41,7 +41,9 @@
 await mcp.call({
   server: 'a2a-platform',
   endpoint: 'https://agent-router-backend-.../mcp/sse',
-  auth: 'a2a_1oZPE1sh1XMduhM5mTWKRCMAnMvrEZUhEPTTT4lvHl0',
+  // Token đọc từ biến môi trường, không hardcode.
+  // Phải export trước khi mở Cline: `set -a && . ./.env && set +a`
+  auth: process.env.A2A_PLATFORM_TOKEN,
   role: 'PROPOSER',
   task: 'propose recurring approach'
 })
