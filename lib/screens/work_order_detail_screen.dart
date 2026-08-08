@@ -355,6 +355,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
         if (mounted) _showSnackBar('Photo upload failed.');
         report.photoPaths = [...report.photoPaths]..remove(path);
         await WorkOrderService.instance.saveReport(report);
+        if (mounted) setState(() => _photoPaths.remove(path));
       }
     } on OdooApiException catch (e) {
       logger.w('Photo queued offline: ${path.split('/').last}', error: e);
@@ -382,7 +383,12 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
     }).catchError((Object e, StackTrace stackTrace) {
       logger.e('Failed to remove photo from report',
           error: e, stackTrace: stackTrace);
-      if (mounted) _showSnackBar('Không xoá được ảnh khỏi báo cáo: $e');
+      // Khôi phục UI để khớp với report đã lưu
+      if (mounted) {
+        setState(() => _photoPaths.insert(
+            index.clamp(0, _photoPaths.length), path));
+        _showSnackBar('Không xoá được ảnh khỏi báo cáo: $e');
+      }
     });
   }
 

@@ -333,8 +333,13 @@ class OrdersService {
             logger.i('OrdersService.fetchMyOrders: First order person_id: ${allOrders.first['person_id']}');
           }
         }
-      } catch (e) {
-        logger.w('OrdersService.fetchMyOrders: Debug fetch all orders failed', error: e);
+      } on OdooConnectionException {
+        rethrow;
+      } on OdooAuthException {
+        rethrow;
+      } catch (e, stackTrace) {
+        logger.w('OrdersService.fetchMyOrders: Debug fetch all orders failed',
+            error: e, stackTrace: stackTrace);
       }
     }
 

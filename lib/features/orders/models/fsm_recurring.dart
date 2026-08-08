@@ -136,8 +136,9 @@ class FsmRecurring {
     if (value == null || value == false) return null;
     try {
       return DateTime.parse(value.toString());
-    } catch (e) {
-      logger.w('FsmRecurring: invalid date from Odoo: $value', error: e);
+    } on FormatException catch (e, stackTrace) {
+      logger.w('FsmRecurring: invalid date from Odoo: $value',
+          error: e, stackTrace: stackTrace);
       return null;
     }
   }

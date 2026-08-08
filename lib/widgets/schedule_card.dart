@@ -35,7 +35,7 @@ class ScheduleCard extends StatelessWidget {
     try {
       final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!success) {
-        logger.w('$errorMsg: launchUrl returned false for $uri');
+        logger.w('$errorMsg: launchUrl returned false for scheme ${uri.scheme}');
       }
     } on PlatformException catch (e, stackTrace) {
       logger.e(errorMsg, error: e, stackTrace: stackTrace);

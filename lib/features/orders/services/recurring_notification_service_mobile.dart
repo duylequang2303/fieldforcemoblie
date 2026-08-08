@@ -38,11 +38,11 @@ class RecurringNotificationService {
     
     try {
       tz.setLocalLocation(tz.getLocation(timeZoneName));
-    } catch (e) {
+    } on tz.LocationNotFoundException catch (e) {
       logger.w('Timezone $timeZoneName not found, fallback to Asia/Ho_Chi_Minh', error: e);
       try {
         tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
-      } catch (fallbackError, fallbackStack) {
+      } on tz.LocationNotFoundException catch (fallbackError, fallbackStack) {
         logger.e(
             'Fallback timezone Asia/Ho_Chi_Minh unavailable, reminders use UTC',
             error: fallbackError,

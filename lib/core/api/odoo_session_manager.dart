@@ -103,7 +103,7 @@ class OdooSessionManager {
         }
       } catch (e, stack) {
         // Có thể catch nếu user không có quyền đọc hr.employee
-        logger.w('Failed to read hr.employee for user ${session.userId}',
+        logger.w('Failed to read hr.employee for current user',
             error: e, stackTrace: stack);
       }
 

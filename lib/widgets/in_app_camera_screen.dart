@@ -21,6 +21,7 @@ class _InAppCameraScreenState extends State<InAppCameraScreen> {
   }
 
   Future<void> _initCamera() async {
+    CameraController? pending;
     try {
       final cameras = await availableCameras();
       if (cameras.isEmpty) {
@@ -38,6 +39,7 @@ class _InAppCameraScreenState extends State<InAppCameraScreen> {
         backCamera,
         ResolutionPreset.low, // Preview nhẹ RAM
       );
+      pending = controller;
 
       await controller.initialize();
       if (!mounted) {
@@ -52,6 +54,7 @@ class _InAppCameraScreenState extends State<InAppCameraScreen> {
     } catch (e, stackTrace) {
       logger.e('Camera initialization failed',
           error: e, stackTrace: stackTrace);
+      await pending?.dispose();
       if (mounted) _popWithError('Không mở được camera: $e');
     }
   }

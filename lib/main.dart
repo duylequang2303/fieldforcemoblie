@@ -116,7 +116,7 @@ Future<void> main() async {
       await SyncManager.instance.startAutoSync();
     } on IsarInitializationException catch (e, stackTrace) {
       logger.e('Isar init failed — app runs without offline storage',
-          error: e, stackTrace: stackTrace);
+          error: e, stackTrace: e.stackTrace ?? stackTrace);
     } catch (e, stackTrace) {
       logger.e('Offline storage / sync bootstrap failed',
           error: e, stackTrace: stackTrace);
