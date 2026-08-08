@@ -427,7 +427,7 @@ class StockService {
         ],
       );
 
-      if (validateResult != true && validateResult is! Map) {
+      if (validateResult != true) {
         throw const OdooBusinessException(
             'Phiếu xuất kho validate thất bại.');
       }

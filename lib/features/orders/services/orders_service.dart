@@ -176,7 +176,12 @@ class OrdersService {
         args: [domain],
         kwargs: {'fields': _fields, 'order': 'scheduled_date_start asc'},
       ) as List<dynamic>;
-    } on OdooBusinessException catch (_) {
+    } on OdooBusinessException catch (error) {
+      final message = error.message.toLowerCase();
+      if (!message.contains('fsm_recurring_id') &&
+          !message.contains('invalid field')) {
+        rethrow;
+      }
       logger.w(
           'Odoo search_read rejected optional fields, retrying with core fields only...');
       return await _odoo.callKw(

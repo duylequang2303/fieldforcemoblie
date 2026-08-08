@@ -140,7 +140,11 @@ class SecureStorageService {
 
   Future<bool> get hasSavedSession async {
     final sessionId = await _storage.read(key: _keySessionId);
-    return sessionId != null && sessionId.isNotEmpty;
+    final serverVersion = await _storage.read(key: _keyServerVersion);
+    return sessionId != null &&
+        sessionId.isNotEmpty &&
+        serverVersion != null &&
+        serverVersion.isNotEmpty;
   }
 
   Future<void> setBiometricEnabled({required bool enabled}) async {
