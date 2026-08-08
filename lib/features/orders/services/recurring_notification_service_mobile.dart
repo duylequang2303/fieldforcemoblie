@@ -42,7 +42,12 @@ class RecurringNotificationService {
       logger.w('Timezone $timeZoneName not found, fallback to Asia/Ho_Chi_Minh', error: e);
       try {
         tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
-      } catch (_) {}
+      } catch (fallbackError, fallbackStack) {
+        logger.e(
+            'Fallback timezone Asia/Ho_Chi_Minh unavailable, reminders use UTC',
+            error: fallbackError,
+            stackTrace: fallbackStack);
+      }
     }
 
     // Android initialization settings

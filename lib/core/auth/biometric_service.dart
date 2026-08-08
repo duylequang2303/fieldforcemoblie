@@ -38,7 +38,9 @@ class BiometricService {
   Future<bool> get isAvailable async {
     try {
       return await _auth.canCheckBiometrics;
-    } catch (_) {
+    } catch (e, stack) {
+      logger.w('Biometric availability check failed',
+          error: e, stackTrace: stack);
       return false;
     }
   }
@@ -47,7 +49,9 @@ class BiometricService {
   Future<List<BiometricType>> get availableTypes async {
     try {
       return await _auth.getAvailableBiometrics();
-    } catch (_) {
+    } catch (e, stack) {
+      logger.w('Failed to read available biometric types',
+          error: e, stackTrace: stack);
       return [];
     }
   }

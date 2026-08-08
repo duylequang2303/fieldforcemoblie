@@ -3,6 +3,7 @@ import 'package:isar_community/isar.dart';
 import 'settings_repository.dart';
 import '../../../core/database/isar_service.dart';
 import '../../../features/orders/models/fsm_order.dart';
+import '../utils/logger.dart';
 
 /// Theo dõi trạng thái đồng bộ cho màn Settings.
 ///
@@ -64,7 +65,9 @@ class SyncStatusProvider extends ChangeNotifier {
     try {
       final db = IsarService.instance.db;
       return await db.fsmOrders.filter().isPendingSyncEqualTo(true).count();
-    } catch (_) {
+    } catch (e, stack) {
+      logger.w('SyncStatusProvider: pending count unavailable, reporting 0',
+          error: e, stackTrace: stack);
       return 0;
     }
   }

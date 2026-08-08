@@ -75,9 +75,11 @@ class OdooSessionManager {
         if (userData is List && userData.isNotEmpty) {
           userLang = (userData.first['lang'] as String?) ?? 'vi_VN';
         }
-      } catch (_) {
+      } catch (e, stack) {
         // Nếu không đọc được từ Odoo, giữ mặc định
         userLang = 'vi_VN';
+        logger.w('Failed to read res.users.lang, using default locale',
+            error: e, stackTrace: stack);
       }
 
       // Đọc thông tin hr.employee
@@ -99,8 +101,10 @@ class OdooSessionManager {
         if (employeeData is List && employeeData.isNotEmpty) {
           employeeId = employeeData.first['id'] as int?;
         }
-      } catch (_) {
+      } catch (e, stack) {
         // Có thể catch nếu user không có quyền đọc hr.employee
+        logger.w('Failed to read hr.employee for user ${session.userId}',
+            error: e, stackTrace: stack);
       }
 
       if (employeeId == null) {
@@ -193,8 +197,10 @@ class OdooSessionManager {
   Future<void> logout() async {
     try {
       await OdooApiClient.instance.client.destroySession();
-    } catch (_) {
-      // Bỏ qua lỗi khi logout — vẫn clear local session
+    } catch (e, stack) {
+      // Không propagate: vẫn phải clear local session dù Odoo từ chối
+      logger.w('destroySession failed during logout',
+          error: e, stackTrace: stack);
     } finally {
       _currentSession = null;
       OdooApiClient.instance.dispose();

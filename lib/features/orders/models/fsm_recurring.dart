@@ -1,5 +1,7 @@
 import 'package:isar_community/isar.dart';
 
+import '../../../core/utils/logger.dart';
+
 part 'fsm_recurring.g.dart';
 
 /// Model Isar cho fsm.recurring (template recurring order).
@@ -134,7 +136,8 @@ class FsmRecurring {
     if (value == null || value == false) return null;
     try {
       return DateTime.parse(value.toString());
-    } catch (_) {
+    } catch (e) {
+      logger.w('FsmRecurring: invalid date from Odoo: $value', error: e);
       return null;
     }
   }

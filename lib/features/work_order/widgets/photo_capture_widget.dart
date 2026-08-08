@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/logger.dart';
 import '../../../shared/widgets/safe_image_file.dart';
 
 /// Widget chụp và hiển thị nhiều ảnh hiện trường.
@@ -113,7 +114,9 @@ class PhotoCaptureWidget extends StatelessWidget {
           continue;
         }
         validImages.add(img);
-      } on Exception catch (e, _) {
+      } on Exception catch (e, stackTrace) {
+        logger.w('PhotoCaptureWidget: cannot read ${img.path}',
+            error: e, stackTrace: stackTrace);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

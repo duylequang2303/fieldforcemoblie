@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../core/utils/logger.dart';
 import '../features/orders/models/fsm_order.dart';
 
 class ScheduleCard extends StatelessWidget {
@@ -34,12 +35,12 @@ class ScheduleCard extends StatelessWidget {
     try {
       final success = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!success) {
-        debugPrint('$errorMsg: launchUrl returned false for $uri');
+        logger.w('$errorMsg: launchUrl returned false for $uri');
       }
-    } on PlatformException catch (e) {
-      debugPrint('$errorMsg: $e');
-    } catch (e) {
-      debugPrint('$errorMsg: unexpected error $e');
+    } on PlatformException catch (e, stackTrace) {
+      logger.e(errorMsg, error: e, stackTrace: stackTrace);
+    } catch (e, stackTrace) {
+      logger.e('$errorMsg: unexpected error', error: e, stackTrace: stackTrace);
     }
   }
 

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/empty_state_widget.dart';
@@ -11,7 +10,9 @@ import 'package:fieldforce_mobile/features/orders/services/orders_service.dart';
 import 'package:fieldforce_mobile/features/orders/services/recurring_service.dart';
 import 'package:fieldforce_mobile/features/orders/widgets/recurring_calendar.dart';
 import 'package:go_router/go_router.dart';
+import '../core/api/api_exception.dart';
 import '../core/routing/route_names.dart';
+import '../core/utils/logger.dart';
 
 /// Màn hình ScheduleScreen — đọc dữ liệu fsm.order thật từ OrdersService
 /// (Odoo + cache Isar, offline-first). Thiết kế Sortscape (Card-based List).
@@ -53,10 +54,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     List<FsmOrder> cached = [];
     try {
       cached = await OrdersService.instance.loadCachedOrders();
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('ScheduleScreen loadCachedOrders failed: $e');
-      }
+    } catch (e, stackTrace) {
+      logger.e('ScheduleScreen loadCachedOrders failed',
+          error: e, stackTrace: stackTrace);
     }
     if (!mounted) return;
     setState(() => _orders = cached);
@@ -74,9 +74,20 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       final fresh = await OrdersService.instance.fetchMyOrders();
       if (!mounted) return;
       setState(() => _orders = fresh);
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('ScheduleScreen fetchMyOrders failed (offline?): $e');
+    } on OdooConnectionException catch (e) {
+      logger.w('ScheduleScreen fetchMyOrders: offline, keeping cache', error: e);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Offline — đang hiển thị dữ liệu đã lưu.')),
+        );
+      }
+    } catch (e, stackTrace) {
+      logger.e('ScheduleScreen fetchMyOrders failed',
+          error: e, stackTrace: stackTrace);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không tải được đơn mới: $e')),
+        );
       }
     } finally {
       if (showSpinner && mounted) setState(() => _isLoading = false);

@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import '../connectivity/connectivity_service.dart';
 import '../settings/settings_repository.dart';
 import '../api/odoo_session_manager.dart';
+import '../utils/logger.dart';
 
 /// Điều phối đồng bộ local (Isar) → Odoo.
 /// Hai cơ chế: (1) event-driven khi mạng về [startListening];
@@ -66,9 +67,7 @@ class SyncManager extends ChangeNotifier {
         try {
           await syncPending();
         } on SyncHandlersFailedException catch (e, st) {
-          if (kDebugMode) {
-            debugPrint('Auto-sync handler failed: $e\n$st');
-          }
+          logger.e('Auto-sync handler failed', error: e, stackTrace: st);
         }
       }
     });
@@ -99,18 +98,15 @@ class SyncManager extends ChangeNotifier {
         try {
           await _autoTick();
         } catch (e, stack) {
-          if (kDebugMode) {
-            debugPrint('SyncManager: auto-sync tick error: $e\n$stack');
-          }
+          logger.e('SyncManager: auto-sync tick error',
+              error: e, stackTrace: stack);
         }
       },
     );
-    if (kDebugMode) {
-      debugPrint(
-        'SyncManager: auto-sync mỗi $minutes phút '
-        '(wifiOnly=${SettingsRepository.instance.wifiOnly})',
-      );
-    }
+    logger.i(
+      'SyncManager: auto-sync mỗi $minutes phút '
+      '(wifiOnly=${SettingsRepository.instance.wifiOnly})',
+    );
   }
 
   Future<void> _autoTick() async {
@@ -118,15 +114,11 @@ class SyncManager extends ChangeNotifier {
     final isOnline = await _connectivity.isOnline;
     if (!isOnline) return;
     if (!await _allowedByNetworkPref()) {
-      if (kDebugMode) {
-        debugPrint(
-            'SyncManager: bỏ qua auto-sync (wifi-only nhưng đang mobile data)');
-      }
+      logger.i(
+          'SyncManager: bỏ qua auto-sync (wifi-only nhưng đang mobile data)');
       return;
     }
-    if (kDebugMode) {
-      debugPrint('SyncManager: auto-sync tick → syncPending()');
-    }
+    logger.d('SyncManager: auto-sync tick → syncPending()');
     await syncPending();
     // Ghi thời điểm để màn Settings phản ánh lần auto-sync (không chỉ sync tay).
     await SettingsRepository.instance.saveLastSyncedAt(DateTime.now());
@@ -166,10 +158,8 @@ class SyncManager extends ChangeNotifier {
         await namedHandler.handler();
       } catch (e, stackTrace) {
         failures.add(_SyncHandlerFailure(namedHandler.name, e, stackTrace));
-        if (kDebugMode) {
-          debugPrint(
-              'SyncManager: handler "${namedHandler.name}" failed: $e\n$stackTrace');
-        }
+        logger.e('SyncManager: handler "${namedHandler.name}" failed',
+            error: e, stackTrace: stackTrace);
       }
     }
     if (failures.isNotEmpty) {
@@ -205,9 +195,7 @@ class SyncManager extends ChangeNotifier {
     try {
       await syncPending();
     } on SyncHandlersFailedException catch (e, st) {
-      if (kDebugMode) {
-        debugPrint('syncAfterAuth handler failed: $e\n$st');
-      }
+      logger.e('syncAfterAuth handler failed', error: e, stackTrace: st);
     }
   }
 
@@ -218,11 +206,9 @@ class SyncManager extends ChangeNotifier {
     // Prevent duplicate handlers by name
     if (!_syncHandlers.contains(named)) {
       _syncHandlers.add(named);
-      if (kDebugMode) {
-        debugPrint('SyncManager: registered handler "$name"');
-      }
-    } else if (kDebugMode) {
-      debugPrint('SyncManager: duplicate handler "$name" registration ignored');
+      logger.d('SyncManager: registered handler "$name"');
+    } else {
+      logger.w('SyncManager: duplicate handler "$name" registration ignored');
     }
   }
 
@@ -255,7 +241,10 @@ class SyncManager extends ChangeNotifier {
     if (active != null) {
       try {
         await active;
-      } catch (_) {}
+      } catch (e, stackTrace) {
+        logger.w('SyncManager: in-flight sync failed while disposing',
+            error: e, stackTrace: stackTrace);
+      }
     }
 
     _isSyncing = false;

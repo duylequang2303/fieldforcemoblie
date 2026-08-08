@@ -1,6 +1,8 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 
+import '../core/utils/logger.dart';
+
 class InAppCameraScreen extends StatefulWidget {
   const InAppCameraScreen({super.key});
 
@@ -47,9 +49,17 @@ class _InAppCameraScreenState extends State<InAppCameraScreen> {
         _controller = controller;
         _isInitialized = true;
       });
-    } catch (e) {
-      if (mounted) Navigator.pop(context, null);
+    } catch (e, stackTrace) {
+      logger.e('Camera initialization failed',
+          error: e, stackTrace: stackTrace);
+      if (mounted) _popWithError('Không mở được camera: $e');
     }
+  }
+
+  void _popWithError(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+    Navigator.pop(context, null);
   }
 
   Future<void> _takePicture() async {
@@ -57,8 +67,9 @@ class _InAppCameraScreenState extends State<InAppCameraScreen> {
     try {
       final image = await _controller!.takePicture();
       if (mounted) Navigator.pop(context, image.path);
-    } catch (e) {
-      if (mounted) Navigator.pop(context, null);
+    } catch (e, stackTrace) {
+      logger.e('Camera capture failed', error: e, stackTrace: stackTrace);
+      if (mounted) _popWithError('Không chụp được ảnh: $e');
     }
   }
 
