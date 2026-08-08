@@ -385,8 +385,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
           error: e, stackTrace: stackTrace);
       // Khôi phục UI để khớp với report đã lưu
       if (mounted) {
-        setState(() => _photoPaths.insert(
-            index.clamp(0, _photoPaths.length), path));
+        setState(
+            () => _photoPaths.insert(index.clamp(0, _photoPaths.length), path));
         _showSnackBar('Không xoá được ảnh khỏi báo cáo: $e');
       }
     });
@@ -469,8 +469,35 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
       _isProcessing = true;
     });
     try {
+      // Reload fresh order state from Isar before completion to avoid race with sync/conflict resolution
+      final latest = await IsarService.instance.db.fsmOrders
+          .filter()
+          .odooIdEqualTo(widget.order.odooId)
+          .findFirst();
+      if (latest == null) {
+        _showSnackBar('Order not found locally.');
+        return;
+      }
+      if (latest.stage == FsmOrderStage.done) {
+        _showSnackBar('Order already completed on server.');
+        return;
+      }
+      if (latest.stage == FsmOrderStage.cancelled) {
+        _showSnackBar('Order has been cancelled.');
+        return;
+      }
+      if (latest.stage != FsmOrderStage.inProgress) {
+        _showSnackBar(
+            'Order is not in In Progress status (current: ${latest.stage}).');
+        return;
+      }
+
       final report = await WorkOrderService.instance
           .getOrCreateReport(widget.order.odooId);
+
+      // Log local order state before completion
+      logger.i(
+          'WorkOrderDetail._onComplete: odooId=${widget.order.odooId} localStage=${latest.stage} localStageId=${latest.stageId} widgetOrderStage=${widget.order.stage} widgetOrderStageId=${widget.order.stageId}');
 
       // X: đã ký rồi (local hoặc Odoo) thì không bắt ký lại, không chạy lại wizard.
       final alreadySigned =
@@ -549,8 +576,9 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
       if (currentOrder.recurringId != null && currentOrder.recurringId! > 0) {
         success = await RecurringService.instance.skipOccurrence(currentOrder);
       } else {
-        final stageId = await OrdersService.instance
-            .getStageIdByKeywords(['cancel', 'huỷ', 'cancelled'], fallbackIds: [5]);
+        final stageId = await OrdersService.instance.getStageIdByKeywords(
+            ['cancel', 'huỷ', 'cancelled'],
+            fallbackIds: [5]);
         if (stageId == null) {
           if (!mounted) return;
           _showSnackBar('Cancelled stage not configured in Odoo.');
@@ -695,7 +723,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                           icon: Icons.email_outlined, onTap: _onEmail),
                       const SizedBox(height: 8),
                       QuickActionButton(
-                          icon: Icons.directions_outlined, onTap: _onDirections),
+                          icon: Icons.directions_outlined,
+                          onTap: _onDirections),
                     ],
                   ),
                 ),
@@ -776,70 +805,71 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                 ),
               )
             else
-              Row(
+              Column(
                 children: [
-                  Expanded(
-                    child: FilledButton(
-                      key: const Key('btn_mark_complete'),
-                      onPressed: _isProcessing ? null : _onComplete,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: theme.colorScheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('Mark complete',
-                          style: TextStyle(fontWeight: FontWeight.w600)),
+                  FilledButton(
+                    key: const Key('btn_mark_complete'),
+                    onPressed: _isProcessing ? null : _onComplete,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: theme.colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Text('Mark complete',
+                        style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton(
+                    key: const Key('btn_timesheet'),
+                    onPressed: _isClosed ? null : _onTimesheetTap,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(color: theme.dividerColor),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.access_time_outlined,
+                            size: 18,
+                            color: _isClosed
+                                ? theme.colorScheme.onSurface.withOpacity(0.4)
+                                : theme.colorScheme.primary),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            'Ghi nhận giờ công',
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: _isClosed
+                                    ? theme.colorScheme.onSurface
+                                        .withOpacity(0.4)
+                                    : theme.colorScheme.onSurface),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton(
-                      key: const Key('btn_timesheet'),
-                      onPressed: _isClosed ? null : _onTimesheetTap,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: BorderSide(color: theme.dividerColor),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.access_time_outlined,
-                              size: 18,
-                              color: _isClosed
-                                  ? theme.colorScheme.onSurface.withOpacity(0.4)
-                                  : theme.colorScheme.primary),
-                          const SizedBox(width: 6),
-                          Text('Ghi nhận giờ công',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: _isClosed
-                                      ? theme.colorScheme.onSurface.withOpacity(0.4)
-                                      : theme.colorScheme.onSurface)),
-                        ],
-                      ),
+                  const SizedBox(height: 8),
+                  OutlinedButton(
+                    key: const Key('btn_skip'),
+                    onPressed: _isProcessing ? null : _askSkip,
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: BorderSide(color: theme.dividerColor),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton(
-                      key: const Key('btn_skip'),
-                      onPressed: _isProcessing ? null : _askSkip,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        side: BorderSide(color: theme.dividerColor),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: Text('Skip',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color:
-                                  theme.colorScheme.onSurface.withOpacity(0.7))),
-                    ),
+                    child: Text('Skip',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color:
+                                theme.colorScheme.onSurface.withOpacity(0.7))),
                   ),
                 ],
               ),
@@ -871,7 +901,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
               width: 88,
               height: 88,
               fit: BoxFit.cover,
-              cacheWidth: 176, // ✅ decode ở 176px (2x Retina) thay vì full resolution
+              cacheWidth:
+                  176, // ✅ decode ở 176px (2x Retina) thay vì full resolution
             ),
           ),
           if (!isClosed)
@@ -1015,7 +1046,13 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                                 key: const Key('btn_check_in'),
                                 onPressed: isClosed ? null : _onCheckIn,
                                 icon: const Icon(Icons.play_arrow),
-                                label: const Text('Check-in'),
+                                label: const Flexible(
+                                  child: Text(
+                                    'Check-in',
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -1024,7 +1061,13 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                                 key: const Key('btn_check_out'),
                                 onPressed: isClosed ? null : _onCheckOut,
                                 icon: const Icon(Icons.stop),
-                                label: const Text('Check-out'),
+                                label: const Flexible(
+                                  child: Text(
+                                    'Check-out',
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
                               ),
                             ),
                           ],

@@ -69,16 +69,26 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   /// Pull dữ liệu thật từ Odoo (fetchMyOrders tự lưu Isar).
   /// Offline/lỗi → giữ nguyên cache đã có, không crash.
   Future<void> _fetchFromOdoo({required bool showSpinner}) async {
+    logger.i('ScheduleScreen._fetchFromOdoo: START showSpinner=$showSpinner');
     if (showSpinner && mounted) setState(() => _isLoading = true);
     try {
       final fresh = await OrdersService.instance.fetchMyOrders();
+      logger.i('ScheduleScreen._fetchFromOdoo: fetched ${fresh.length} orders');
+      if (fresh.isNotEmpty) {
+        logger.i(
+            'ScheduleScreen._fetchFromOdoo: first=${fresh.first.name} date=${fresh.first.scheduledDateStart} stage=${fresh.first.stage}');
+        logger.i(
+            'ScheduleScreen._fetchFromOdoo: last=${fresh.last.name} date=${fresh.last.scheduledDateStart} stage=${fresh.last.stage}');
+      }
       if (!mounted) return;
       setState(() => _orders = fresh);
     } on OdooConnectionException catch (e) {
-      logger.w('ScheduleScreen fetchMyOrders: offline, keeping cache', error: e);
+      logger.w('ScheduleScreen fetchMyOrders: offline, keeping cache',
+          error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Offline — đang hiển thị dữ liệu đã lưu.')),
+          const SnackBar(
+              content: Text('Offline — đang hiển thị dữ liệu đã lưu.')),
         );
       }
     } catch (e, stackTrace) {
@@ -95,7 +105,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     await _refreshPendingSyncCount();
   }
 
-      // Lọc orders theo ngày đã chọn và ẩn các đơn bị skip
+  // Lọc orders theo ngày đã chọn và ẩn các đơn bị skip
   List<FsmOrder>? _cachedFilteredOrders;
   List<FsmOrder>? _cachedOrdersRef;
   DateTime? _cachedSelectedDate;
@@ -117,23 +127,56 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       return _cachedFilteredOrders!;
     }
 
+    final selectedDay = _viewMode == 'Week'
+        ? null
+        : DateTime.utc(
+            _selectedDate.year, _selectedDate.month, _selectedDate.day);
+
+    final skippedByDate = <String>[];
+    final skippedBySkipped = <String>[];
+    final included = <String>[];
+
     final result = _orders.where((order) {
-      if (order.isSkipped || order.isRecurringProcessed) return false;
-      if (order.scheduledDateStart == null) return false;
+      if (order.isSkipped || order.isRecurringProcessed) {
+        skippedBySkipped.add(order.name);
+        return false;
+      }
+      if (order.scheduledDateStart == null) {
+        skippedByDate.add('${order.name}(no-date)');
+        return false;
+      }
       final orderDate = order.scheduledDateStart!;
-      final orderDay = DateTime.utc(orderDate.year, orderDate.month, orderDate.day);
+      final orderDay =
+          DateTime.utc(orderDate.year, orderDate.month, orderDate.day);
       if (_viewMode == 'Week') {
-        final startOfWeek = _selectedDate.subtract(
-            Duration(days: _selectedDate.weekday - 1));
+        final startOfWeek =
+            _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1));
         final endOfWeek = startOfWeek.add(const Duration(days: 7));
-        final start = DateTime.utc(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-        final end = DateTime.utc(endOfWeek.year, endOfWeek.month, endOfWeek.day);
+        final start =
+            DateTime.utc(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+        final end =
+            DateTime.utc(endOfWeek.year, endOfWeek.month, endOfWeek.day);
         if (orderDay.isBefore(start) || !orderDay.isBefore(end)) {
-          return false;
+          // Cho phép hiển thị nếu đơn quá hạn chưa hoàn thành (bắt đầu trước start và chưa hoàn thành/huỷ)
+          final isOverdue = orderDay.isBefore(start) &&
+              order.stage != FsmOrderStage.done &&
+              order.stage != FsmOrderStage.cancelled;
+          if (!isOverdue) {
+            return false;
+          }
         }
       } else {
-        final selectedDay = DateTime.utc(_selectedDate.year, _selectedDate.month, _selectedDate.day);
-        if (orderDay != selectedDay) return false;
+        if (orderDay != selectedDay) {
+          // Cho phép hiển thị nếu đơn quá hạn chưa hoàn thành (bắt đầu trước selectedDay và chưa hoàn thành/huỷ)
+          final isOverdue = selectedDay != null &&
+              orderDay.isBefore(selectedDay) &&
+              order.stage != FsmOrderStage.done &&
+              order.stage != FsmOrderStage.cancelled;
+          if (!isOverdue) {
+            skippedByDate.add('${order.name}:$orderDay');
+            return false;
+          }
+        }
       }
       if (_selectedStage != null && order.stage != _selectedStage) {
         return false;
@@ -152,8 +195,14 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           !_filterPriorities.contains(order.priority)) {
         return false;
       }
+      included.add('${order.name}:$orderDay:${order.stage}');
       return true;
     }).toList();
+
+    if (skippedByDate.isNotEmpty || skippedBySkipped.isNotEmpty) {
+      logger.w(
+          'ScheduleScreen._filteredOrders: skippedByDate=$skippedByDate skippedBySkipped=$skippedBySkipped included=$included viewMode=$_viewMode selectedDate=$selectedDay total=${_orders.length} filtered=${result.length}');
+    }
 
     _cachedOrdersRef = _orders;
     _cachedSelectedDate = _selectedDate;
@@ -221,7 +270,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   }
 
   Future<void> _onRefresh() async {
-    await _fetchFromOdoo(showSpinner: true);
+    final fresh = await OrdersService.instance.fetchMyOrders();
+    if (!mounted) return;
+    setState(() => _orders = fresh);
   }
 
   Future<void> _onSyncTap() async {
@@ -271,8 +322,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         itemCount: displayOrders.length,
         itemBuilder: (context, index) {
           final order = displayOrders[index];
-          final hasPhone = order.partnerPhone != null && order.partnerPhone!.isNotEmpty;
-          final hasCoords = order.locationLat != null && order.locationLng != null;
+          final hasPhone =
+              order.partnerPhone != null && order.partnerPhone!.isNotEmpty;
+          final hasCoords =
+              order.locationLat != null && order.locationLng != null;
           return ScheduleCard(
             order: order,
             onTap: () {
@@ -327,22 +380,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w700,
                 color: theme.colorScheme.onSurface,
-              ),
-            ),
-            OutlinedButton.icon(
-              onPressed: () {
-                context.push(RouteNames.orders);
-              },
-              icon: Icon(Icons.list_alt, color: theme.colorScheme.primary),
-              label: Text(
-                'All Orders',
-                style: TextStyle(color: theme.colorScheme.primary),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: BorderSide(color: theme.colorScheme.primary),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
               ),
             ),
           ],
@@ -419,8 +456,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                             _selectedDate = date;
                           });
                           // Khi chuyển qua ngày khác, tự động chạy check sinh local recurring instances
-                          await RecurringService.instance.generateOfflineInstances();
-                          final updated = await OrdersService.instance.loadCachedOrders();
+                          await RecurringService.instance
+                              .generateOfflineInstances();
+                          final updated =
+                              await OrdersService.instance.loadCachedOrders();
                           if (mounted) {
                             setState(() {
                               _orders = updated;

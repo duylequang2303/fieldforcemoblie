@@ -145,7 +145,8 @@ class OrdersService {
     return _completedStageId;
   }
 
-  Future<int?> getStageIdByKeywords(List<String> keywords, {List<int>? fallbackIds}) async {
+  Future<int?> getStageIdByKeywords(List<String> keywords,
+      {List<int>? fallbackIds}) async {
     await fetchStagesIfNeeded();
     for (final entry in _stageIdsByLowerName.entries) {
       for (final kw in keywords) {
@@ -228,7 +229,8 @@ class OrdersService {
           msg.contains('field') && msg.contains('does not exist') ||
           msg.contains('undefined') ||
           msg.contains('access denied')) {
-        logger.w('OrdersService.fetchMyOrders: fieldservice_calendar module missing or inaccessible');
+        logger.w(
+            'OrdersService.fetchMyOrders: fieldservice_calendar module missing or inaccessible');
       } else {
         rethrow;
       }
@@ -261,7 +263,8 @@ class OrdersService {
         ) as List<dynamic>;
         if (person.isNotEmpty) {
           personId = person.first['id'] as int;
-          logger.i('OrdersService.fetchMyOrders: Found personId=$personId via fsm.person.user_id for user=$userId');
+          logger.i(
+              'OrdersService.fetchMyOrders: Found personId=$personId via fsm.person.user_id for user=$userId');
         }
       } on OdooBusinessException catch (e) {
         final msg = e.message.toLowerCase();
@@ -271,7 +274,8 @@ class OrdersService {
             msg.contains('access denied'))) {
           rethrow;
         }
-        logger.w('OrdersService.fetchMyOrders: fsm.person.user_id field missing');
+        logger
+            .w('OrdersService.fetchMyOrders: fsm.person.user_id field missing');
       } on OdooConnectionException {
         rethrow;
       } on OdooAuthException {
@@ -285,10 +289,17 @@ class OrdersService {
     List<dynamic> rawOrders = [];
     if (personId != null) {
       // Ưu tiên domain chính xác: person_id = personId
-      logger.i('OrdersService.fetchMyOrders: personId=$personId for user=$userId');
       rawOrders = await _callSearchRead([
         ['person_id', '=', personId]
       ]);
+      logger.i(
+          'OrdersService.fetchMyOrders: person_id=$personId returned ${rawOrders.length} orders');
+      if (rawOrders.isNotEmpty) {
+        logger.i(
+            'OrdersService.fetchMyOrders: first=${rawOrders.first['name']} date=${rawOrders.first['scheduled_date_start']} stage=${rawOrders.first['stage_id']}');
+        logger.i(
+            'OrdersService.fetchMyOrders: last=${rawOrders.last['name']} date=${rawOrders.last['scheduled_date_start']} stage=${rawOrders.last['stage_id']}');
+      }
     }
 
     // Fallback 1: team calendar (fieldservice_calendar module)
@@ -299,20 +310,21 @@ class OrdersService {
         ['team_id.calendar_user_id', '=', userId]
       ]);
       if (fallbackOrders.isNotEmpty) {
-        logger.i('OrdersService.fetchMyOrders: Found orders via team calendar fallback');
+        logger.i(
+            'OrdersService.fetchMyOrders: Found orders via team calendar fallback');
         return fallbackOrders;
       }
     }
 
     // Fallback 2: person_ids (many2many) - legacy nếu có custom field mapping
     if (rawOrders.isEmpty) {
-      logger.w(
-          'OrdersService.fetchMyOrders: Thử person_ids fallback');
+      logger.w('OrdersService.fetchMyOrders: Thử person_ids fallback');
       final fallbackOrders = await _tryFetchOrders([
         ['person_ids.user_id', '=', userId]
       ]);
       if (fallbackOrders.isNotEmpty) {
-        logger.i('OrdersService.fetchMyOrders: Found orders via person_ids fallback');
+        logger.i(
+            'OrdersService.fetchMyOrders: Found orders via person_ids fallback');
         return fallbackOrders;
       }
     }
@@ -320,17 +332,22 @@ class OrdersService {
     // Fallback 3: Try to fetch ALL orders (for debugging - limit 50)
     // This helps identify if orders exist but aren't assigned correctly
     if (rawOrders.isEmpty) {
-      logger.w(
-          'OrdersService.fetchMyOrders: Thử fetch all orders (debug)');
+      logger.w('OrdersService.fetchMyOrders: Thử fetch all orders (debug)');
       try {
         final allOrders = await _callSearchRead([
-          ['stage_id.name', 'in', ['New', 'In Progress', 'Mới', 'Đang thực hiện']]
+          [
+            'stage_id.name',
+            'in',
+            ['New', 'In Progress', 'Mới', 'Đang thực hiện']
+          ]
         ]);
         if (allOrders.isNotEmpty) {
-          logger.i('OrdersService.fetchMyOrders: Found ${allOrders.length} orders in backend (but not assigned to user). First few: ${allOrders.take(3).map((e) => e['name']).toList()}');
+          logger.i(
+              'OrdersService.fetchMyOrders: Found ${allOrders.length} orders in backend (but not assigned to user). First few: ${allOrders.take(3).map((e) => e['name']).toList()}');
           // Log the person_id of first order to debug assignment
           if (allOrders.first['person_id'] != null) {
-            logger.i('OrdersService.fetchMyOrders: First order person_id: ${allOrders.first['person_id']}');
+            logger.i(
+                'OrdersService.fetchMyOrders: First order person_id: ${allOrders.first['person_id']}');
           }
         }
       } on OdooConnectionException {
@@ -344,7 +361,8 @@ class OrdersService {
     }
 
     if (rawOrders.isEmpty) {
-      logger.w('OrdersService.fetchMyOrders: Không có kết quả với bất kỳ domain nào');
+      logger.w(
+          'OrdersService.fetchMyOrders: Không có kết quả với bất kỳ domain nào');
       return [];
     }
 
@@ -510,7 +528,8 @@ class OrdersService {
 
   Future<void> _scheduleUpcomingRemindersSafely(List<FsmOrder> orders) async {
     try {
-      await RecurringNotificationService.instance.scheduleUpcomingReminders(orders);
+      await RecurringNotificationService.instance
+          .scheduleUpcomingReminders(orders);
     } catch (e, stackTrace) {
       logger.e('Failed to schedule upcoming reminders',
           error: e, stackTrace: stackTrace);
@@ -567,15 +586,18 @@ class OrdersService {
       });
 
       // Cancel reminders if order is now done or cancelled
-      if (local.stage == FsmOrderStage.done || local.stage == FsmOrderStage.cancelled) {
+      if (local.stage == FsmOrderStage.done ||
+          local.stage == FsmOrderStage.cancelled) {
         try {
-          await RecurringNotificationService.instance.cancelUpcomingReminder(odooId);
+          await RecurringNotificationService.instance
+              .cancelUpcomingReminder(odooId);
         } catch (e, stackTrace) {
           logger.e('Failed to cancel upcoming reminder on stage update',
               error: e, stackTrace: stackTrace);
         }
         try {
-          await RecurringNotificationService.instance.cancelOrderReminders(odooId);
+          await RecurringNotificationService.instance
+              .cancelOrderReminders(odooId);
         } catch (e, stackTrace) {
           logger.e('Failed to cancel order reminders on stage update',
               error: e, stackTrace: stackTrace);
@@ -667,13 +689,15 @@ class OrdersService {
 
       // Cancel upcoming and recurring reminders since order is now done
       try {
-        await RecurringNotificationService.instance.cancelUpcomingReminder(odooId);
+        await RecurringNotificationService.instance
+            .cancelUpcomingReminder(odooId);
       } catch (e, stackTrace) {
         logger.e('Failed to cancel upcoming reminder on completion',
             error: e, stackTrace: stackTrace);
       }
       try {
-        await RecurringNotificationService.instance.cancelOrderReminders(odooId);
+        await RecurringNotificationService.instance
+            .cancelOrderReminders(odooId);
       } catch (e, stackTrace) {
         logger.e('Failed to cancel order reminders on completion',
             error: e, stackTrace: stackTrace);
@@ -717,6 +741,8 @@ class OrdersService {
   /// Ghi nhận giờ bắt đầu thực tế khi Worker check-in tại địa điểm (Offline-First).
   Future<void> checkIn(int odooId) async {
     final now = DateTime.now();
+    final inProgressStageId =
+        await getStageIdByKeywords(['in progress', 'progress', 'doing']);
 
     // 1. Cập nhật local trước
     final local = await _isar.db.fsmOrders.getByOdooId(odooId);
@@ -731,23 +757,35 @@ class OrdersService {
       await _isar.db.writeTxn(() async {
         local.dateStart = now;
         local.isPendingSync = true;
+        if (inProgressStageId != null) {
+          _updateStageFields(local, inProgressStageId);
+          local.isStagePendingSync = true;
+        }
         await _isar.db.fsmOrders.put(local);
       });
     }
 
     // 2. Cố gắng ghi nhận lên Odoo
     try {
+      final Map<String, dynamic> vals = {
+        'date_start': _formatDateTimeUtc(now),
+      };
+      if (inProgressStageId != null) {
+        vals['stage_id'] = inProgressStageId;
+      }
+
       await _odoo.callKw(
         model: _model,
         method: 'write',
         args: [
           [odooId],
-          {'date_start': _formatDateTimeUtc(now)},
+          vals,
         ],
       );
       if (local != null) {
         await _isar.db.writeTxn(() async {
           local.isPendingSync = false;
+          local.isStagePendingSync = false;
           await _isar.db.fsmOrders.put(local);
         });
       }
@@ -1043,12 +1081,16 @@ class OrdersService {
           final serverIsNewer =
               serverOrder.lastSyncAt.isAfter(localOrder.lastSyncAt);
 
+          logger.d(
+              'OrdersService._resolveConflictsAndSave: odooId=${localOrder.odooId} localStage=${localOrder.stage} serverStage=${serverOrder.stage} localPending=${localOrder.isPendingSync} localStagePending=${localOrder.isStagePendingSync} serverIsNewer=$serverIsNewer localHasPendingChanges=$localHasPendingChanges');
+
           if (localOrder.isPendingSync && localHasPendingChanges) {
             // Local has uncommitted changes - keep local, mark for sync
             logger.i(
                 'Conflict Resolution: Local order ${localOrder.odooId} has pending changes. Keeping local, marking for sync.');
             // Merge server's non-conflicting fields (e.g., scheduledDateStart/End from server if local didn't change them)
-            if (localOrder.scheduledDateStart == serverOrder.scheduledDateStart &&
+            if (localOrder.scheduledDateStart ==
+                    serverOrder.scheduledDateStart &&
                 localOrder.scheduledDateEnd == serverOrder.scheduledDateEnd) {
               // Local didn't modify schedule, accept server's schedule
               localOrder.scheduledDateStart = serverOrder.scheduledDateStart;
@@ -1151,8 +1193,10 @@ class OrdersService {
         }
       });
     } on IsarError catch (e, stackTrace) {
-      logger.e('_resolveConflictsAndSave: Isar error, falling back to non-persistent fetch',
-          error: e, stackTrace: stackTrace);
+      logger.e(
+          '_resolveConflictsAndSave: Isar error, falling back to non-persistent fetch',
+          error: e,
+          stackTrace: stackTrace);
       for (final o in fetchedOrders) {
         o.localOwnerId = currentUserId;
       }

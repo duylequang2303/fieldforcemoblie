@@ -87,73 +87,78 @@ class _TimesheetPageState extends State<TimesheetPage> {
                         provider.loadEntries(widget.orderId);
                       },
                     )
-                  : Column(
-                      children: [
-                        // Summary card
-                        _SummaryCard(
-                          totalEntries: provider.entries.length,
-                          totalHours: provider.totalHours,
-                        ),
+                  : SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Summary card
+                          _SummaryCard(
+                            totalEntries: provider.entries.length,
+                            totalHours: provider.totalHours,
+                          ),
 
-                        // Form thêm mới (toggle)
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                          height: _showForm ? null : 0,
-                          child: _showForm
-                              ? Container(
-                                  margin:
-                                      const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                                  padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                        color:
-                                            AppColors.accent.withOpacity(0.3),
-                                        width: 2),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withOpacity(0.08),
-                                        blurRadius: 12,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: TimeEntryForm(
-                                    onSubmit: ({
-                                      required DateTime date,
-                                      required double hours,
-                                      required String description,
-                                    }) async {
-                                      await provider.addEntry(
-                                        orderOdooId: widget.orderId,
-                                        date: date,
-                                        hours: hours,
-                                        description: description,
-                                      );
-                                      if (mounted) {
-                                        setState(() => _showForm = false);
-                                      }
-                                    },
-                                  ),
-                                )
-                              : const SizedBox.shrink(),
-                        ),
+                          // Form thêm mới (toggle)
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            height: _showForm ? null : 0,
+                            child: _showForm
+                                ? Container(
+                                    margin: const EdgeInsets.fromLTRB(
+                                        16, 0, 16, 12),
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                          color:
+                                              AppColors.accent.withOpacity(0.3),
+                                          width: 2),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.08),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: TimeEntryForm(
+                                      onSubmit: ({
+                                        required DateTime date,
+                                        required double hours,
+                                        required String description,
+                                      }) async {
+                                        await provider.addEntry(
+                                          orderOdooId: widget.orderId,
+                                          date: date,
+                                          hours: hours,
+                                          description: description,
+                                        );
+                                        if (mounted) {
+                                          setState(() => _showForm = false);
+                                        }
+                                      },
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
 
-                        // Danh sách entries
-                        Expanded(
-                          child: provider.entries.isEmpty && !_showForm
+                          // Danh sách entries
+                          provider.entries.isEmpty && !_showForm
                               ? _buildEmptyState()
                               : ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 16, vertical: 8),
                                   itemCount: provider.entries.length,
                                   itemBuilder: (context, i) =>
                                       _EntryCard(entry: provider.entries[i]),
                                 ),
-                        ),
-                      ],
+
+                          const SizedBox(height: 80),
+                        ],
+                      ),
                     ),
           floatingActionButton: FloatingActionButton.extended(
             heroTag: 'fab_timesheet',
