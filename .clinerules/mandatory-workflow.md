@@ -29,9 +29,9 @@ Agent TỰ ĐỘNG quyết định khi nào cần subagent — người dùng KH
 → Gọi `/think <problem>` (xem `workflows/think.md`) để PROPOSER/SKEPTIC/CHECKER phân tích, rồi tổng hợp `FINAL PLAN`
 
 ## Ưu tiên đường vận chuyển subagent
-1. **a2a-platform** (SSE) — ưu tiên nếu kết nối ổn định
-2. **`use_subagents` / `new_task`** — fallback mặc định đáng tin cậy
-> Chi tiết failover trong `workflows/think.md` §RESILIENCE (404 → fallback `new_task` ngay, không retry).
+1. **opencode `task` tool** — subagent định nghĩa trong `.opencode/agent/` (scout, reviewer, proposer, skeptic, checker)
+2. **`task` tool với subagent_type mặc định** (explore/general) — fallback khi cần khả năng khác
+> Chi tiết trong `.agents/rules/00-opencode-agent-system.md`.
 
 ## Chống lạm dụng (tránh subagent tốn token vô ích)
 - Task đơn giản (1-2 file, thay đổi nhỏ, ngữ cảnh rõ) → làm trực tiếp, KHÔNG cần subagent

@@ -100,10 +100,10 @@
     ```
 - ⚠️ **Hạn chế hỏi quyền tối đa**: Tránh chạy các lệnh shell thăm dò hoặc truy vấn rời rạc làm phiền User phê duyệt quyền nhiều lần. Nếu cần thông tin hoặc tạo dữ liệu test, hãy hỏi trực tiếp User hoặc gom các lệnh SQL/CLI cần thiết vào duy nhất một lần thực thi.
 
-## 12. ~~Quy tắc sử dụng MCP Subagents (a2a-platform)~~ [DEPRECATED - Zed không hỗ trợ MCP]
+## 12. ~~Quy tắc sử dụng MCP Subagents (a2a-platform)~~ [DEPRECATED - migrated sang opencode]
 
-> **Lưu ý:** Section này được giữ lại cho reference từ Cline setup cũ. Zed KHÔNG hỗ trợ MCP protocol native.
-> Thay thế: Dùng Zed's `spawn_agent` tool (xem §13 THINK/SCOUT/REVIEW workflows).
+> **Lưu ý:** Section này được giữ lại cho reference từ Cline setup cũ. Môi trường hiện tại là **opencode**, hỗ trợ MCP protocol native.
+> Thay thế: Dùng `task` tool + subagents (xem §13 THINK/SCOUT/REVIEW workflows và `.agents/rules/00-opencode-agent-system.md`).
 
 <details>
 <summary>Reference only (click to expand)</summary>
@@ -139,9 +139,9 @@
 - Error handling
 - Ví dụ thực tế từ project
 
-### 🔧 Subagent Delegation (spawn_agent general guidelines)
+### 🔧 Subagent Delegation (task tool general guidelines)
 
-**✅ Khi NÊN dùng spawn_agent:**
+**✅ Khi NÊN dùng `task` tool:**
 
 **1. Parallel Independent Tasks (song song không phụ thuộc)**
 - ✅ Nhiều subtasks độc lập có thể chạy đồng thời
@@ -196,7 +196,7 @@ VD: Thử 2 approaches khác nhau:
 
 ---
 
-### ❌ KHI NÀO KHÔNG NÊN DÙNG spawn_agent
+### ❌ KHI NÀO KHÔNG NÊN DÙNG `task` tool
 
 **1. Simple Tasks (task đơn giản, <3 tool calls)**
 - ❌ Đọc 1 file, grep 1 pattern, sửa 1 function
@@ -247,7 +247,7 @@ VD SAI: "Research best approach cho recurring feature"
 
 ---
 
-### 📋 Checklist trước khi spawn_agent
+### 📋 Checklist trước khi dùng `task` tool
 
 Trả lời các câu hỏi sau trước khi delegate:
 
@@ -257,15 +257,15 @@ Trả lời các câu hỏi sau trước khi delegate:
 - [ ] **Parallel được?** Task này có thể chạy song song với công việc main agent?
 - [ ] **Giá trị rõ ràng?** Delegate tiết kiệm thời gian hoặc context window đáng kể?
 
-**Nếu trả lời "Có" cho tất cả → ✅ NÊN DÙNG spawn_agent**
+**Nếu trả lời "Có" cho tất cả → ✅ NÊN DÙNG `task` tool**
 
 **Nếu có ≥2 câu trả lời "Không" → ❌ LÀM TRỰC TIẾP nhanh hơn**
 
 ---
 
-### 💡 Best Practices khi dùng spawn_agent
+### 💡 Best Practices khi dùng `task` tool
 
-**1. Message phải self-contained (đầy đủ context)**
+**1. Prompt phải self-contained (đầy đủ context)**
 ```markdown
 ❌ SAI: "Tìm hiểu recurring feature trong project"
 ✅ ĐÚNG:
@@ -282,30 +282,20 @@ Output format: Markdown với code snippets minh họa."
 - Định nghĩa output format (JSON, markdown, bullet points...)
 - Giới hạn scope (files nào, models nào, không research thêm X/Y/Z)
 
-**3. Follow-up với session_id**
-- Reuse `session_id` khi cần follow-up trên cùng context
-- Message follow-up ngắn gọn (subagent đã có context)
-```dart
-// Lần 1
-spawn_agent(message: "Research X...") → session_id: "abc123"
-
-// Follow-up
-spawn_agent(
-  session_id: "abc123",
-  message: "Based on that, now compare approach A vs B"
-)
-```
+**3. Dùng subagent_type đã định nghĩa sẵn**
+- `scout`, `reviewer`, `proposer`, `skeptic`, `checker` trong `.opencode/agent/`
+- Follow-up trên cùng subagent bằng `task_id` (resume session)
 
 **4. Gom parallel calls khi có thể**
-```dart
+```markdown
 // ✅ ĐÚNG: 3 subagents song song
-spawn_agent(label: "Research auth", message: "...")
-spawn_agent(label: "Research state", message: "...")
-spawn_agent(label: "Research API", message: "...")
+task(subagent_type: "scout", prompt: "Research auth ...")
+task(subagent_type: "scout", prompt: "Research state ...")
+task(subagent_type: "scout", prompt: "Research API ...")
 // Chờ cả 3 xong, gộp kết quả
 
 // ❌ SAI: Sequential không cần thiết
-spawn_agent → đợi xong → spawn_agent → đợi xong → spawn_agent
+task → đợi xong → task → đợi xong → task
 ```
 
 ---

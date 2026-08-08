@@ -2,6 +2,19 @@
 
 Ứng dụng di động dành cho Nhân viên Thực địa (Worker) kết nối trực tiếp với backend **Odoo Field Service Management (FSM)**.
 
+## 🤖 Hệ thống Agent (opencode)
+
+Dự án cấu hình sẵn agent system cho **opencode**:
+
+- **Config:** `opencode.json` (MCP servers, skills paths, permissions)
+- **Subagents:** `.opencode/agent/*.md` — `scout`, `reviewer`, `proposer`, `skeptic`, `checker`
+- **Rules:** `.agents/AGENTS.md`, `.agents/rules/*.md`, `.agent-rules/*.md`
+- **Workflows:** `.agents/THINK_WORKFLOW.md`, `SCOUT_WORKFLOW.md`, `REVIEW_WORKFLOW.md`
+- **Skills:** `.agents/skills/*/SKILL.md` (FSM flow, Isar offline-first, Odoo RPC, Odoo test data, Flutter verify)
+- **MCP guide:** xem `.agents/OPENCODE_MCP_GUIDE.md` — setup Odoo MCP + Dart MCP
+
+> Sau khi sửa `opencode.json` hoặc agent/skill files: **quit và restart opencode** để config mới có hiệu lực.
+
 ## 📌 Tính năng chính
 1. **Lịch trình & Đơn dịch vụ (`fsm.order`):** Xem danh sách đơn công việc, nhận thông báo, điều hướng bản đồ GPS (`fsm_route_map`).
 2. **Offline Mode:** Đồng bộ dữ liệu ngoại tuyến khi không có kết nối internet qua Isar Database.
