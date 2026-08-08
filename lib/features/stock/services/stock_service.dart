@@ -199,16 +199,27 @@ class StockService {
       return;
     }
 
+    final currentMove = move;
+
     // 2. Chạy State Machine để đồng bộ Odoo
     try {
       await _withSyncLock(
         '$orderOdooId-$productId',
-        () => _syncStockMoveToOdoo(move!, order),
+        () => _syncStockMoveToOdoo(currentMove, order),
       );
     } on StockPartialAssignException catch (e) {
       logger.w('StockService.recordStockOut: Lỗi thiếu kho (Business Error)',
           error: e);
       rethrow; // Quăng lên cho UI
+    } on OdooBusinessException catch (e) {
+      logger.w('StockService.recordStockOut: Validation business error (${currentMove.id})',
+          error: e);
+      await _isar.db.writeTxn(() async {
+        currentMove.pickingState = 'blocked';
+        currentMove.isPendingSync = false;
+        await _isar.db.stockMoves.put(currentMove);
+      });
+      rethrow;
     } on OdooApiException catch (e) {
       logger.w(
           'StockService.recordStockOut: offline/lỗi mạng, xếp hàng đợi sync',
@@ -241,6 +252,15 @@ class StockService {
             'StockService.syncPending: Bỏ qua do thiếu tồn kho (${move.id})',
             error: e);
         // Cần user xử lý, không lặp lại vô ích
+      } on OdooBusinessException catch (e) {
+        logger.w(
+            'StockService.syncPending: Validation blocked, excluding from retries (${move.id})',
+            error: e);
+        await _isar.db.writeTxn(() async {
+          move.pickingState = 'blocked';
+          move.isPendingSync = false;
+          await _isar.db.stockMoves.put(move);
+        });
       } on OdooApiException catch (e) {
         logger.w('StockService.syncPending: Lỗi mạng (${move.id})', error: e);
       } catch (e) {
@@ -427,17 +447,20 @@ class StockService {
         ],
       );
 
-      if (validateResult != true) {
-        throw const OdooBusinessException(
-            'Phiếu xuất kho validate thất bại.');
+      if (validateResult == true) {
+        state = 'done';
+        await _isar.db.writeTxn(() async {
+          move.pickingState = state;
+          move.isPendingSync = false;
+          await _isar.db.stockMoves.put(move);
+        });
+      } else {
+        final reason = validateResult is Map
+            ? 'wizard action (${validateResult['res_model'] ?? 'unknown'})'
+            : 'validation thất bại';
+        throw OdooBusinessException(
+            'Phiếu xuất kho bị chặn do $reason. Không thể tự động xác nhận.');
       }
-
-      state = 'done';
-      await _isar.db.writeTxn(() async {
-        move.pickingState = state;
-        move.isPendingSync = false;
-        await _isar.db.stockMoves.put(move);
-      });
     }
   }
 }
