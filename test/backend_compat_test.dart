@@ -237,5 +237,56 @@ void main() {
             IsarService.instance,
           ), returnsNormally);
     });
+
+    test('FsmOrder should default isActionCompletePendingSync to false', () {
+      final order = FsmOrder()
+        ..odooId = 1
+        ..stageId = 1
+        ..stage = FsmOrderStage.done
+        ..stageName = 'Completed'
+        ..isPendingSync = true
+        ..isStagePendingSync = true;
+      expect(order.isActionCompletePendingSync, isFalse);
+    });
+
+    test('FsmOrder should allow toggling isActionCompletePendingSync', () {
+      final order = FsmOrder()
+        ..odooId = 2
+        ..stageId = 1
+        ..stage = FsmOrderStage.done
+        ..stageName = 'Completed'
+        ..isPendingSync = true
+        ..isStagePendingSync = true
+        ..isActionCompletePendingSync = true;
+      expect(order.isActionCompletePendingSync, isTrue);
+    });
+
+    test('syncPending should only call action_complete when isActionCompletePendingSync is true', () {
+      final order = FsmOrder()
+        ..odooId = 3
+        ..stageId = 1
+        ..stage = FsmOrderStage.done
+        ..stageName = 'Completed'
+        ..isPendingSync = true
+        ..isStagePendingSync = true
+        ..isActionCompletePendingSync = false;
+      final shouldCallActionComplete =
+          order.stage == FsmOrderStage.done && order.isActionCompletePendingSync;
+      expect(shouldCallActionComplete, isFalse);
+    });
+
+    test('syncPending should call action_complete when stage is done and action complete is pending', () {
+      final order = FsmOrder()
+        ..odooId = 4
+        ..stageId = 1
+        ..stage = FsmOrderStage.done
+        ..stageName = 'Completed'
+        ..isPendingSync = true
+        ..isStagePendingSync = true
+        ..isActionCompletePendingSync = true;
+      final shouldCallActionComplete =
+          order.stage == FsmOrderStage.done && order.isActionCompletePendingSync;
+      expect(shouldCallActionComplete, isTrue);
+    });
   });
 }

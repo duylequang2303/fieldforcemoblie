@@ -62,6 +62,7 @@ class FsmOrder {
   // Sync
   late bool isPendingSync; // true = có thay đổi chưa push lên Odoo
   bool isStagePendingSync = false; // true = có thay đổi trạng thái chưa push
+  bool isActionCompletePendingSync = false; // true = action_complete chưa push
   late DateTime lastSyncAt;
 
   // Rules

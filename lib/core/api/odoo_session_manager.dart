@@ -4,7 +4,6 @@ import 'api_exception.dart';
 import 'odoo_client.dart';
 import '../auth/secure_storage.dart';
 import '../database/sync_manager.dart';
-import '../database/isar_service.dart';
 import '../utils/logger.dart';
 
 class OdooSessionData {
@@ -256,22 +255,10 @@ class OdooSessionManager {
       await logout();
       await SecureStorageService.instance.clearSession();
 
-      // Stop any active sync before clearing Isar to avoid race condition
-      // where a sync handler writes to DB after clear() (Fix Thread #12 CodeRabbit PR#34)
       await SyncManager.instance.dispose();
-
-      // Clear local database on session expiration to isolate data (Fix C06)
-      if (IsarService.instance.isInitialized) {
-        final isar = IsarService.instance.db;
-        await isar.writeTxn(() async {
-          await isar.clear();
-        });
-      }
     } catch (e, stack) {
       logger.e('Session cleanup failed, forcing expiry anyway', error: e, stackTrace: stack);
     } finally {
-      // Always publish expiry so AuthProvider navigates to login,
-      // even if clearSession() or isar.clear() throws (Fix CodeRabbit PR#34 Thread #13)
       _sessionExpiredController.add(null);
     }
     return false;

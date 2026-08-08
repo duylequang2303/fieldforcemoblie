@@ -573,6 +573,7 @@ class OrdersService {
         }
         local.isPendingSync = true;
         local.isStagePendingSync = true;
+        local.isActionCompletePendingSync = true;
         await _isar.db.fsmOrders.put(local);
       });
       if (!wasCompleted) {
@@ -618,6 +619,7 @@ class OrdersService {
         await _isar.db.writeTxn(() async {
           local.isPendingSync = false;
           local.isStagePendingSync = false;
+          local.isActionCompletePendingSync = false;
           await _isar.db.fsmOrders.put(local);
         });
       }
@@ -771,7 +773,8 @@ class OrdersService {
         }
 
         // Đơn đã completed offline → gọi action chuẩn của Odoo
-        if (order.stage == FsmOrderStage.done) {
+        if (order.stage == FsmOrderStage.done &&
+            order.isActionCompletePendingSync) {
           await _odoo.callKw(
             model: _model,
             method: 'action_complete',
@@ -779,6 +782,14 @@ class OrdersService {
               [order.odooId]
             ],
           );
+
+          final current = await _isar.db.fsmOrders.getByOdooId(order.odooId);
+          if (current != null) {
+            await _isar.db.writeTxn(() async {
+              current.isActionCompletePendingSync = false;
+              await _isar.db.fsmOrders.put(current);
+            });
+          }
         } else {
           // Các stage khác → write raw
           final data = <String, dynamic>{
@@ -830,6 +841,7 @@ class OrdersService {
           await _isar.db.writeTxn(() async {
             current.isPendingSync = false;
             current.isStagePendingSync = false;
+            current.isActionCompletePendingSync = false;
             await _isar.db.fsmOrders.put(current);
           });
         }
