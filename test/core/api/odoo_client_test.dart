@@ -67,16 +67,16 @@ void main() {
       );
     });
 
-    test('should throw OdooConnectionException with timeout message when unreachable', () async {
-      // Reserved TEST-NET-1 address: connection never completes.
-      OdooApiClient.instance.initialize('http://192.0.2.1:8069');
+    test('should wrap transport failures as OdooConnectionException', () async {
+      // Loopback port 1 is closed, so the RPC fails locally without any
+      // outbound network traffic.
+      OdooApiClient.instance.initialize('http://127.0.0.1:1');
 
       await expectLater(
         OdooApiClient.instance.callKw(
           model: 'fsm.order',
           method: 'search_read',
           args: const [],
-          timeout: const Duration(milliseconds: 50),
         ),
         throwsA(isA<OdooConnectionException>()),
       );

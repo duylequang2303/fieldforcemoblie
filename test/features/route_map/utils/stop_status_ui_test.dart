@@ -20,6 +20,16 @@ void main() {
   });
 
   group('StopStatusUI.color', () {
+    // Expected ARGB values of the design tokens (onSurfaceMuted, info, success,
+    // warning). Hardcoded rather than imported because the repo pre-commit hook
+    // rejects any staged Dart file referencing the palette class directly.
+    test('should map each status to its design-system color', () {
+      expect(StopStatusUI.color(StopStatus.pending).toARGB32(), 0xFF6B6B6B);
+      expect(StopStatusUI.color(StopStatus.current).toARGB32(), 0xFF1565C0);
+      expect(StopStatusUI.color(StopStatus.completed).toARGB32(), 0xFF2E7D32);
+      expect(StopStatusUI.color(StopStatus.skipped).toARGB32(), 0xFFB28726);
+    });
+
     test('should give every StopStatus a distinct color', () {
       final colors = StopStatus.values.map(StopStatusUI.color).toSet();
 
