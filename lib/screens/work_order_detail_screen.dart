@@ -806,6 +806,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
               )
             else
               Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   FilledButton(
                     key: const Key('btn_mark_complete'),
@@ -813,22 +814,25 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                     style: FilledButton.styleFrom(
                       backgroundColor: theme.colorScheme.primary,
                       foregroundColor: theme.colorScheme.onPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     child: const Text('Mark complete',
-                        style: TextStyle(fontWeight: FontWeight.w600)),
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 15)),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   OutlinedButton(
                     key: const Key('btn_timesheet'),
                     onPressed: _isClosed ? null : _onTimesheetTap,
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: BorderSide(color: theme.dividerColor),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(
+                          color: theme.colorScheme.primary.withOpacity(0.5),
+                          width: 1.5),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -846,28 +850,30 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                             maxLines: 1,
                             style: TextStyle(
                                 fontWeight: FontWeight.w600,
+                                fontSize: 15,
                                 color: _isClosed
                                     ? theme.colorScheme.onSurface
                                         .withOpacity(0.4)
-                                    : theme.colorScheme.onSurface),
+                                    : theme.colorScheme.primary),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   OutlinedButton(
                     key: const Key('btn_skip'),
                     onPressed: _isProcessing ? null : _askSkip,
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: BorderSide(color: theme.dividerColor),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      side: BorderSide(color: theme.dividerColor, width: 1.2),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     child: Text('Skip',
                         style: TextStyle(
                             fontWeight: FontWeight.w600,
+                            fontSize: 15,
                             color:
                                 theme.colorScheme.onSurface.withOpacity(0.7))),
                   ),
