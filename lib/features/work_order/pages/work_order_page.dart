@@ -7,6 +7,7 @@ import '../providers/work_order_provider.dart';
 import '../widgets/customer_signature_widget.dart';
 import '../widgets/photo_capture_widget.dart';
 import '../../orders/models/fsm_order.dart';
+import '../../../shared/widgets/app_snack_bar.dart';
 
 /// Trang nghiệm thu công việc — bao gồm:
 /// - Mô tả công việc đã thực hiện
@@ -73,11 +74,9 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
                         provider.updateProblems(_problemsController.text);
                         await provider.saveLocally();
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Đã lưu bản nháp'),
-                              backgroundColor: AppColors.success,
-                            ),
+                          context.showSnackBarMessage(
+                            'Đã lưu bản nháp',
+                            backgroundColor: AppColors.success,
                           );
                         }
                       },
@@ -497,19 +496,15 @@ class _WorkOrderPageState extends State<WorkOrderPage> {
     if (!context.mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Nghiệm thu đã được gửi thành công!'),
-          backgroundColor: AppColors.success,
-        ),
+      context.showSnackBarMessage(
+        'Nghiệm thu đã được gửi thành công!',
+        backgroundColor: AppColors.success,
       );
       Navigator.of(context).pop();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(provider.errorMessage ?? 'Lỗi khi gửi'),
-          backgroundColor: AppColors.error,
-        ),
+      context.showSnackBarMessage(
+        provider.errorMessage ?? 'Lỗi khi gửi',
+        backgroundColor: AppColors.error,
       );
     }
   }

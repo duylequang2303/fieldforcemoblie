@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../../core/routing/route_names.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../models/fsm_order.dart';
 import 'order_status_chip.dart';
 import 'recurring_badge.dart';
@@ -140,9 +140,7 @@ class OrderCard extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime dt) {
-    return DateFormat('dd/MM/yyyy HH:mm', 'vi').format(dt.toLocal());
-  }
+  String _formatDate(DateTime dt) => AppDateFormat.dateTime(dt);
 }
 
 class _InfoRow extends StatelessWidget {

@@ -1,4 +1,5 @@
 import 'package:isar_community/isar.dart';
+import '../../../core/utils/formatters.dart';
 
 part 'fsm_recurring.g.dart';
 
@@ -86,9 +87,9 @@ class FsmRecurring {
       'fsm_frequency_set_id': frequencySetId,
       'fsm_order_template_id': orderTemplateId,
       'company_id': companyId,
-      'start_date': startDate.toIso8601String().split('T')[0],
-      'end_date': endDate?.toIso8601String().split('T')[0],
-      'next_date': nextDate?.toIso8601String().split('T')[0],
+      'start_date': AppDateFormat.odooDate(startDate),
+      'end_date': endDate == null ? null : AppDateFormat.odooDate(endDate!),
+      'next_date': nextDate == null ? null : AppDateFormat.odooDate(nextDate!),
       'active': isActive,
       'recurrence_rule_type': ruleType,
       'recurrence_completion_interval': completionInterval,

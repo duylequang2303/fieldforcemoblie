@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../../core/routing/route_names.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 import '../../../shared/widgets/offline_banner.dart';
@@ -13,6 +13,7 @@ import '../widgets/recurring_badge.dart';
 import '../../route_map/providers/route_provider.dart';
 import '../../work_order/providers/work_order_provider.dart';
 import '../widgets/order_status_chip.dart';
+import '../../../shared/widgets/app_snack_bar.dart';
 
 /// Strip HTML tags khỏi chuỗi text trả về từ Odoo (VD: <p>...</p>).
 String _stripHtml(String html) {
@@ -350,18 +351,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 final success = await provider.skipOccurrence(order);
                 if (context.mounted) {
                   if (success) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Đã đánh dấu bỏ qua kỳ định kỳ này.')),
-                    );
+                    context.showSnackBarMessage(
+                        'Đã đánh dấu bỏ qua kỳ định kỳ này.');
                     context.pop(); // Quay lại trang trước
                   } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(provider.errorMessage ??
-                            'Không thể bỏ qua kỳ định kỳ này.'),
-                        backgroundColor: theme.colorScheme.error,
-                      ),
+                    context.showSnackBarMessage(
+                      provider.errorMessage ??
+                          'Không thể bỏ qua kỳ định kỳ này.',
+                      backgroundColor: theme.colorScheme.error,
                     );
                   }
                 }
@@ -383,11 +380,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     final validation = routeProvider.checkInValidation(order.odooId);
     if (!validation.allowed) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(validation.reason ?? 'Không thể check-in lúc này.'),
-            backgroundColor: AppColors.warning,
-          ),
+        context.showSnackBarMessage(
+          validation.reason ?? 'Không thể check-in lúc này.',
+          backgroundColor: AppColors.warning,
         );
       }
       return false;
@@ -483,18 +478,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                               final statusText = provider.isOffline
                                   ? 'Check-in thành công! (Ngoại tuyến, sẽ đồng bộ sau)'
                                   : 'Check-in thành công!';
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(statusText),
-                                  backgroundColor: AppColors.success,
-                                ),
+                              context.showSnackBarMessage(
+                                statusText,
+                                backgroundColor: AppColors.success,
                               );
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(provider.errorMessage!),
-                                  backgroundColor: AppColors.error,
-                                ),
+                              context.showSnackBarMessage(
+                                provider.errorMessage!,
+                                backgroundColor: AppColors.error,
                               );
                             }
                           }
@@ -662,8 +653,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     }
   }
 
-  String _fmt(DateTime dt) =>
-      DateFormat('dd/MM/yyyy HH:mm', 'vi').format(dt.toLocal());
+  String _fmt(DateTime dt) => AppDateFormat.dateTime(dt);
 }
 
 // ── Sub-widgets ─────────────────────────────────────────────────────────────

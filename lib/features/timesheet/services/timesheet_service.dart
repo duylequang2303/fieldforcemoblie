@@ -1,8 +1,8 @@
 import 'package:isar_community/isar.dart';
-import 'package:intl/intl.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/database/isar_service.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/utils/logger.dart';
 import '../models/timesheet_entry.dart';
 import '../../orders/models/fsm_order.dart';
@@ -12,11 +12,57 @@ class TimesheetService {
   TimesheetService._();
   static final TimesheetService instance = TimesheetService._();
 
+  static const String _model = 'account.analytic.line';
+
   final _odoo = OdooSessionManager.instance;
   final _isar = IsarService.instance;
 
-  String _formatDate(DateTime date) {
-    return DateFormat('yyyy-MM-dd').format(date);
+  /// Tìm dòng timesheet đã tồn tại trên Odoo, nếu chưa có thì tạo mới.
+  /// Trả về id Odoo của dòng timesheet.
+  Future<int?> _findOrCreateRemoteLine({
+    required int orderOdooId,
+    required DateTime date,
+    required double hours,
+    required String description,
+  }) async {
+    final employeeId = _odoo.currentSession?.employeeId;
+    final dateStr = AppDateFormat.odooDate(date);
+
+    final existingRemote = await _odoo.callKw(
+      model: _model,
+      method: 'search_read',
+      args: [
+        [
+          ['employee_id', '=', employeeId],
+          ['date', '=', dateStr],
+          ['fsm_order_id', '=', orderOdooId],
+          ['name', '=', description],
+          ['unit_amount', '=', hours],
+        ]
+      ],
+      kwargs: {
+        'fields': ['id'],
+        'limit': 1
+      },
+    );
+    if (existingRemote is List && existingRemote.isNotEmpty) {
+      final id = (existingRemote.first as Map<String, dynamic>)['id'] as int?;
+      if (id != null) return id;
+    }
+
+    return await _odoo.callKw(
+      model: _model,
+      method: 'create',
+      args: [
+        {
+          'name': description,
+          'date': dateStr,
+          'unit_amount': hours,
+          'employee_id': employeeId,
+          'fsm_order_id': orderOdooId,
+        },
+      ],
+    ) as int?;
   }
 
   Future<({List<TimesheetEntry> entries, bool hasMore})> getEntriesForOrder(
@@ -73,40 +119,12 @@ class TimesheetService {
 
     // Cố gắng push lên Odoo ngay
     try {
-      int? remoteId;
-      final existingRemote = await _odoo.callKw(
-        model: 'account.analytic.line',
-        method: 'search_read',
-        args: [
-          [
-            ['employee_id', '=', _odoo.currentSession?.employeeId],
-            ['date', '=', _formatDate(date)],
-            ['fsm_order_id', '=', orderOdooId],
-            ['name', '=', description],
-            ['unit_amount', '=', hours],
-          ]
-        ],
-        kwargs: {'fields': ['id'], 'limit': 1},
+      final remoteId = await _findOrCreateRemoteLine(
+        orderOdooId: orderOdooId,
+        date: date,
+        hours: hours,
+        description: description,
       );
-      if (existingRemote is List && existingRemote.isNotEmpty) {
-        remoteId = existingRemote.first['id'] as int?;
-      }
-
-      if (remoteId == null) {
-        remoteId = await _odoo.callKw(
-          model: 'account.analytic.line',
-          method: 'create',
-          args: [
-            {
-              'name': description,
-              'date': _formatDate(date),
-              'unit_amount': hours,
-              'employee_id': _odoo.currentSession?.employeeId,
-              'fsm_order_id': orderOdooId,
-            },
-          ],
-        ) as int?;
-      }
 
       await _isar.db.writeTxn(() async {
         entry.odooId = remoteId;
@@ -179,51 +197,23 @@ class TimesheetService {
         continue;
       }
 
-      int? remoteId;
       try {
-        final existingRemote = await _odoo.callKw(
-          model: 'account.analytic.line',
-          method: 'search_read',
-          args: [
-            [
-              ['employee_id', '=', _odoo.currentSession?.employeeId],
-              ['date', '=', _formatDate(entry.date)],
-              ['fsm_order_id', '=', order.odooId],
-              ['name', '=', entry.name],
-              ['unit_amount', '=', entry.hours],
-            ]
-          ],
-          kwargs: {'fields': ['id'], 'limit': 1},
+        final remoteId = await _findOrCreateRemoteLine(
+          orderOdooId: order.odooId,
+          date: entry.date,
+          hours: entry.hours,
+          description: entry.name,
         );
-        if (existingRemote is List && existingRemote.isNotEmpty) {
-          remoteId = existingRemote.first['id'] as int?;
-        }
 
-        if (remoteId == null) {
-          remoteId = await _odoo.callKw(
-            model: 'account.analytic.line',
-            method: 'create',
-            args: [
-              {
-                'name': entry.name,
-                'date': _formatDate(entry.date),
-                'unit_amount': entry.hours,
-                'employee_id': _odoo.currentSession?.employeeId,
-                'fsm_order_id': order.odooId,
-              },
-            ],
-          ) as int?;
-        }
-
-      await _isar.db.writeTxn(() async {
-        entry.odooId = remoteId;
-        entry.isPendingSync = false;
-        entry.syncRetryCount = 0;
-        entry.nextRetryAt = null;
-        entry.lastSyncAt = DateTime.now();
-        await _isar.db.timesheetEntrys.put(entry);
-      });
-    } on OdooApiException catch (e) {
+        await _isar.db.writeTxn(() async {
+          entry.odooId = remoteId;
+          entry.isPendingSync = false;
+          entry.syncRetryCount = 0;
+          entry.nextRetryAt = null;
+          entry.lastSyncAt = DateTime.now();
+          await _isar.db.timesheetEntrys.put(entry);
+        });
+      } on OdooApiException catch (e) {
         entry.syncRetryCount++;
         if (entry.syncRetryCount >= 3) {
           await _isar.db.writeTxn(() async {

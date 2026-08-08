@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 import '../models/timesheet_entry.dart';
@@ -366,7 +366,7 @@ class _EntryCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${entry.hours.toStringAsFixed(entry.hours == entry.hours.truncate() ? 0 : 1)}h',
+                    '${AppNumberFormat.quantity(entry.hours)}h',
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
@@ -404,7 +404,7 @@ class _EntryCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        DateFormat('dd/MM/yyyy', 'vi').format(entry.date),
+                        AppDateFormat.date(entry.date),
                         style: const TextStyle(
                           fontSize: 13,
                           color: AppColors.onSurfaceMuted,

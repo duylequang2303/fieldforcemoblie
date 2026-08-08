@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../models/expense.dart';
 import 'receipt_image_picker.dart';
+import '../../../shared/widgets/app_snack_bar.dart';
 
 /// Parse Vietnamese-formatted amount string.
 /// Handles thousand separators (space, dot, comma) for integer VND amounts.
@@ -122,7 +123,7 @@ class _ExpenseFormState extends State<ExpenseForm> {
                 color: AppColors.primary),
             title: const Text('Ngày chi'),
             subtitle: Text(
-              DateFormat('dd/MM/yyyy', 'vi').format(_date),
+              AppDateFormat.date(_date),
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             onTap: _pickDate,
@@ -195,9 +196,7 @@ class _ExpenseFormState extends State<ExpenseForm> {
     try {
       final amount = parseAmount(_amountController.text);
       if (amount == null || amount <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Số tiền không hợp lệ')),
-        );
+        context.showSnackBarMessage('Số tiền không hợp lệ');
         return;
       }
       await widget.onSubmit(

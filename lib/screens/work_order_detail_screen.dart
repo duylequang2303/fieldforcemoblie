@@ -25,6 +25,7 @@ import '../features/stock/models/product.dart';
 import '../features/work_order/services/work_order_service.dart';
 import '../core/routing/route_names.dart';
 import 'package:fieldforce_mobile/shared/widgets/safe_image_file.dart';
+import '../core/utils/formatters.dart';
 
 class _MaterialResult {
   final Product? product;
@@ -604,7 +605,7 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
 
   String _formatDate(DateTime? date) {
     if (date == null) return 'Date not specified';
-    return '${date.day}/${date.month}/${date.year}';
+    return AppDateFormat.date(date);
   }
 
   String _duration(DateTime? start, DateTime? end) {

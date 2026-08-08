@@ -3,6 +3,7 @@ import 'package:meta/meta.dart' show visibleForTesting;
 import '../../../core/api/api_exception.dart';
 import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/database/isar_service.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/utils/logger.dart';
 import '../models/fsm_order.dart';
 import 'recurring_notification_service.dart';
@@ -331,56 +332,19 @@ class OrdersService {
       return [];
     }
 
-    // Process location_ids và route_ids như cũ
-    final locationIds = rawOrders
-        .where((e) =>
-            (e as Map)['location_id'] != null && e['location_id'] is List)
-        .map((e) => ((e as Map)['location_id'] as List)[0] as int)
-        .toSet()
-        .toList();
+    return _hydrateAndSaveOrders(rawOrders);
+  }
 
-    Map<int, Map<String, dynamic>> locationCoordinates = {};
-    if (locationIds.isNotEmpty) {
-      final locData = await _odoo.callKw(
-        model: 'fsm.location',
-        method: 'read',
-        args: [locationIds],
-        kwargs: {'fields': _locationFields},
-      ) as List<dynamic>;
-      for (var loc in locData) {
-        locationCoordinates[loc['id'] as int] = loc as Map<String, dynamic>;
-      }
-    }
-
-    // Bóc tách route_id để lấy state
-    final routeIds = rawOrders
-        .where((e) => (e as Map)['route_id'] != null && e['route_id'] is List)
-        .map((e) => ((e as Map)['route_id'] as List)[0] as int)
-        .toSet()
-        .toList();
-
-    Map<int, String> routeStates = {};
-    if (routeIds.isNotEmpty) {
-      try {
-        final routeData = await _odoo.callKw(
-          model: 'fsm.route',
-          method: 'read',
-          args: [routeIds],
-          kwargs: {
-            'fields': ['state']
-          },
-        ) as List<dynamic>;
-        for (var route in routeData) {
-          final id = route['id'] as int;
-          final state = route['state'] as String?;
-          if (state != null) {
-            routeStates[id] = state;
-          }
-        }
-      } catch (e) {
-        logger.w('Failed to fetch fsm.route states', error: e);
-      }
-    }
+  /// Bổ sung dữ liệu liên quan (toạ độ fsm.location, state của fsm.route) cho
+  /// danh sách JSON order thô, parse sang model Isar, resolve conflict và lưu.
+  ///
+  /// Dùng chung cho mọi đường fetch orders (domain chính và các fallback).
+  Future<List<FsmOrder>> _hydrateAndSaveOrders(
+    List<dynamic> rawOrders, {
+    String logSuffix = '',
+  }) async {
+    final locationCoordinates = await _fetchLocationCoordinates(rawOrders);
+    final routeStates = await _fetchRouteStates(rawOrders, logSuffix: logSuffix);
 
     // Parse JSON -> Model Isar
     final orders = rawOrders.map((o) {
@@ -404,6 +368,69 @@ class OrdersService {
     return saved;
   }
 
+  /// Đọc toạ độ/địa chỉ fsm.location của các order.
+  Future<Map<int, Map<String, dynamic>>> _fetchLocationCoordinates(
+      List<dynamic> rawOrders) async {
+    final locationIds = _relatedIds(rawOrders, 'location_id');
+    final locationCoordinates = <int, Map<String, dynamic>>{};
+    if (locationIds.isEmpty) return locationCoordinates;
+
+    final locData = await _odoo.callKw(
+      model: 'fsm.location',
+      method: 'read',
+      args: [locationIds],
+      kwargs: {'fields': _locationFields},
+    ) as List<dynamic>;
+    for (final loc in locData) {
+      final locMap = loc as Map<String, dynamic>;
+      locationCoordinates[locMap['id'] as int] = locMap;
+    }
+    return locationCoordinates;
+  }
+
+  /// Đọc state của fsm.route liên quan tới các order. Lỗi được bỏ qua vì
+  /// route state chỉ là thông tin phụ trợ.
+  Future<Map<int, String>> _fetchRouteStates(
+    List<dynamic> rawOrders, {
+    String logSuffix = '',
+  }) async {
+    final routeIds = _relatedIds(rawOrders, 'route_id');
+    final routeStates = <int, String>{};
+    if (routeIds.isEmpty) return routeStates;
+
+    try {
+      final routeData = await _odoo.callKw(
+        model: 'fsm.route',
+        method: 'read',
+        args: [routeIds],
+        kwargs: {
+          'fields': ['state']
+        },
+      ) as List<dynamic>;
+      for (final route in routeData) {
+        final routeMap = route as Map<String, dynamic>;
+        final state = routeMap['state'] as String?;
+        if (state != null) {
+          routeStates[routeMap['id'] as int] = state;
+        }
+      }
+    } catch (e) {
+      logger.w('Failed to fetch fsm.route states$logSuffix', error: e);
+    }
+    return routeStates;
+  }
+
+  /// Bóc tách id của field many2one (dạng `[id, name]`) từ danh sách JSON.
+  static List<int> _relatedIds(List<dynamic> rawOrders, String field) {
+    return rawOrders
+        .map((e) => (e as Map<String, dynamic>)[field])
+        .whereType<List<dynamic>>()
+        .where((value) => value.isNotEmpty)
+        .map((value) => value[0] as int)
+        .toSet()
+        .toList();
+  }
+
   /// Helper method để thử fetch orders với một domain khác.
   Future<List<FsmOrder>> _tryFetchOrders(List<dynamic> domain) async {
     try {
@@ -413,73 +440,7 @@ class OrdersService {
         return [];
       }
 
-      // Process location_ids và route_ids
-      final locationIds = rawOrders
-          .where((e) =>
-              (e as Map)['location_id'] != null && e['location_id'] is List)
-          .map((e) => ((e as Map)['location_id'] as List)[0] as int)
-          .toSet()
-          .toList();
-
-      Map<int, Map<String, dynamic>> locationCoordinates = {};
-      if (locationIds.isNotEmpty) {
-        final locData = await _odoo.callKw(
-          model: 'fsm.location',
-          method: 'read',
-          args: [locationIds],
-          kwargs: {'fields': _locationFields},
-        ) as List<dynamic>;
-        for (var loc in locData) {
-          locationCoordinates[loc['id'] as int] = loc as Map<String, dynamic>;
-        }
-      }
-
-      final routeIds = rawOrders
-          .where((e) => (e as Map)['route_id'] != null && e['route_id'] is List)
-          .map((e) => ((e as Map)['route_id'] as List)[0] as int)
-          .toSet()
-          .toList();
-
-      Map<int, String> routeStates = {};
-      if (routeIds.isNotEmpty) {
-        try {
-          final routeData = await _odoo.callKw(
-            model: 'fsm.route',
-            method: 'read',
-            args: [routeIds],
-            kwargs: {
-              'fields': ['state']
-            },
-          ) as List<dynamic>;
-          for (var route in routeData) {
-            final id = route['id'] as int;
-            final state = route['state'] as String?;
-            if (state != null) {
-              routeStates[id] = state;
-            }
-          }
-        } catch (e) {
-          logger.w('Failed to fetch fsm.route states in fallback', error: e);
-        }
-      }
-
-      final orders = rawOrders.map((o) {
-        final oMap = o as Map<String, dynamic>;
-
-        final rData = oMap['route_id'];
-        if (rData != null && rData is List && rData.isNotEmpty) {
-          final rId = rData[0] as int;
-          oMap['route_state'] = routeStates[rId];
-        }
-
-        return FsmOrder.fromJson(oMap,
-            locationCoordinates: locationCoordinates);
-      }).toList();
-
-      final saved = await _resolveConflictsAndSave(orders);
-      await _scheduleUpcomingRemindersSafely(saved);
-
-      return saved;
+      return await _hydrateAndSaveOrders(rawOrders, logSuffix: ' in fallback');
     } catch (e) {
       logger.w('OrdersService._tryFetchOrders: Error fetching with domain',
           error: e);
@@ -685,101 +646,74 @@ class OrdersService {
     }
   }
 
-  /// Format DateTime sang chuỗi UTC chuẩn Odoo Datetime ('YYYY-MM-DD HH:MM:SS').
-  /// Odoo lưu Datetime theo UTC, nên phải convert local → UTC trước khi gửi.
-  String _formatDateTimeUtc(DateTime dt) {
-    final utc = dt.toUtc();
-    return '${utc.year}-${utc.month.toString().padLeft(2, '0')}-${utc.day.toString().padLeft(2, '0')} '
-        '${utc.hour.toString().padLeft(2, '0')}:${utc.minute.toString().padLeft(2, '0')}:${utc.second.toString().padLeft(2, '0')}';
+  /// Ghi nhận mốc thời gian thực tế (check-in/check-out) theo Offline-First:
+  /// cập nhật Isar trước rồi mới đẩy lên Odoo, giữ `isPendingSync` nếu offline.
+  ///
+  /// [odooField] là field Datetime trên fsm.order, [applyLocal] ghi mốc thời gian
+  /// vào bản ghi Isar tương ứng.
+  Future<void> _recordActualTime(
+    int odooId, {
+    required String odooField,
+    required void Function(FsmOrder local, DateTime at) applyLocal,
+    required String actionLabel,
+  }) async {
+    final now = DateTime.now();
+
+    // 1. Cập nhật local trước
+    final local = await _isar.db.fsmOrders.getByOdooId(odooId);
+    if (local != null) {
+      if (local.isSkipped ||
+          local.isRecurringProcessed ||
+          local.stage == FsmOrderStage.done ||
+          local.stage == FsmOrderStage.cancelled) {
+        throw StateError(
+            'Đơn hàng đã hoàn thành, bị huỷ hoặc bỏ qua. Không thể $actionLabel.');
+      }
+      await _isar.db.writeTxn(() async {
+        applyLocal(local, now);
+        local.isPendingSync = true;
+        await _isar.db.fsmOrders.put(local);
+      });
+    }
+
+    // 2. Cố gắng ghi nhận lên Odoo
+    try {
+      await _odoo.callKw(
+        model: _model,
+        method: 'write',
+        args: [
+          [odooId],
+          {odooField: AppDateFormat.odooDateTimeUtc(now)},
+        ],
+      );
+      if (local != null) {
+        await _isar.db.writeTxn(() async {
+          local.isPendingSync = false;
+          await _isar.db.fsmOrders.put(local);
+        });
+      }
+    } on OdooApiException catch (e) {
+      logger.w('OrdersService.$actionLabel: offline, queued local update',
+          error: e);
+      rethrow;
+    }
   }
 
   /// Ghi nhận giờ bắt đầu thực tế khi Worker check-in tại địa điểm (Offline-First).
-  Future<void> checkIn(int odooId) async {
-    final now = DateTime.now();
-
-    // 1. Cập nhật local trước
-    final local = await _isar.db.fsmOrders.getByOdooId(odooId);
-    if (local != null) {
-      if (local.isSkipped ||
-          local.isRecurringProcessed ||
-          local.stage == FsmOrderStage.done ||
-          local.stage == FsmOrderStage.cancelled) {
-        throw StateError(
-            'Đơn hàng đã hoàn thành, bị huỷ hoặc bỏ qua. Không thể Check-in.');
-      }
-      await _isar.db.writeTxn(() async {
-        local.dateStart = now;
-        local.isPendingSync = true;
-        await _isar.db.fsmOrders.put(local);
-      });
-    }
-
-    // 2. Cố gắng ghi nhận lên Odoo
-    try {
-      await _odoo.callKw(
-        model: _model,
-        method: 'write',
-        args: [
-          [odooId],
-          {'date_start': _formatDateTimeUtc(now)},
-        ],
+  Future<void> checkIn(int odooId) => _recordActualTime(
+        odooId,
+        odooField: 'date_start',
+        applyLocal: (local, at) => local.dateStart = at,
+        actionLabel: 'Check-in',
       );
-      if (local != null) {
-        await _isar.db.writeTxn(() async {
-          local.isPendingSync = false;
-          await _isar.db.fsmOrders.put(local);
-        });
-      }
-    } on OdooApiException catch (e) {
-      logger.w('OrdersService.checkIn: offline, queued local check-in',
-          error: e);
-      rethrow;
-    }
-  }
 
   /// Ghi nhận giờ kết thúc thực tế khi Worker check-out (Offline-First).
-  Future<void> checkOut(int odooId) async {
-    final now = DateTime.now();
-
-    // 1. Cập nhật local trước
-    final local = await _isar.db.fsmOrders.getByOdooId(odooId);
-    if (local != null) {
-      if (local.isSkipped ||
-          local.isRecurringProcessed ||
-          local.stage == FsmOrderStage.done ||
-          local.stage == FsmOrderStage.cancelled) {
-        throw StateError(
-            'Đơn hàng đã hoàn thành, bị huỷ hoặc bỏ qua. Không thể Check-out.');
-      }
-      await _isar.db.writeTxn(() async {
-        local.dateEnd = now;
-        local.isPendingSync = true;
-        await _isar.db.fsmOrders.put(local);
-      });
-    }
-
-    // 2. Cố gắng ghi nhận lên Odoo
-    try {
-      await _odoo.callKw(
-        model: _model,
-        method: 'write',
-        args: [
-          [odooId],
-          {'date_end': _formatDateTimeUtc(now)},
-        ],
+  Future<void> checkOut(int odooId) => _recordActualTime(
+        odooId,
+        odooField: 'date_end',
+        applyLocal: (local, at) => local.dateEnd = at,
+        actionLabel: 'Check-out',
       );
-      if (local != null) {
-        await _isar.db.writeTxn(() async {
-          local.isPendingSync = false;
-          await _isar.db.fsmOrders.put(local);
-        });
-      }
-    } on OdooApiException catch (e) {
-      logger.w('OrdersService.checkOut: offline, queued local check-out',
-          error: e);
-      rethrow;
-    }
-  }
 
   Future<int> pendingSyncCount() async {
     final currentUserId = _odoo.currentUserId;
@@ -872,10 +806,11 @@ class OrdersService {
         // Sync date_start / date_end nếu có (UTC)
         final dateData = <String, dynamic>{};
         if (order.dateStart != null) {
-          dateData['date_start'] = _formatDateTimeUtc(order.dateStart!);
+          dateData['date_start'] =
+              AppDateFormat.odooDateTimeUtc(order.dateStart!);
         }
         if (order.dateEnd != null) {
-          dateData['date_end'] = _formatDateTimeUtc(order.dateEnd!);
+          dateData['date_end'] = AppDateFormat.odooDateTimeUtc(order.dateEnd!);
         }
         if (dateData.isNotEmpty) {
           await _odoo.callKw(
@@ -1140,7 +1075,8 @@ class OrdersService {
     if (order.recurringId != null &&
         order.recurringId! > 0 &&
         order.scheduledDateStart != null) {
-      final scheduledStartStr = _formatDateTimeUtc(order.scheduledDateStart!);
+      final scheduledStartStr =
+          AppDateFormat.odooDateTimeUtc(order.scheduledDateStart!);
       try {
         final List<dynamic> exist = await _odoo.callKw(
           model: _model,
@@ -1228,10 +1164,10 @@ class OrdersService {
       'description': order.description,
       'stage_id': order.stageId,
       'scheduled_date_start': order.scheduledDateStart != null
-          ? _formatDateTimeUtc(order.scheduledDateStart!)
+          ? AppDateFormat.odooDateTimeUtc(order.scheduledDateStart!)
           : null,
       'scheduled_date_end': order.scheduledDateEnd != null
-          ? _formatDateTimeUtc(order.scheduledDateEnd!)
+          ? AppDateFormat.odooDateTimeUtc(order.scheduledDateEnd!)
           : null,
       'priority': order.priority ?? '0',
     };

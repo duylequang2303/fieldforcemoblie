@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../features/orders/models/fsm_order.dart';
+import '../core/utils/formatters.dart';
 
 class ScheduleCard extends StatelessWidget {
   final FsmOrder order;
@@ -21,7 +22,7 @@ class ScheduleCard extends StatelessWidget {
 
   String _formatTime(DateTime? date) {
     if (date == null) return '--:--';
-    return '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    return AppDateFormat.time(date);
   }
 
   String _calculateDurationBadge(DateTime? start, DateTime? end) {

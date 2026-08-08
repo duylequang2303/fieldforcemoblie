@@ -12,6 +12,7 @@ import 'package:fieldforce_mobile/features/orders/services/recurring_service.dar
 import 'package:fieldforce_mobile/features/orders/widgets/recurring_calendar.dart';
 import 'package:go_router/go_router.dart';
 import '../core/routing/route_names.dart';
+import '../shared/widgets/app_snack_bar.dart';
 
 /// Màn hình ScheduleScreen — đọc dữ liệu fsm.order thật từ OrdersService
 /// (Odoo + cache Isar, offline-first). Thiết kế Sortscape (Card-based List).
@@ -221,14 +222,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       if (!mounted) return;
       await _fetchFromOdoo(showSpinner: false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sync completed')),
-      );
+      context.showSnackBarMessage('Sync completed');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Sync failed: $e')),
-      );
+      context.showSnackBarMessage('Sync failed: $e');
     } finally {
       if (mounted) setState(() => _isSyncing = false);
     }

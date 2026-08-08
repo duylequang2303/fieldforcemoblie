@@ -12,6 +12,7 @@ import 'package:fieldforce_mobile/features/route_map/models/route_stop.dart';
 import 'package:fieldforce_mobile/features/route_map/providers/route_provider.dart';
 import 'package:fieldforce_mobile/features/route_map/services/location_service.dart';
 import 'package:fieldforce_mobile/features/route_map/utils/stop_status_ui.dart';
+import '../../../shared/widgets/app_snack_bar.dart';
 
 /// Trang bản đồ lộ trình — hiển thị danh sách điểm đến trong ngày.
 /// Dùng RouteInfoPanel (list view) thay vì bản đồ thực tế
@@ -526,13 +527,9 @@ class _RouteMapPageState extends State<RouteMapPage>
                                   final ok = await provider.markStopCompleted(stop.orderOdooId);
                                   if (mounted) {
                                     Navigator.pop(context);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(ok
-                                            ? 'Đã hoàn thành'
-                                            : 'Hoàn thành thất bại'),
-                                      ),
-                                    );
+                                    context.showSnackBarMessage(ok
+                                        ? 'Đã hoàn thành'
+                                        : 'Hoàn thành thất bại');
                                   }
                                 }
                               : null,
@@ -565,9 +562,7 @@ class _RouteMapPageState extends State<RouteMapPage>
   Future<void> _openNavigation(RouteStop stop) async {
     if (stop.latitude == null || stop.longitude == null) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Điểm đến chưa có tọa độ GPS')),
-        );
+        context.showSnackBarMessage('Điểm đến chưa có tọa độ GPS');
       }
       return;
     }
@@ -585,9 +580,7 @@ class _RouteMapPageState extends State<RouteMapPage>
     } catch (e) {
       logger.e('Cannot launch navigation URL', error: e);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không thể mở bản đồ: $e')),
-        );
+        context.showSnackBarMessage('Không thể mở bản đồ: $e');
       }
     }
   }

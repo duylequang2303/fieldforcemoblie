@@ -3,10 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../core/routing/route_names.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 import '../models/stock_move.dart';
 import '../providers/stock_provider.dart';
+import '../../../shared/widgets/icon_empty_state.dart';
 
 /// Trang danh sách vật tư đã xuất kho cho một đơn dịch vụ.
 class StockMovesPage extends StatefulWidget {
@@ -121,40 +123,12 @@ class _StockMovesPageState extends State<StockMovesPage> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.accentMuted,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(
-              Icons.inventory_2_outlined,
-              size: 40,
-              color: AppColors.accent.withOpacity(0.6),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Chưa có vật tư nào',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Nhấn nút "Quét vật tư" bên dưới để bắt đầu',
-            style: TextStyle(fontSize: 14, color: AppColors.onSurfaceMuted),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+    return IconEmptyState(
+      icon: Icons.inventory_2_outlined,
+      title: 'Chưa có vật tư nào',
+      subtitle: 'Nhấn nút "Quét vật tư" bên dưới để bắt đầu',
+      iconColor: AppColors.accent.withOpacity(0.6),
+      iconBackgroundColor: AppColors.accentMuted,
     );
   }
 }
@@ -320,7 +294,7 @@ class _MoveCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${move.doneQty.toStringAsFixed(move.doneQty == move.doneQty.truncate() ? 0 : 1)}',
+                      AppNumberFormat.quantity(move.doneQty),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -355,7 +329,7 @@ class _MoveCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${move.demandQty.toStringAsFixed(move.demandQty == move.demandQty.truncate() ? 0 : 1)}',
+                      AppNumberFormat.quantity(move.demandQty),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,

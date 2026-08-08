@@ -9,6 +9,7 @@ import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/database/isar_service.dart';
 import '../../../core/utils/logger.dart';
 import '../models/fsm_order.dart';
+import '../../../core/utils/formatters.dart';
 
 class RecurringNotificationService {
   RecurringNotificationService._();
@@ -280,9 +281,7 @@ class RecurringNotificationService {
     );
   }
 
-  String _formatDate(DateTime dt) {
-    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
-  }
+  String _formatDate(DateTime dt) => AppDateFormat.date(dt);
 
   static const int _upcomingReminderIdOffset = 100000000;
 
@@ -294,9 +293,7 @@ class RecurringNotificationService {
         order.isSkipped;
   }
 
-  String _formatTime(DateTime time) {
-    return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-  }
+  String _formatTime(DateTime time) => AppDateFormat.time(time);
 
   Future<void> scheduleUpcomingReminders(List<FsmOrder> orders) async {
     if (!_initialized) await init();

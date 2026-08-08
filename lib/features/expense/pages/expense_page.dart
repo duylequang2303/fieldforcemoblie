@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/locale/locale_service.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../../../shared/widgets/loading_overlay.dart';
 import '../../../shared/widgets/safe_image_file.dart';
 import '../models/expense.dart';
 import '../providers/expense_provider.dart';
 import '../widgets/expense_form.dart';
+import '../../../shared/widgets/app_snack_bar.dart';
+import '../../../shared/widgets/icon_empty_state.dart';
 
 /// Trang quản lý chi phí cho một đơn dịch vụ.
 class ExpensePage extends StatefulWidget {
@@ -85,13 +86,10 @@ class _ExpensePageState extends State<ExpensePage> {
                         final result = await provider.syncExpenses();
                         if (!mounted) return;
                         if (result != null && result.hasFailures) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                  '${result.failedCount} khoản chi không đồng bộ. '
-                                  'Vui lòng thử lại.'),
-                              backgroundColor: AppColors.error,
-                            ),
+                          context.showSnackBarMessage(
+                            '${result.failedCount} khoản chi không đồng bộ. '
+                            'Vui lòng thử lại.',
+                            backgroundColor: AppColors.error,
                           );
                         }
                         await provider.loadExpenses(widget.orderId);
@@ -216,40 +214,12 @@ class _ExpensePageState extends State<ExpensePage> {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.secondaryLight.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Icon(
-              Icons.receipt_long_outlined,
-              size: 40,
-              color: AppColors.secondary.withOpacity(0.6),
-            ),
-          ),
-          const SizedBox(height: 20),
-          const Text(
-            'Chưa có khoản chi nào',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Nhấn nút "Thêm khoản chi" bên dưới để khai báo',
-            style: TextStyle(fontSize: 14, color: AppColors.onSurfaceMuted),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
+    return IconEmptyState(
+      icon: Icons.receipt_long_outlined,
+      title: 'Chưa có khoản chi nào',
+      subtitle: 'Nhấn nút "Thêm khoản chi" bên dưới để khai báo',
+      iconColor: AppColors.secondary.withOpacity(0.6),
+      iconBackgroundColor: AppColors.secondaryLight.withOpacity(0.2),
     );
   }
 }
@@ -267,9 +237,7 @@ class _SummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = LocaleService.instance.currentLocale;
-    final fmt =
-        NumberFormat.currency(locale: locale, symbol: '₫', decimalDigits: 0);
+    final fmt = AppNumberFormat.currency;
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
@@ -376,9 +344,7 @@ class _ExpenseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final locale = LocaleService.instance.currentLocale;
-    final fmt =
-        NumberFormat.currency(locale: locale, symbol: '₫', decimalDigits: 0);
+    final fmt = AppNumberFormat.currency;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -484,7 +450,7 @@ class _ExpenseCard extends StatelessWidget {
                           size: 13, color: AppColors.onSurfaceMuted),
                       const SizedBox(width: 4),
                       Text(
-                        DateFormat('dd/MM/yyyy', 'vi').format(expense.date),
+                        AppDateFormat.date(expense.date),
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.onSurfaceMuted,

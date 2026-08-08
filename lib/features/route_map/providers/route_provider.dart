@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:fieldforce_mobile/core/api/api_exception.dart';
+import 'package:fieldforce_mobile/core/utils/formatters.dart';
 import 'package:fieldforce_mobile/core/utils/logger.dart';
 import 'package:fieldforce_mobile/features/orders/models/fsm_order.dart';
 import 'package:fieldforce_mobile/features/orders/providers/orders_provider.dart';
@@ -253,7 +253,7 @@ class RouteProvider extends ChangeNotifier {
       if (orderDate.isAfter(today)) {
         logger.w(
             'RouteProvider.checkInValidation: Không cho phép check-in đơn tương lai (scheduled: ${orderDate.toIso8601String()})');
-        return CheckInValidationResult.deny('Đơn này được lên lịch cho ngày ${DateFormat('dd/MM/yyyy', 'vi').format(orderDate)}. Chỉ được làm đơn hôm nay hoặc các đơn quá khứ.');
+        return CheckInValidationResult.deny('Đơn này được lên lịch cho ngày ${AppDateFormat.date(orderDate)}. Chỉ được làm đơn hôm nay hoặc các đơn quá khứ.');
       }
     }
 

@@ -16,6 +16,7 @@ import '../../../core/utils/logger.dart';
 import '../../../ui/theme/sf_tokens.dart';
 import '../../auth/providers/auth_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import '../../../shared/widgets/app_snack_bar.dart';
 
 /// Connection state from a real session ping (no authenticate, no session overwrite).
 enum _ConnStatus { unknown, valid, invalid, offline, expired }
@@ -153,9 +154,7 @@ class _SettingsPageState extends State<SettingsPage> {
   /// Sync thật: đẩy thay đổi local lên Odoo, rồi kéo đơn mới về, ghi last synced.
   Future<void> _onSyncNow() async {
     if (OdooSessionManager.instance.currentUserId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Not signed in.')),
-      );
+      context.showSnackBarMessage('Not signed in.');
       return;
     }
     setState(() => _isSyncing = true);
@@ -169,23 +168,17 @@ class _SettingsPageState extends State<SettingsPage> {
       // Báo chính xác: còn bao nhiêu bản ghi chưa đẩy được (partial failure / offline).
       final stillPending = _sync.pendingCount;
       if (stillPending > 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Synced, but $stillPending change(s) still pending.'),
-            backgroundColor: SfTokens.warning,
-          ),
+        context.showSnackBarMessage(
+          'Synced, but $stillPending change(s) still pending.',
+          backgroundColor: SfTokens.warning,
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Synced successfully.')),
-        );
+        context.showSnackBarMessage('Synced successfully.');
       }
     } catch (e) {
       logger.e('_onSyncNow failed', error: e);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sync failed — check connection.')),
-      );
+      context.showSnackBarMessage('Sync failed — check connection.');
     } finally {
       if (mounted) setState(() => _isSyncing = false);
     }
@@ -533,10 +526,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         logger.e('Failed to save auto-sync settings', error: e);
                         if (mounted) {
                           setState(() => _autoSync = previousValue);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Lưu cấu hình không thành công.')),
+                          context.showSnackBarMessage(
+                            'Lưu cấu hình không thành công.',
                           );
                         }
                       }
@@ -591,10 +582,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         logger.e('Failed to save wifi-only settings', error: e);
                         if (mounted) {
                           setState(() => _wifiOnly = previousValue);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content:
-                                    Text('Lưu cấu hình không thành công.')),
+                          context.showSnackBarMessage(
+                            'Lưu cấu hình không thành công.',
                           );
                         }
                       }
@@ -637,10 +626,8 @@ class _SettingsPageState extends State<SettingsPage> {
                             await OfflineStorageService.instance.formatted();
                         if (mounted) {
                           setState(() => _storageLabel = storage);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text(
-                                    'Cleared ${OfflineStorageService.instance.formatBytes(cleared)}.')),
+                          context.showSnackBarMessage(
+                            'Cleared ${OfflineStorageService.instance.formatBytes(cleared)}.',
                           );
                         }
                       }

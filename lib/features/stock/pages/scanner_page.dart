@@ -6,6 +6,7 @@ import '../../../core/utils/logger.dart';
 import '../../../shared/widgets/error_view.dart';
 import '../models/product.dart';
 import '../providers/stock_provider.dart';
+import '../../../shared/widgets/app_snack_bar.dart';
 
 /// Trang quét mã barcode/QR vật tư.
 class ScannerPage extends StatefulWidget {
@@ -348,10 +349,7 @@ class _ProductFoundPanelState extends State<_ProductFoundPanel> {
                   onPressed: () {
                     final qty = double.tryParse(_qtyController.text) ?? 0.0;
                     if (!qty.isFinite || qty <= 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Số lượng phải lớn hơn 0')),
-                      );
+                      context.showSnackBarMessage('Số lượng phải lớn hơn 0');
                       return;
                     }
                     widget.onRecord(qty);

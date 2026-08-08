@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/schedule_property.dart';
+import '../../../shared/widgets/app_snack_bar.dart';
 
 class SchedulePropertyDetailPage extends StatelessWidget {
   final ScheduleProperty property;
@@ -76,9 +77,7 @@ class SchedulePropertyDetailPage extends StatelessWidget {
   }
 
   void _snack(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
-    );
+    context.showSnackBarMessage(msg, behavior: SnackBarBehavior.floating);
   }
 
   // ── Build ───────────────────────────────────────────────────────────────────

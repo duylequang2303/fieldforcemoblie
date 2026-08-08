@@ -9,6 +9,7 @@ import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/database/isar_service.dart';
 import '../../../core/utils/logger.dart';
 import '../models/expense.dart';
+import '../../../core/utils/formatters.dart';
 
 /// Kết quả đồng bộ, dùng để thông báo người dùng.
 class SyncResult {
@@ -247,7 +248,7 @@ class ExpenseService {
     required int orderOdooId,
   }) async {
     try {
-      final dateStr = date.toIso8601String().substring(0, 10);
+      final dateStr = AppDateFormat.odooDate(date);
       final trimmedName = name.trim();
       final results = await _odoo.callKw(
         model: 'hr.expense',
@@ -297,7 +298,7 @@ class ExpenseService {
       'total_amount': amount,
       'unit_amount': amount,
       'quantity': 1,
-      'date': date.toIso8601String().substring(0, 10),
+      'date': AppDateFormat.odooDate(date),
       'employee_id': employeeId,
       'product_id': productId,
       'fsm_order_id': orderOdooId,

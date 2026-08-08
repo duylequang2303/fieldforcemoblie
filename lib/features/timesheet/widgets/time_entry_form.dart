@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/formatters.dart';
 
 /// Form nhập giờ công — dùng trong TimesheetPage.
 class TimeEntryForm extends StatefulWidget {
@@ -47,7 +48,7 @@ class _TimeEntryFormState extends State<TimeEntryForm> {
                 color: AppColors.primary),
             title: const Text('Ngày làm việc'),
             subtitle: Text(
-              '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
+              AppDateFormat.date(_selectedDate),
               style: const TextStyle(
                 fontWeight: FontWeight.w600,
                 color: AppColors.onSurface,

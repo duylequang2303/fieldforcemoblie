@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/signature_pad.dart';
 import '../../../shared/widgets/safe_image_file.dart';
+import '../../../shared/widgets/app_snack_bar.dart';
 
 /// Widget thu thập chữ ký khách hàng kèm tên xác nhận.
 class CustomerSignatureWidget extends StatefulWidget {
@@ -168,9 +169,7 @@ class _CustomerSignatureWidgetState extends State<CustomerSignatureWidget> {
   Future<void> _confirmSignature() async {
     final customerName = _nameController.text.trim();
     if (customerName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập tên khách hàng')),
-      );
+      context.showSnackBarMessage('Vui lòng nhập tên khách hàng');
       return;
     }
 

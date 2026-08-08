@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../features/stock/models/product.dart';
 import '../features/stock/services/stock_service.dart';
+import '../shared/widgets/app_snack_bar.dart';
 
 class MaterialEntryForm extends StatefulWidget {
   final void Function(Product? product, int quantity) onSaved;
@@ -44,13 +45,11 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
 
   void _save() {
     if (_selectedProduct == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a material')));
+      context.showSnackBarMessage('Please select a material');
       return;
     }
     if (_quantity <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Quantity must be greater than 0')));
+      context.showSnackBarMessage('Quantity must be greater than 0');
       return;
     }
     widget.onSaved(_selectedProduct, _quantity);
@@ -117,12 +116,8 @@ class _MaterialEntryFormState extends State<MaterialEntryForm> {
                       children: [
                         Text('MATERIAL', style: _labelStyle(theme)),
                         InkWell(
-                          onTap: () =>
-                              ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text(
-                                    'Create new products in Odoo web, not on mobile.')),
-                          ),
+                          onTap: () => context.showSnackBarMessage(
+                              'Create new products in Odoo web, not on mobile.'),
                           child: Text(
                             'ADD NEW',
                             style: TextStyle(

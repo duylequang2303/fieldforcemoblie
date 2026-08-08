@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../shared/widgets/safe_image_file.dart';
+import '../../../shared/widgets/app_snack_bar.dart';
 
 /// Widget chụp và hiển thị nhiều ảnh hiện trường.
 class PhotoCaptureWidget extends StatelessWidget {
@@ -103,11 +104,9 @@ class PhotoCaptureWidget extends StatelessWidget {
         final size = await img.length();
         if (size > _maxFileSizeBytes) {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Ảnh ${img.path.split('/').last} vượt quá 10MB, bỏ qua.'),
-                backgroundColor: Theme.of(context).colorScheme.error,
-              ),
+            context.showSnackBarMessage(
+              'Ảnh ${img.path.split('/').last} vượt quá 10MB, bỏ qua.',
+              backgroundColor: Theme.of(context).colorScheme.error,
             );
           }
           continue;
@@ -115,11 +114,9 @@ class PhotoCaptureWidget extends StatelessWidget {
         validImages.add(img);
       } on Exception catch (e, _) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Không thể đọc ảnh ${img.path.split('/').last}: $e'),
-              backgroundColor: Theme.of(context).colorScheme.error,
-            ),
+          context.showSnackBarMessage(
+            'Không thể đọc ảnh ${img.path.split('/').last}: $e',
+            backgroundColor: Theme.of(context).colorScheme.error,
           );
         }
       }
@@ -127,11 +124,9 @@ class PhotoCaptureWidget extends StatelessWidget {
 
     if (validImages.length > maxAllowed) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Tối đa $_maxPhotos ảnh. Có thể thêm $maxAllowed ảnh nữa.'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
+        context.showSnackBarMessage(
+          'Tối đa $_maxPhotos ảnh. Có thể thêm $maxAllowed ảnh nữa.',
+          backgroundColor: Theme.of(context).colorScheme.error,
         );
       }
       for (final img in validImages.take(maxAllowed)) {

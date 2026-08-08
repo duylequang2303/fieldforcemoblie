@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../shared/widgets/app_snack_bar.dart';
 
 class TimesheetEntryForm extends StatefulWidget {
   final VoidCallback onSaved;
@@ -46,21 +47,15 @@ class _TimesheetEntryFormState extends State<TimesheetEntryForm> {
 
   void _save() {
     if (_startTime == null || _endTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select Start and End time')),
-      );
+      context.showSnackBarMessage('Please select Start and End time');
       return;
     }
     if (_calculatedHours <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Hours must be greater than 0')),
-      );
+      context.showSnackBarMessage('Hours must be greater than 0');
       return;
     }
     if (_selectedEmployees.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one employee')),
-      );
+      context.showSnackBarMessage('Please select at least one employee');
       return;
     }
     widget.onSaved();

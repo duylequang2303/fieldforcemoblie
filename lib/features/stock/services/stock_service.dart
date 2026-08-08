@@ -26,6 +26,17 @@ class StockService {
   final IsarService _isar;
   final _syncMutexes = <String, Completer<void>>{};
 
+  /// Field product.product cần đọc khi quét/tìm vật tư.
+  static const _productFields = [
+    'id',
+    'name',
+    'default_code',
+    'barcode',
+    'categ_id',
+    'uom_id',
+    'standard_price',
+  ];
+
   Future<T> _withSyncLock<T>(String key, Future<T> Function() fn) async {
     final previous = _syncMutexes[key];
     final completer = Completer<void>();
@@ -53,15 +64,7 @@ class StockService {
           ],
         ],
         kwargs: {
-          'fields': [
-            'id',
-            'name',
-            'default_code',
-            'barcode',
-            'categ_id',
-            'uom_id',
-            'standard_price'
-          ],
+          'fields': _productFields,
           'limit': 1,
         },
       ) as List<dynamic>;
@@ -97,15 +100,7 @@ class StockService {
           ],
         ],
         kwargs: {
-          'fields': [
-            'id',
-            'name',
-            'default_code',
-            'barcode',
-            'categ_id',
-            'uom_id',
-            'standard_price'
-          ],
+          'fields': _productFields,
           'limit': limit,
         },
       ) as List<dynamic>;
