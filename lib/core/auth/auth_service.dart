@@ -126,7 +126,10 @@ class AuthService {
               error: e, stackTrace: stack);
           try {
             await LocaleService.instance.setLocale('vi_VN');
-          } catch (_) {}
+          } catch (fallbackError, fallbackStack) {
+            logger.e('Failed to fall back to default locale',
+                error: fallbackError, stackTrace: fallbackStack);
+          }
         }
       }
       // Bắt đầu đồng bộ sau khi migration hoàn thành (đã giải quyết race condition)
@@ -155,10 +158,12 @@ class AuthService {
           'fields': ['id']
         },
       ).timeout(const Duration(seconds: 15));
-    } catch (_) {
-      // Bỏ qua lỗi kết nối vì app cho phép offline-first.
+    } catch (e, stack) {
+      // Không propagate: app cho phép offline-first.
       // Nếu session expired thực sự, callKw sẽ tự động trigger
       // event báo hết hạn session thông qua OdooSessionManager.
+      logger.w('Background session verification failed',
+          error: e, stackTrace: stack);
     }
   }
 
@@ -176,7 +181,8 @@ class AuthService {
       rethrow;
     } on BiometricCredentialsInvalidatedException {
       rethrow;
-    } catch (_) {
+    } catch (e, stack) {
+      logger.e('Biometric login failed', error: e, stackTrace: stack);
       return false;
     }
   }

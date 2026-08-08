@@ -1,5 +1,7 @@
 import 'package:isar_community/isar.dart';
 
+import '../../../core/utils/logger.dart';
+
 part 'fsm_order.g.dart';
 
 /// Trạng thái đơn dịch vụ — mapping với stage Odoo FSM.
@@ -197,11 +199,11 @@ class FsmOrder {
 
   static DateTime? _dateOrNull(dynamic v) {
     if (v == null || v == false) return null;
-    try {
-      return DateTime.tryParse(v.toString());
-    } catch (_) {
-      return null;
+    final parsed = DateTime.tryParse(v.toString());
+    if (parsed == null) {
+      logger.w('FsmOrder: invalid date from Odoo: $v');
     }
+    return parsed;
   }
 
   static FsmOrderStage parseStageName(String name) {

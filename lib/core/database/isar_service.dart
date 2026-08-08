@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../utils/logger.dart';
+
 /// Service khởi tạo và quản lý Isar Database.
 /// Isar được dùng để lưu dữ liệu offline (fsm.order, stock.move, timesheet...).
 ///
@@ -69,9 +71,7 @@ class IsarService {
     } catch (e, stackTrace) {
       _initError = e;
       _initStackTrace = stackTrace;
-      if (kDebugMode) {
-        debugPrint('Lỗi khởi tạo Isar DB: $e\n$stackTrace');
-      }
+      logger.e('Lỗi khởi tạo Isar DB', error: e, stackTrace: stackTrace);
       throw IsarInitializationException(e, stackTrace);
     }
   }

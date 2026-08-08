@@ -114,10 +114,12 @@ Future<void> main() async {
       // Bắt đầu lắng nghe trạng thái mạng để tự động sync
       await SyncManager.instance.startListening();
       await SyncManager.instance.startAutoSync();
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('Init Isar Error: $e');
-      }
+    } on IsarInitializationException catch (e, stackTrace) {
+      logger.e('Isar init failed — app runs without offline storage',
+          error: e, stackTrace: e.stackTrace ?? stackTrace);
+    } catch (e, stackTrace) {
+      logger.e('Offline storage / sync bootstrap failed',
+          error: e, stackTrace: stackTrace);
     }
   }
 

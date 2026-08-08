@@ -1,6 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'settings_local_storage.dart';
+import '../utils/logger.dart';
 
 /// Lưu tuỳ chọn đồng bộ của Settings (wifi-only, auto-sync, last synced). State được lưu ở SharedPreferences.
 ///
@@ -74,8 +75,10 @@ class SettingsRepository {
       await _storage.delete(key: 'ff_settings_username');
       await _storage.delete(key: 'ff_settings_password');
       await _storage.delete(key: 'ff_settings_api_key');
-    } catch (_) {
-      // Fallback nếu có lỗi
+    } catch (e, stack) {
+      // Fallback nếu có lỗi: vẫn đọc được settings từ SharedPreferences
+      logger.e('SettingsRepository.loadAll failed, falling back to local store',
+          error: e, stackTrace: stack);
       await _localStorage.loadAll();
     }
   }

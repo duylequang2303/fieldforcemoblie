@@ -3,6 +3,7 @@ import '../../../core/api/api_exception.dart';
 import '../../../core/api/odoo_session_manager.dart';
 import '../../../core/api/session_guard.dart';
 import '../../../core/connectivity/connectivity_service.dart';
+import '../../../core/utils/logger.dart';
 import '../models/fsm_order.dart';
 import '../services/orders_service.dart';
 import '../services/recurring_service.dart';
@@ -205,8 +206,10 @@ class OrdersProvider extends ChangeNotifier with SessionGuard {
   Future<void> syncPending() async {
     try {
       await _service.syncPending();
-    } catch (_) {
-      // Bỏ qua lỗi sync, sẽ retry sau
+    } catch (e, stackTrace) {
+      // Không propagate: sync sẽ được retry ở lần tick sau.
+      logger.w('OrdersProvider.syncPending failed, will retry later',
+          error: e, stackTrace: stackTrace);
     }
   }
 

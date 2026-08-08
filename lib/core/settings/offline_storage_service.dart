@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
+import '../utils/logger.dart';
+
 /// Ước lượng dung lượng dữ liệu ngoại tuyến (thư mục documents của app).
 /// Dùng cho dòng "Dữ liệu ngoại tuyến" trong Settings, đồng thời cung cấp tuỳ chọn Clear Cache.
 class OfflineStorageService {
@@ -17,11 +19,16 @@ class OfflineStorageService {
         if (entity is File) {
           try {
             total += await entity.length();
-          } catch (_) {}
+          } on FileSystemException catch (e) {
+            logger.w('OfflineStorageService.bytes: skip ${entity.path}',
+                error: e);
+          }
         }
       }
       return total;
-    } catch (_) {
+    } catch (e, stack) {
+      logger.w('OfflineStorageService.bytes failed, reporting 0',
+          error: e, stackTrace: stack);
       return 0;
     }
   }
@@ -29,7 +36,9 @@ class OfflineStorageService {
   Future<Directory?> _cacheDirectory() async {
     try {
       return await getTemporaryDirectory();
-    } catch (_) {
+    } catch (e, stack) {
+      logger.w('OfflineStorageService: temporary directory unavailable',
+          error: e, stackTrace: stack);
       return null;
     }
   }
@@ -45,11 +54,17 @@ class OfflineStorageService {
         if (entity is File) {
           try {
             total += await entity.length();
-          } catch (_) {}
+          } on FileSystemException catch (e) {
+            logger.w(
+                'OfflineStorageService.clearableBytes: skip ${entity.path}',
+                error: e);
+          }
         }
       }
       return total;
-    } catch (_) {
+    } catch (e, stack) {
+      logger.w('OfflineStorageService.clearableBytes failed, reporting 0',
+          error: e, stackTrace: stack);
       return 0;
     }
   }
@@ -67,11 +82,16 @@ class OfflineStorageService {
             final size = await entity.length();
             await entity.delete();
             cleared += size;
-          } catch (_) {}
+          } on FileSystemException catch (e) {
+            logger.w('OfflineStorageService.clearCache: skip ${entity.path}',
+                error: e);
+          }
         }
       }
       return cleared;
-    } catch (_) {
+    } catch (e, stack) {
+      logger.w('OfflineStorageService.clearCache failed, reporting 0 cleared',
+          error: e, stackTrace: stack);
       return 0;
     }
   }

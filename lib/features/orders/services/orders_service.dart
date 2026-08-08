@@ -232,8 +232,15 @@ class OrdersService {
       } else {
         rethrow;
       }
-    } catch (_) {
-      // Network or other transient error - silent fallback
+    } on OdooConnectionException {
+      rethrow; // Offline: để provider hiển banner + đọc cache thay vì trả danh sách rỗng
+    } on OdooAuthException {
+      rethrow; // Session hết hạn phải đẩy lên UI để yêu cầu đăng nhập lại
+    } catch (e, stackTrace) {
+      logger.w(
+          'OrdersService.fetchMyOrders: calendar person lookup failed, trying fallback',
+          error: e,
+          stackTrace: stackTrace);
     }
 
     // Fallback: Try direct user_id on fsm.person (if exists)
@@ -265,8 +272,13 @@ class OrdersService {
           rethrow;
         }
         logger.w('OrdersService.fetchMyOrders: fsm.person.user_id field missing');
-      } catch (_) {
-        // Network or other transient error - silent fallback
+      } on OdooConnectionException {
+        rethrow;
+      } on OdooAuthException {
+        rethrow;
+      } catch (e, stackTrace) {
+        logger.w('OrdersService.fetchMyOrders: fsm.person lookup failed',
+            error: e, stackTrace: stackTrace);
       }
     }
 
@@ -321,8 +333,13 @@ class OrdersService {
             logger.i('OrdersService.fetchMyOrders: First order person_id: ${allOrders.first['person_id']}');
           }
         }
-      } catch (e) {
-        logger.w('OrdersService.fetchMyOrders: Debug fetch all orders failed', error: e);
+      } on OdooConnectionException {
+        rethrow;
+      } on OdooAuthException {
+        rethrow;
+      } catch (e, stackTrace) {
+        logger.w('OrdersService.fetchMyOrders: Debug fetch all orders failed',
+            error: e, stackTrace: stackTrace);
       }
     }
 
@@ -480,9 +497,13 @@ class OrdersService {
       await _scheduleUpcomingRemindersSafely(saved);
 
       return saved;
-    } catch (e) {
+    } on OdooConnectionException {
+      rethrow; // Offline không được che thành "không có đơn nào"
+    } on OdooAuthException {
+      rethrow;
+    } catch (e, stackTrace) {
       logger.w('OrdersService._tryFetchOrders: Error fetching with domain',
-          error: e);
+          error: e, stackTrace: stackTrace);
       return [];
     }
   }

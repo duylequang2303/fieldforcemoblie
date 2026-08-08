@@ -97,7 +97,9 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
       if (mounted) {
         setState(() => _repeatText = text);
       }
-    } catch (_) {
+    } catch (e, stackTrace) {
+      logger.w('Failed to resolve recurring frequency label',
+          error: e, stackTrace: stackTrace);
       if (mounted) setState(() => _repeatText = '(Định kỳ)');
     }
   }
@@ -180,7 +182,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
       } else {
         await launchUrl(url, mode: LaunchMode.inAppWebView);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      logger.e(errorMessage, error: e, stackTrace: stackTrace);
       _showSnackBar('$errorMessage: $e');
     }
   }
@@ -311,7 +314,9 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
           final size = await File(x.path).length();
           debugPrint(
               '📸 PICKED: ${x.path.split('/').last} — ${(size / 1024 / 1024).toStringAsFixed(1)}MB');
-        } catch (_) {}
+        } catch (e) {
+          logger.w('Cannot read picked photo ${x.path}', error: e);
+        }
       }
     }
 
@@ -343,29 +348,23 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
 
       final uploaded = report.syncedPhotoPaths.contains(path);
       if (uploaded) {
-        if (kDebugMode) {
-          debugPrint("📤 UPLOAD OK: ${path.split('/').last}");
-        }
+        logger.i('Photo uploaded: ${path.split('/').last}');
         if (mounted) _showSnackBar('Photo uploaded.');
       } else {
-        if (kDebugMode) {
-          debugPrint("📤 UPLOAD FAILED: ${path.split('/').last}");
-        }
+        logger.w('Photo upload failed: ${path.split('/').last}');
         if (mounted) _showSnackBar('Photo upload failed.');
         report.photoPaths = [...report.photoPaths]..remove(path);
         await WorkOrderService.instance.saveReport(report);
+        if (mounted) setState(() => _photoPaths.remove(path));
       }
-    } on OdooApiException {
-      if (kDebugMode) {
-        debugPrint("📤 UPLOAD OFFLINE: ${path.split('/').last}");
-      }
+    } on OdooApiException catch (e) {
+      logger.w('Photo queued offline: ${path.split('/').last}', error: e);
       if (mounted) {
         _showSnackBar('Photo saved locally — will upload when online.');
       }
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint("📤 UPLOAD ERROR: ${path.split('/').last} -> $e");
-      }
+    } catch (e, stackTrace) {
+      logger.e('Photo upload error: ${path.split('/').last}',
+          error: e, stackTrace: stackTrace);
       if (mounted) _showSnackBar('Photo error: $e');
     }
   }
@@ -381,7 +380,16 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
         report.photoPaths = [...report.photoPaths]..remove(path);
         return WorkOrderService.instance.saveReport(report);
       }
-    }).catchError((_) {});
+    }).catchError((Object e, StackTrace stackTrace) {
+      logger.e('Failed to remove photo from report',
+          error: e, stackTrace: stackTrace);
+      // Khôi phục UI để khớp với report đã lưu
+      if (mounted) {
+        setState(() => _photoPaths.insert(
+            index.clamp(0, _photoPaths.length), path));
+        _showSnackBar('Không xoá được ảnh khỏi báo cáo: $e');
+      }
+    });
   }
 
   Future<void> _onMaterialSaved(Product? product, int qty) async {
