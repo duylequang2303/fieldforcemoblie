@@ -1132,9 +1132,17 @@ class OrdersService {
           }
         }
 
-        // 5. Single batch upsert - this avoids unique index violations
-        if (finalOrdersMap.isNotEmpty) {
-          await isar.fsmOrders.putAll(finalOrdersMap.values.toList());
+        // 5. Final safety: explicit deduplication by odooId before putAll
+        // This ensures no two objects with the same odooId are passed to Isar,
+        // preventing "Unique index violated" errors even if map logic has edge cases.
+        final dedupedOrders = <int, FsmOrder>{};
+        for (final order in finalOrdersMap.values) {
+          dedupedOrders[order.odooId] = order;
+        }
+
+        // 6. Single batch upsert - this avoids unique index violations
+        if (dedupedOrders.isNotEmpty) {
+          await isar.fsmOrders.putAll(dedupedOrders.values.toList());
         }
       });
     } on IsarError catch (e, stackTrace) {
