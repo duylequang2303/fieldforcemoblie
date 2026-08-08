@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -47,7 +48,7 @@ final Set<String> _publicRoutes = {
 final GoRouter appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: RouteNames.splash,
-  debugLogDiagnostics: true,
+  debugLogDiagnostics: kDebugMode,
   // Refresh router when AuthProvider notifies (handles session expiration)
   refreshListenable: AuthProvider.instance,
   // Redirect guard cho authentication

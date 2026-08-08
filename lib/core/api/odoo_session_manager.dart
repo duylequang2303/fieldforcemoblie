@@ -39,6 +39,17 @@ class OdooSessionManager {
 
   OdooSessionData? _currentSession;
 
+  /// Reject any server URL that is not a well-formed HTTPS endpoint so that
+  /// credentials and session cookies can never travel over cleartext HTTP.
+  static void _assertHttpsServerUrl(String serverUrl) {
+    final uri = Uri.tryParse(serverUrl.trim());
+    if (uri == null || uri.scheme.toLowerCase() != 'https' || uri.host.isEmpty) {
+      throw const OdooConnectionException(
+        'URL server không hợp lệ. Chỉ chấp nhận địa chỉ https://',
+      );
+    }
+  }
+
   bool get isAuthenticated => _currentSession != null;
   OdooSessionData? get currentSession => _currentSession;
   int? get currentUserId => _currentSession?.userId;
@@ -51,6 +62,7 @@ class OdooSessionManager {
     required String username,
     required String password,
   }) async {
+    _assertHttpsServerUrl(serverUrl);
     try {
       OdooApiClient.instance.initialize(serverUrl);
       final client = OdooApiClient.instance.client;
@@ -149,6 +161,7 @@ class OdooSessionManager {
     int? employeeId,
   }) async {
     try {
+      _assertHttpsServerUrl(serverUrl);
       // Dựng OdooSession từ dữ liệu đã lưu. Chỉ id + userId là quan trọng
       // cho RPC; các field còn lại là metadata, đặt default an toàn.
       final session = OdooSession(
