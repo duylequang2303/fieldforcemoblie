@@ -1,11 +1,13 @@
-# MCP Support Status in Zed
+# MCP Support Status (migration từ Zed → opencode)
 
-> **Updated:** 2026-08-05
-> **Context:** Migration from Cline to Zed
+> **Updated:** 2026-08-08
+> **Context:** Dự án đã chuyển từ Zed sang **opencode**. opencode HỖ TRỢ MCP protocol native.
+> **Tài liệu mới:** Xem [`.agents/OPENCODE_MCP_GUIDE.md`](.agents/OPENCODE_MCP_GUIDE.md) — hướng dẫn MCP đầy đủ cho opencode.
+> **⚠️ Nội dung bên dưới là reference cũ từ Zed era, giữ lại cho lịch sử migration.**
 
 ---
 
-## ❌ TL;DR: Zed KHÔNG HỖ TRỢ MCP protocol
+## ❌ TL;DR (Zed era - đã lỗi thời): Zed KHÔNG HỖ TRỢ MCP protocol
 
 **Zed chỉ có:**
 - `spawn_agent` (native subagent system)

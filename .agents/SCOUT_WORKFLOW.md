@@ -1,8 +1,9 @@
 # SCOUT Workflow - Codebase Research Pattern
 
-> **Dành cho:** Zed AI Agent (sử dụng `spawn_agent` tool)
-> **Version:** 1.0
-> **Updated:** 2026-08-05
+> **Dành cho:** opencode Agent (dùng `task` tool + subagent `scout`)
+> **Version:** 2.0
+> **Updated:** 2026-08-08
+> **Migrated from:** Zed `spawn_agent` → opencode `task` tool (xem `.agents/rules/00-opencode-agent-system.md`)
 
 ---
 
@@ -52,7 +53,9 @@ VD: User yêu cầu "Implement notification service"
 
 ### Step 2: Spawn SCOUT subagent
 
-**Template message:**
+**Gọi `task` tool với `subagent_type: "scout"`.**
+
+**Template prompt:**
 
 ```
 Role: SCOUT

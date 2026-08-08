@@ -1,7 +1,8 @@
 # Zed Native Tools = MCP Servers (No Installation Needed!)
 
-> **Updated:** 2026-08-05
-> **Context:** Why Zed doesn't need MCP servers
+> **Updated:** 2026-08-08
+> **Context:** Tài liệu lịch sử từ Zed era. Dự án hiện chạy trên **opencode**.
+> **opencode** hỗ trợ MCP protocol native + native tools. Xem [`.agents/OPENCODE_MCP_GUIDE.md`](.agents/OPENCODE_MCP_GUIDE.md).
 
 ---
 

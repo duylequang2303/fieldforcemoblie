@@ -1,8 +1,9 @@
 # THINK Workflow - Multi-agent Debate Pattern
 
-> **Dành cho:** Zed AI Agent (sử dụng `spawn_agent` tool)
-> **Version:** 1.0
-> **Updated:** 2026-08-05
+> **Dành cho:** opencode Agent (dùng `task` tool + subagent `proposer`/`skeptic`/`checker`)
+> **Version:** 2.0
+> **Updated:** 2026-08-08
+> **Migrated from:** Zed `spawn_agent` → opencode `task` tool (xem `.agents/rules/00-opencode-agent-system.md`)
 
 ---
 
@@ -58,9 +59,9 @@ VD: User yêu cầu "Implement recurring feature"
 
 ### Step 2: Spawn 3 debaters song song
 
-**QUAN TRỌNG:** Spawn cả 3 cùng lúc (parallel calls) để tối ưu thời gian.
+**QUAN TRỌNG:** Gọi `task` tool 3 lần cùng lúc (parallel calls) để tối ưu thời gian. Dùng `subagent_type` đã định nghĩa: `proposer`, `skeptic`, `checker`.
 
-**Template message cho PROPOSER:**
+**Template prompt cho PROPOSER (subagent_type: "proposer"):**
 ```
 Role: PROPOSER
 
@@ -79,7 +80,7 @@ EVIDENCE | [file:line references supporting claim]
 RISK | [potential issues]
 ```
 
-**Template message cho SKEPTIC:**
+**Template message cho SKEPTIC (subagent_type: "skeptic"):**
 ```
 Role: SKEPTIC
 
@@ -101,7 +102,7 @@ EVIDENCE | [file:line or AGENTS.md rule references]
 RISK | [why approach fails]
 ```
 
-**Template message cho CHECKER:**
+**Template message cho CHECKER (subagent_type: "checker"):**
 ```
 Role: CHECKER
 
@@ -332,6 +333,6 @@ graph TD
 
 ## 🔗 Tham khảo thêm
 
-- **AGENTS.md §13**: Khi nào dùng spawn_agent (general delegation guideline)
+- **AGENTS.md §13**: Khi nào dùng `task` tool (general delegation guideline)
 - **PROGRESS.md**: Session logs có THINK workflow results
 - **Checkpoint docs** (02_PRE_REQS.md, 03_DATA_MODEL.md): Lưu THINK synthesis cho context
