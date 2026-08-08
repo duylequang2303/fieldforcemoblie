@@ -1140,7 +1140,12 @@ class OrdersService {
           dedupedOrders[order.odooId] = order;
         }
 
-        // 6. Single batch upsert - this avoids unique index violations
+        // 6. Delete any existing records with these odooIds, then insert fresh.
+        // This guarantees no unique index violation on odooId, regardless of
+        // whether objects have different Isar IDs (putAll upserts by id, not unique index).
+        for (final order in dedupedOrders.values) {
+          await isar.fsmOrders.deleteByOdooId(order.odooId);
+        }
         if (dedupedOrders.isNotEmpty) {
           await isar.fsmOrders.putAll(dedupedOrders.values.toList());
         }
