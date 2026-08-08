@@ -30,7 +30,6 @@ class OrdersService {
     'name',
     'description',
     'stage_id',
-    'stage_name',
     'location_id',
     'location_directions',
     'phone',
@@ -40,7 +39,6 @@ class OrdersService {
     'person_id',
     'route_sequence',
     'route_id',
-    'require_signature',
     'warehouse_id',
     'team_id',
     'priority',
@@ -55,10 +53,8 @@ class OrdersService {
     'resolution',
     'inventory_location_id',
     'color',
-    'state_name',
     'todo',
     'require_photo',
-    // Recurring fields needed for conflict resolution
     'fsm_recurring_id',
   ];
 
@@ -169,9 +165,6 @@ class OrdersService {
       final List<String> fieldsToRemove = [];
       if (msg.contains('fsm_recurring_id')) {
         fieldsToRemove.add('fsm_recurring_id');
-      }
-      if (msg.contains('is_skipped')) {
-        fieldsToRemove.add('is_skipped');
       }
       // Generic ValueError without specific field -> rethrow
       if (fieldsToRemove.isEmpty) {

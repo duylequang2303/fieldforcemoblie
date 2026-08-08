@@ -322,12 +322,12 @@ class RecurringService {
               args: [[rule.orderTemplateId!]],
               kwargs: {
                 // Đọc các fields cơ bản
-                'fields': [
-                  'id', 'name', 'description', 'stage_id', 'stage_name',
-                  'location_id', 'location_directions', 'phone',
-                  'require_signature', 'warehouse_id', 'team_id', 'priority',
-                  'partner_id', 'person_id'
-                ]
+                 'fields': [
+                   'id', 'name', 'description', 'stage_id',
+                   'location_id', 'location_directions', 'phone',
+                   'warehouse_id', 'team_id', 'priority',
+                   'partner_id', 'person_id'
+                 ]
               },
             ) as List<dynamic>;
 
