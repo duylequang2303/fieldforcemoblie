@@ -74,7 +74,10 @@ class AuthService {
     final locale = saved['locale'];
     final username = saved['username'] ?? '';
     final userIdStr = saved['userId'];
-    final serverVersion = saved['serverVersion'] ?? '19';
+    final serverVersion = saved['serverVersion'];
+    if (serverVersion == null || serverVersion.isEmpty) {
+      return false;
+    }
     final employeeIdStr = saved['employeeId'];
     final userId = userIdStr != null ? int.tryParse(userIdStr) : null;
     final employeeId = employeeIdStr != null ? int.tryParse(employeeIdStr) : null;

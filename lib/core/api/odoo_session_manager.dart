@@ -146,7 +146,7 @@ class OdooSessionManager {
     required int savedUserId,
     required String username,
     String locale = 'vi_VN',
-    String serverVersion = '19',
+    required String serverVersion,
     int? employeeId,
   }) async {
     try {
