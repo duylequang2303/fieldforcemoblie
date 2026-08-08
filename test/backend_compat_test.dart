@@ -54,7 +54,7 @@ void main() {
       expect(order.requireSignature, isFalse);
     });
 
-    test('fromJson handles route_state injection', () {
+    test('fromJson should handle route_state injection', () {
       final json = {
         'id': 1,
         'name': 'Test',
@@ -69,7 +69,7 @@ void main() {
       expect(order.routeState, equals('planned'));
     });
 
-    test('parseStageName handles Vietnamese and English stage names', () {
+    test('parseStageName should handle Vietnamese and English stage names', () {
       expect(FsmOrder.parseStageName('New'), FsmOrderStage.draft);
       expect(FsmOrder.parseStageName('Mới'), FsmOrderStage.draft);
       expect(FsmOrder.parseStageName('In Progress'), FsmOrderStage.inProgress);
@@ -123,7 +123,7 @@ void main() {
       expect(payload['fsm_order_id'], equals(1));
     });
 
-    test('buildOdooPayload includes quantity for hr.expense', () {
+    test('buildOdooPayload should include quantity for hr.expense', () {
       final payload = ExpenseService.instance.buildOdooPayload(
         name: 'Test',
         amount: 1000,
@@ -138,7 +138,7 @@ void main() {
       expect(payload['total_amount'], equals(1000));
     });
 
-    test('ExpenseService has testConstructor for dependency injection', () {
+    test('ExpenseService should have testConstructor for dependency injection', () {
       expect(ExpenseService.testConstructor, isNotNull);
       expect(() => ExpenseService.testConstructor(
             OdooSessionManager.instance,
@@ -230,7 +230,7 @@ void main() {
   });
 
   group('OrdersService', () {
-    test('has testConstructor for dependency injection', () {
+    test('should have testConstructor for dependency injection', () {
       expect(OrdersService.testConstructor, isNotNull);
       expect(() => OrdersService.testConstructor(
             OdooSessionManager.instance,
