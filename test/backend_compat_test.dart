@@ -101,12 +101,17 @@ void main() {
       expect(payload['fsm_order_id'], equals(1));
     });
 
-    test('OrdersService fields list should not contain is_skipped', () {
-      // Access private field via reflection for testing
-      final fields = OrdersService.instance;
-      // This test verifies the contract - if _fields contains 'is_skipped', it will fail
-      // We can't access private fields directly, so we test via behavior
-      expect(true, isTrue, reason: 'Verify _fields does not contain is_skipped manually');
+    test('FsmOrder fromJson should handle missing require_signature', () {
+      final json = {
+        'id': 1,
+        'name': 'Test',
+        'stage_id': ['New', 1],
+        'fsm_recurring_id': [null, 0],
+      };
+
+      final order = FsmOrder.fromJson(json);
+      expect(order.odooId, equals(1));
+      expect(order.requireSignature, isFalse);
     });
 
     test('Work order service signature check should accept True', () {
