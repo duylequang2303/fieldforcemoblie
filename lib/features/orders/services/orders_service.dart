@@ -946,17 +946,6 @@ class OrdersService {
           finalOrdersMap.remove(odooId);
         }
 
-        // Pre-populate finalOrdersMap with existing local orders that have odooId > 0
-        // This ensures we have a baseline of what's in the database
-        final allLocalOrders = await isar.fsmOrders
-            .filter()
-            .odooIdGreaterThan(0)
-            .localOwnerIdEqualTo(currentUserId)
-            .findAll();
-        for (final localOrder in allLocalOrders) {
-          finalOrdersMap[localOrder.odooId] = localOrder;
-        }
-
         // 1. Handle local-only duplicates vs server orders (existing logic)
         for (final odooOrder in fetchedOrders) {
           if (odooOrder.recurringId == null ||
@@ -1003,6 +992,14 @@ class OrdersService {
         }
 
         // 2. Handle conflicts where both local and server have same odooId > 0
+        // RE-QUERY local orders AFTER local-only processing (which may have deleted/updated some)
+        // to avoid stale snapshot bug where deleted/updated orders were re-processed
+        final allLocalOrders = await isar.fsmOrders
+            .filter()
+            .odooIdGreaterThan(0)
+            .localOwnerIdEqualTo(currentUserId)
+            .findAll();
+
         // Build set of server odooIds for quick lookup
         final serverOdooIds = fetchedOrders.map((o) => o.odooId).toSet();
 
