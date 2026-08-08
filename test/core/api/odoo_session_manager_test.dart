@@ -28,6 +28,23 @@ void main() {
       );
     });
 
+    test('should store the trimmed URL when restoring a padded https URL',
+        () async {
+      final restored = await OdooSessionManager.instance.restoreSession(
+        serverUrl: '  https://odoo.example.com  ',
+        database: 'db',
+        sessionId: 'session',
+        savedUserId: 1,
+        username: 'user',
+        serverVersion: '19',
+      );
+      expect(restored, isTrue);
+      expect(
+        OdooSessionManager.instance.currentSession?.serverUrl,
+        'https://odoo.example.com',
+      );
+    });
+
     test('should refuse restoring a session from a http server URL', () async {
       final restored = await OdooSessionManager.instance.restoreSession(
         serverUrl: 'http://odoo.example.com',

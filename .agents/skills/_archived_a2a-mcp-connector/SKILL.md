@@ -7,7 +7,8 @@ description: Hướng dẫn kết nối và tương tác với các MCP server q
 
 Skill này hướng dẫn agent cách gửi yêu cầu hoặc ủy thác công việc tới các MCP server và sub-agents trong hệ sinh thái `a2a-platform` thông qua API Token được cung cấp.
 
-Tài khoản A2A Platform Token: đọc từ biến môi trường `A2A_PLATFORM_TOKEN` trong `.env` (không hardcode token vào repo).
+Tài khoản A2A Platform Token: đọc từ biến môi trường `A2A_PLATFORM_TOKEN` (không hardcode token vào repo).
+Export biến này trước khi chạy agent/MCP client: `set -a && . ./.env && set +a`.
 
 ## HTTP SSE Endpoint
 - Base SSE endpoint: `https://agent-router-backend-1023201593264.europe-west1.run.app/mcp/sse`
