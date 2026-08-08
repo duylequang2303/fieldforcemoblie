@@ -38,6 +38,7 @@ class FilterChipsRow extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             // ── "All" chip ──
             _Chip(
@@ -104,12 +105,15 @@ class _Chip extends StatelessWidget {
               ),
               const SizedBox(width: SfTokens.spacingXxs),
             ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                color: isSelected ? SfTokens.surface : SfTokens.onSurface,
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: isSelected ? SfTokens.surface : SfTokens.onSurface,
+                ),
               ),
             ),
           ],

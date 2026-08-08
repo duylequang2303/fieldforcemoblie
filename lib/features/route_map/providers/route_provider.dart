@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:fieldforce_mobile/core/api/api_exception.dart';
 import 'package:fieldforce_mobile/core/utils/logger.dart';
@@ -7,6 +8,18 @@ import 'package:fieldforce_mobile/features/orders/models/fsm_order.dart';
 import 'package:fieldforce_mobile/features/orders/providers/orders_provider.dart';
 import 'package:fieldforce_mobile/features/route_map/models/route_stop.dart';
 import 'package:fieldforce_mobile/features/route_map/services/location_service.dart';
+
+/// Kết quả validate check-in: cho phép hay từ chối + lý do
+class CheckInValidationResult {
+  final bool allowed;
+  final String? reason;
+
+  const CheckInValidationResult.allowed() : allowed = true, reason = null;
+  const CheckInValidationResult.denied(this.reason) : allowed = false;
+
+  static CheckInValidationResult allow() => const CheckInValidationResult.allowed();
+  static CheckInValidationResult deny(String reason) => CheckInValidationResult.denied(reason);
+}
 
 /// State management cho bản đồ lộ trình.
 class RouteProvider extends ChangeNotifier {
@@ -38,7 +51,15 @@ class RouteProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final sorted = [...orders]..sort((a, b) {
+      // Deduplicate orders by odooId (in case same order fetched from multiple domains)
+      final uniqueOrders = <int, FsmOrder>{};
+      for (final order in orders) {
+        if (!uniqueOrders.containsKey(order.odooId)) {
+          uniqueOrders[order.odooId] = order;
+        }
+      }
+
+      final sorted = uniqueOrders.values.toList()..sort((a, b) {
           final seqA = a.routeSequence ?? 9999;
           final seqB = b.routeSequence ?? 9999;
           return seqA.compareTo(seqB);
@@ -180,28 +201,27 @@ class RouteProvider extends ChangeNotifier {
   /// Logic:
   /// 1. Không có trong lộ trình -> Cho phép (true)
   /// 2. Route state = 'draft' -> Bỏ qua enforcement (true)
-  /// 3. GPS validation: Nếu worker cách location > 500m -> Không cho phép (true cho phép nhưng cảnh báo)
-  /// 4. Deadline validation: Nếu check-in trước scheduled_date_start -> Cho phép
+  /// 3. GPS validation: Nếu worker cách location > 500m -> Không cho phép
+  /// 4. Date validation: Chỉ cho phép check-in đơn hôm nay hoặc quá khứ (không cho phép làm đơn tương lai)
   /// 5. Sequential check: Phải hoàn thành các điểm trước trong route 'planned'/'done'
-  bool isAllowedToCheckIn(
+  CheckInValidationResult checkInValidation(
     int orderOdooId, {
     Position? currentLocation,
     double maxDistanceMeters = 500.0, // Default 500m
+    bool enforceDateConstraint = true, // Mặc định bật ràng buộc ngày
   }) {
     final stopIdx = _stops.indexWhere((s) => s.orderOdooId == orderOdooId);
-    if (stopIdx == -1) return true; // Không có trong lộ trình thì cho phép
+    if (stopIdx == -1) return CheckInValidationResult.allow(); // Không có trong lộ trình thì cho phép
 
     final currentStop = _stops[stopIdx];
     final routeState = currentStop.routeState;
 
     // Route state = 'draft' -> Bỏ qua enforcement (thường là route chưa được lên lịch)
     if (routeState == 'draft') {
-      return true;
+      return CheckInValidationResult.allow();
     }
 
     // GPS validation: Kiểm tra khoảng cách đến location
-    // Nếu worker ở quá xa location (> 500m), có thể cho phép nhưng cảnh báo
-    // Hoặc có thể khóa hoàn toàn nếu cần strict enforcement
     if (currentLocation != null &&
         currentStop.latitude != null &&
         currentStop.longitude != null) {
@@ -215,27 +235,33 @@ class RouteProvider extends ChangeNotifier {
       // Nếu cách xa hơn 500m -> Không cho phép check-in (strict enforcement)
       if (distance * 1000 > maxDistanceMeters) {
         logger.w(
-            'RouteProvider.isAllowedToCheckIn: Worker quá xa location (${distance}km > ${maxDistanceMeters / 1000}km)');
-        return false;
+            'RouteProvider.checkInValidation: Worker quá xa location (${distance}km > ${maxDistanceMeters / 1000}km)');
+        return CheckInValidationResult.deny('Bạn đang cách địa điểm quá xa (>${(maxDistanceMeters / 1000).toInt()}km). Hãy đến gần hơn để check-in.');
       }
     }
 
-    // Deadline validation: Kiểm tra scheduled_date_start
-    // Cho phép worker check-in trước deadline nếu cần (thường là cho phép)
-    final now = DateTime.now();
-    if (currentStop.estimatedMinutes != null) {
-      // Nếu có ước tính thời gian đến, có thể check xem đã đến giờ chưa
-      final estimatedArrival =
-          now.add(Duration(minutes: currentStop.estimatedMinutes!));
-      logger.i(
-          'RouteProvider.isAllowedToCheckIn: Ước tính đến lúc ${estimatedArrival.toIso8601String()}');
+    // Date validation: Kiểm tra scheduled_date_start
+    // Chỉ cho phép check-in đơn hôm nay hoặc quá khứ, KHÔNG cho phép đơn tương lai
+    if (enforceDateConstraint && currentStop.scheduledDateStart != null) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final orderDate = DateTime(
+          currentStop.scheduledDateStart!.year,
+          currentStop.scheduledDateStart!.month,
+          currentStop.scheduledDateStart!.day);
+      
+      if (orderDate.isAfter(today)) {
+        logger.w(
+            'RouteProvider.checkInValidation: Không cho phép check-in đơn tương lai (scheduled: ${orderDate.toIso8601String()})');
+        return CheckInValidationResult.deny('Đơn này được lên lịch cho ngày ${DateFormat('dd/MM/yyyy', 'vi').format(orderDate)}. Chỉ được làm đơn hôm nay hoặc các đơn quá khứ.');
+      }
     }
 
     // Sequential check: Phải hoàn thành các điểm trước trong route 'planned'/'done'
     // Route đã hoàn thành ('done') -> Không cho phép check-in bất kỳ điểm nào
     if (routeState == 'done') {
-      logger.w('RouteProvider.isAllowedToCheckIn: Route đã hoàn thành');
-      return false;
+      logger.w('RouteProvider.checkInValidation: Route đã hoàn thành');
+      return CheckInValidationResult.deny('Lộ trình này đã hoàn thành.');
     }
 
     // Kiểm tra tất cả các điểm trước đó (có sequence < current)
@@ -245,10 +271,27 @@ class RouteProvider extends ChangeNotifier {
       if (prev.status != StopStatus.completed &&
           prev.status != StopStatus.skipped) {
         logger.w(
-            'RouteProvider.isAllowedToCheckIn: Điểm trước (${prev.orderName}) chưa hoàn thành');
-        return false;
+            'RouteProvider.checkInValidation: Điểm trước (${prev.orderName}) chưa hoàn thành');
+        return CheckInValidationResult.deny('Bạn phải hoàn thành "${prev.orderName}" trước.');
       }
     }
-    return true;
+
+    return CheckInValidationResult.allow();
+  }
+
+  /// @deprecated Use checkInValidation instead
+  @Deprecated('Use checkInValidation for detailed error messages')
+  bool isAllowedToCheckIn(
+    int orderOdooId, {
+    Position? currentLocation,
+    double maxDistanceMeters = 500.0,
+    bool enforceDateConstraint = true,
+  }) {
+    return checkInValidation(
+      orderOdooId,
+      currentLocation: currentLocation,
+      maxDistanceMeters: maxDistanceMeters,
+      enforceDateConstraint: enforceDateConstraint,
+    ).allowed;
   }
 }

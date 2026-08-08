@@ -72,13 +72,18 @@ const RouteStopSchema = CollectionSchema(
       name: r'routeState',
       type: IsarType.string,
     ),
-    r'sequence': PropertySchema(
+    r'scheduledDateStart': PropertySchema(
       id: 11,
+      name: r'scheduledDateStart',
+      type: IsarType.dateTime,
+    ),
+    r'sequence': PropertySchema(
+      id: 12,
       name: r'sequence',
       type: IsarType.long,
     ),
     r'status': PropertySchema(
-      id: 12,
+      id: 13,
       name: r'status',
       type: IsarType.string,
       enumMap: _RouteStopstatusEnumValueMap,
@@ -158,8 +163,9 @@ void _routeStopSerialize(
   writer.writeLong(offsets[8], object.orderOdooId);
   writer.writeString(offsets[9], object.partnerName);
   writer.writeString(offsets[10], object.routeState);
-  writer.writeLong(offsets[11], object.sequence);
-  writer.writeString(offsets[12], object.status.name);
+  writer.writeDateTime(offsets[11], object.scheduledDateStart);
+  writer.writeLong(offsets[12], object.sequence);
+  writer.writeString(offsets[13], object.status.name);
 }
 
 RouteStop _routeStopDeserialize(
@@ -181,9 +187,10 @@ RouteStop _routeStopDeserialize(
   object.orderOdooId = reader.readLong(offsets[8]);
   object.partnerName = reader.readStringOrNull(offsets[9]);
   object.routeState = reader.readStringOrNull(offsets[10]);
-  object.sequence = reader.readLong(offsets[11]);
+  object.scheduledDateStart = reader.readDateTimeOrNull(offsets[11]);
+  object.sequence = reader.readLong(offsets[12]);
   object.status =
-      _RouteStopstatusValueEnumMap[reader.readStringOrNull(offsets[12])] ??
+      _RouteStopstatusValueEnumMap[reader.readStringOrNull(offsets[13])] ??
           StopStatus.pending;
   return object;
 }
@@ -218,8 +225,10 @@ P _routeStopDeserializeProp<P>(
     case 10:
       return (reader.readStringOrNull(offset)) as P;
     case 11:
-      return (reader.readLong(offset)) as P;
+      return (reader.readDateTimeOrNull(offset)) as P;
     case 12:
+      return (reader.readLong(offset)) as P;
+    case 13:
       return (_RouteStopstatusValueEnumMap[reader.readStringOrNull(offset)] ??
           StopStatus.pending) as P;
     default:
@@ -1639,6 +1648,80 @@ extension RouteStopQueryFilter
     });
   }
 
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition>
+      scheduledDateStartIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'scheduledDateStart',
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition>
+      scheduledDateStartIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'scheduledDateStart',
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition>
+      scheduledDateStartEqualTo(DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'scheduledDateStart',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition>
+      scheduledDateStartGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'scheduledDateStart',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition>
+      scheduledDateStartLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'scheduledDateStart',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition>
+      scheduledDateStartBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'scheduledDateStart',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
   QueryBuilder<RouteStop, RouteStop, QAfterFilterCondition> sequenceEqualTo(
       int value) {
     return QueryBuilder.apply(this, (query) {
@@ -1964,6 +2047,19 @@ extension RouteStopQuerySortBy on QueryBuilder<RouteStop, RouteStop, QSortBy> {
     });
   }
 
+  QueryBuilder<RouteStop, RouteStop, QAfterSortBy> sortByScheduledDateStart() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'scheduledDateStart', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterSortBy>
+      sortByScheduledDateStartDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'scheduledDateStart', Sort.desc);
+    });
+  }
+
   QueryBuilder<RouteStop, RouteStop, QAfterSortBy> sortBySequence() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sequence', Sort.asc);
@@ -2137,6 +2233,19 @@ extension RouteStopQuerySortThenBy
     });
   }
 
+  QueryBuilder<RouteStop, RouteStop, QAfterSortBy> thenByScheduledDateStart() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'scheduledDateStart', Sort.asc);
+    });
+  }
+
+  QueryBuilder<RouteStop, RouteStop, QAfterSortBy>
+      thenByScheduledDateStartDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'scheduledDateStart', Sort.desc);
+    });
+  }
+
   QueryBuilder<RouteStop, RouteStop, QAfterSortBy> thenBySequence() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'sequence', Sort.asc);
@@ -2234,6 +2343,12 @@ extension RouteStopQueryWhereDistinct
     });
   }
 
+  QueryBuilder<RouteStop, RouteStop, QDistinct> distinctByScheduledDateStart() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'scheduledDateStart');
+    });
+  }
+
   QueryBuilder<RouteStop, RouteStop, QDistinct> distinctBySequence() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'sequence');
@@ -2320,6 +2435,13 @@ extension RouteStopQueryProperty
   QueryBuilder<RouteStop, String?, QQueryOperations> routeStateProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'routeState');
+    });
+  }
+
+  QueryBuilder<RouteStop, DateTime?, QQueryOperations>
+      scheduledDateStartProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'scheduledDateStart');
     });
   }
 

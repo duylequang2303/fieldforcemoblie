@@ -131,6 +131,12 @@ class RecurringService {
           error: e, stackTrace: stackTrace);
       rethrow;
     } on OdooApiException catch (e, stackTrace) {
+      final msg = e.message.toLowerCase();
+      // Handle AccessError gracefully - user may not have permission to read fsm.recurring
+      if (msg.contains('accesserror') || msg.contains('access error') || msg.contains('not allowed to access')) {
+        logger.w('RecurringService.fetchRecurringRules: No access to fsm.recurring (skipping silently)', error: e);
+        return; // Skip silently - recurring is optional
+      }
       logger.e('RecurringService.fetchRecurringRules: Odoo API error',
           error: e, stackTrace: stackTrace);
       throw OdooBusinessException('Lỗi tải cấu hình lặp định kỳ từ Odoo: $e');

@@ -322,9 +322,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               onPressed: () {
                 context.push(RouteNames.orders);
               },
-              icon: Icon(Icons.add, color: theme.colorScheme.primary),
+              icon: Icon(Icons.list_alt, color: theme.colorScheme.primary),
               label: Text(
-                'Add Visit',
+                'All Orders',
                 style: TextStyle(color: theme.colorScheme.primary),
               ),
               style: OutlinedButton.styleFrom(

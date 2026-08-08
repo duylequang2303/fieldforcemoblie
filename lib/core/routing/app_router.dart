@@ -9,8 +9,9 @@ import '../../features/auth/pages/login_page.dart';
 import '../../features/auth/providers/auth_provider.dart';
 // Orders pages (Phase 7)
 import '../../features/orders/pages/orders_list_page.dart';
-import '../../features/orders/pages/order_detail_page.dart';
 import '../../features/orders/models/fsm_order.dart';
+import '../../features/orders/providers/orders_provider.dart';
+import '../../features/orders/services/orders_service.dart';
 // Route Map page (Phase 8)
 import '../../features/route_map/pages/route_map_page.dart';
 // Stock pages (Phase 9)
@@ -140,7 +141,10 @@ final GoRouter appRouter = GoRouter(
           name: 'orderDetail',
           builder: (context, state) {
             final idStr = state.pathParameters['id'] ?? '0';
-            return OrderDetailPage(orderId: int.tryParse(idStr) ?? 0);
+            final orderId = int.tryParse(idStr) ?? 0;
+            // Navigate to WorkOrderDetailScreen with order from provider
+            // Use a wrapper to fetch from OrdersProvider
+            return _OrderDetailWrapper(orderId: orderId);
           },
         ),
       ],
@@ -233,3 +237,67 @@ final GoRouter appRouter = GoRouter(
 
   ],
 );
+
+/// Wrapper to fetch order from provider and navigate to WorkOrderDetailScreen
+class _OrderDetailWrapper extends StatelessWidget {
+  final int orderId;
+
+  const _OrderDetailWrapper({required this.orderId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<OrdersProvider>(
+      builder: (context, provider, _) {
+        final order = provider.orders
+            .where((o) => o.odooId == orderId)
+            .firstOrNull;
+
+        if (order == null) {
+          // If not in provider, try to load from cache
+          return FutureBuilder<List<FsmOrder>>(
+            future: OrdersService.instance.loadCachedOrders(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                final cachedOrder = snapshot.data!
+                    .where((o) => o.odooId == orderId)
+                    .firstOrNull;
+                if (cachedOrder != null) {
+                  return WorkOrderDetailScreen(order: cachedOrder);
+                }
+              }
+              return Scaffold(
+                appBar: AppBar(title: const Text('Chi tiết đơn')),
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const SizedBox(height: 16),
+                      Text('Không tìm thấy đơn #$orderId'),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () => context.pop(),
+                        child: const Text('Quay lại'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        }
+
+        // Use post-frame callback to navigate with extra
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (context.mounted) {
+            context.push(RouteNames.workOrderDetailScreen, extra: order);
+          }
+        });
+
+        return const Scaffold(
+          body: Center(child: CircularProgressIndicator()),
+        );
+      },
+    );
+  }
+}

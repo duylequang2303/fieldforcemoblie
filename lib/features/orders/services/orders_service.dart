@@ -62,7 +62,6 @@ class OrdersService {
     'inventory_location_id',
     'color',
     'todo',
-    'require_photo',
   ];
 
   static const _optionalFields = [
@@ -237,6 +236,40 @@ class OrdersService {
       // Network or other transient error - silent fallback
     }
 
+    // Fallback: Try direct user_id on fsm.person (if exists)
+    if (personId == null) {
+      try {
+        final person = await _odoo.callKw(
+          model: 'fsm.person',
+          method: 'search_read',
+          args: [
+            [
+              ['user_id', '=', userId]
+            ]
+          ],
+          kwargs: {
+            'fields': ['id'],
+            'limit': 1,
+          },
+        ) as List<dynamic>;
+        if (person.isNotEmpty) {
+          personId = person.first['id'] as int;
+          logger.i('OrdersService.fetchMyOrders: Found personId=$personId via fsm.person.user_id for user=$userId');
+        }
+      } on OdooBusinessException catch (e) {
+        final msg = e.message.toLowerCase();
+        if (!(msg.contains('model') && msg.contains('does not exist') ||
+            msg.contains('field') && msg.contains('does not exist') ||
+            msg.contains('undefined') ||
+            msg.contains('access denied'))) {
+          rethrow;
+        }
+        logger.w('OrdersService.fetchMyOrders: fsm.person.user_id field missing');
+      } catch (_) {
+        // Network or other transient error - silent fallback
+      }
+    }
+
     List<dynamic> rawOrders = [];
     if (personId != null) {
       // Ưu tiên domain chính xác: person_id = personId
@@ -269,6 +302,27 @@ class OrdersService {
       if (fallbackOrders.isNotEmpty) {
         logger.i('OrdersService.fetchMyOrders: Found orders via person_ids fallback');
         return fallbackOrders;
+      }
+    }
+
+    // Fallback 3: Try to fetch ALL orders (for debugging - limit 50)
+    // This helps identify if orders exist but aren't assigned correctly
+    if (rawOrders.isEmpty) {
+      logger.w(
+          'OrdersService.fetchMyOrders: Thử fetch all orders (debug)');
+      try {
+        final allOrders = await _callSearchRead([
+          ['stage_id.name', 'in', ['New', 'In Progress', 'Mới', 'Đang thực hiện']]
+        ]);
+        if (allOrders.isNotEmpty) {
+          logger.i('OrdersService.fetchMyOrders: Found ${allOrders.length} orders in backend (but not assigned to user). First few: ${allOrders.take(3).map((e) => e['name']).toList()}');
+          // Log the person_id of first order to debug assignment
+          if (allOrders.first['person_id'] != null) {
+            logger.i('OrdersService.fetchMyOrders: First order person_id: ${allOrders.first['person_id']}');
+          }
+        }
+      } catch (e) {
+        logger.w('OrdersService.fetchMyOrders: Debug fetch all orders failed', error: e);
       }
     }
 

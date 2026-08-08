@@ -35,6 +35,9 @@ class RouteStop {
   // Trạng thái của tuyến đường (draft, planned, done...)
   String? routeState;
 
+  // Ngày giờ lên lịch của đơn (dùng để validate check-in)
+  DateTime? scheduledDateStart;
+
   // Khoảng cách từ điểm trước (km)
   double? distanceFromPrev;
 
@@ -70,6 +73,7 @@ class RouteStop {
       ..latitude = order.locationLat
       ..longitude = order.locationLng
       ..routeState = order.routeState
+      ..scheduledDateStart = order.scheduledDateStart
       ..status = status;
   }
 }

@@ -639,12 +639,15 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                           Icon(Icons.calendar_today,
                               size: 14, color: onSurfaceMuted),
                           const SizedBox(width: 6),
-                          Text(
-                            _formatDate(currentOrder.scheduledDateStart),
-                            style: TextStyle(
-                                fontSize: 14,
-                                color: onSurfaceMuted,
-                                fontWeight: FontWeight.w500),
+                          Flexible(
+                            child: Text(
+                              _formatDate(currentOrder.scheduledDateStart),
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  color: onSurfaceMuted,
+                                  fontWeight: FontWeight.w500),
+                            ),
                           ),
                         ],
                       ),
@@ -653,6 +656,8 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                         currentOrder.locationAddress ?? currentOrder.name,
                         style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w700, height: 1.3),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -661,24 +666,30 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: theme.colorScheme.primary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                Column(
-                  children: [
-                    QuickActionButton(
-                        icon: Icons.phone_outlined, onTap: _onCall),
-                    const SizedBox(height: 8),
-                    QuickActionButton(
-                        icon: Icons.chat_bubble_outline, onTap: _onSms),
-                    const SizedBox(height: 8),
-                    QuickActionButton(
-                        icon: Icons.email_outlined, onTap: _onEmail),
-                    const SizedBox(height: 8),
-                    QuickActionButton(
-                        icon: Icons.directions_outlined, onTap: _onDirections),
-                  ],
+                const SizedBox(width: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 40),
+                  child: Column(
+                    children: [
+                      QuickActionButton(
+                          icon: Icons.phone_outlined, onTap: _onCall),
+                      const SizedBox(height: 8),
+                      QuickActionButton(
+                          icon: Icons.chat_bubble_outline, onTap: _onSms),
+                      const SizedBox(height: 8),
+                      QuickActionButton(
+                          icon: Icons.email_outlined, onTap: _onEmail),
+                      const SizedBox(height: 8),
+                      QuickActionButton(
+                          icon: Icons.directions_outlined, onTap: _onDirections),
+                    ],
+                  ),
                 ),
               ],
             ),

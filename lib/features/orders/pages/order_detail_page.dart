@@ -380,12 +380,12 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     if (routeProvider.stops.isEmpty) {
       await routeProvider.buildRoute(provider.orders);
     }
-    if (!routeProvider.isAllowedToCheckIn(order.odooId)) {
+    final validation = routeProvider.checkInValidation(order.odooId);
+    if (!validation.allowed) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Bạn phải hoàn thành các điểm trước trong lộ trình trước.'),
+          SnackBar(
+            content: Text(validation.reason ?? 'Không thể check-in lúc này.'),
             backgroundColor: AppColors.warning,
           ),
         );

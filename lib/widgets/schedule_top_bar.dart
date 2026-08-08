@@ -323,7 +323,7 @@ class _WeekToggle extends StatelessWidget {
 
   const _WeekToggle({required this.currentMode, required this.onTap});
 
-  @override
+@override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
@@ -339,25 +339,28 @@ class _WeekToggle extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              currentMode,
-              style: const TextStyle(
-                color: SfTokens.surface,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: Text(
+                currentMode,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: SfTokens.surface,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-             const SizedBox(width: SfTokens.spacingXxs),
-             const Icon(
-               Icons.expand_more,
-               color: SfTokens.surface,
-               size: SfTokens.iconSm,
-             ),
-           ],
-         ),
-       ),
-     );
-   }
+            const SizedBox(width: SfTokens.spacingXxs),
+            const Icon(
+              Icons.expand_more,
+              color: SfTokens.surface,
+              size: SfTokens.iconSm,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// Sync icon với badge đếm số pending orders.
