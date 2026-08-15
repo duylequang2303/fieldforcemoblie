@@ -1,8 +1,9 @@
 # REVIEW Workflow - Pre-commit Code Review Pattern
 
-> **Dành cho:** Zed AI Agent (sử dụng `spawn_agent` tool)
-> **Version:** 1.0
-> **Updated:** 2026-08-05
+> **Dành cho:** opencode Agent (dùng `task` tool + subagent `reviewer`)
+> **Version:** 2.0
+> **Updated:** 2026-08-08
+> **Migrated from:** Zed `spawn_agent` → opencode `task` tool (xem `.agents/rules/00-opencode-agent-system.md`)
 
 ---
 
@@ -56,7 +57,9 @@ Main agent: "Đã implement xong FsmRecurring + FsmFrequencySet models"
 
 ### Step 2: Spawn REVIEW subagent
 
-**Template message:**
+**Gọi `task` tool với `subagent_type: "reviewer"`.**
+
+**Template prompt:**
 
 ```
 Role: REVIEW
@@ -144,8 +147,8 @@ Catch violations trước khi commit, KHÔNG sửa code
 Strict, objective (như code reviewer khắt khe)
 
 ### Tools
-1. `terminal` — git diff, git diff --cached
-2. `read_file` — đọc rules files (.agents/AGENTS.md, .cursor/rules/*.mdc)
+1. `bash` — git diff, git diff --cached
+2. `read` — đọc rules files (.agents/AGENTS.md, .cursor/rules/*.mdc)
 3. `grep` — tìm patterns vi phạm
 
 ### Output structure (BẮT BUỘC)
