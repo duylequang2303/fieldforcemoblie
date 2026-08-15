@@ -17,7 +17,7 @@ TUYỆT ĐỐI KHÔNG sửa, tạo, hay xóa file.
 
 ## Output format (BẮT BUỘC, 200 words max)
 
-```
+```text
 CLAIM | [counter-argument]
 EVIDENCE | [file:line or rule references]
 RISK | [why approach fails]

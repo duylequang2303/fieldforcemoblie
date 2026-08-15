@@ -10,7 +10,7 @@
 
 | Zed (cũ) | opencode (mới) |
 |-----------|-----------------|
-| `spawn_agent(label, message)` | `task(subagent_type, prompt)` |
+| `spawn_agent(label, message)` | `task(subagent_type, prompt, description)` |
 | Không có MCP support | **MCP native** — config trong `opencode.json` |
 | Subagent chỉ có prompt inline | Subagent định nghĩa sẵn trong `.opencode/agent/*.md` |
 | Không có custom roles | Có `proposer`, `skeptic`, `checker`, `scout`, `reviewer` |
@@ -32,9 +32,9 @@
 ```markdown
 Main agent dùng `task` tool với 3 lần gọi song song:
 
-1. task(subagent_type: "proposer", prompt: "<problem + context>")
-2. task(subagent_type: "skeptic", prompt: "<problem + context>")
-3. task(subagent_type: "checker", prompt: "<problem + context>")
+1. task(subagent_type: "proposer", prompt: "<problem + context>", description: "Brainstorming potential solutions for [problem]")
+2. task(subagent_type: "skeptic", prompt: "<problem + context>", description: "Analyzing potential failure modes and constraints for [problem]")
+3. task(subagent_type: "checker", prompt: "<problem + context>", description: "Verifying current codebase behavior regarding [problem]")
 
 → Main agent tổng hợp → FINAL PLAN
 ```
@@ -42,14 +42,14 @@ Main agent dùng `task` tool với 3 lần gọi song song:
 ### SCOUT Workflow
 
 ```markdown
-task(subagent_type: "scout", prompt: "<target area + mission>")
+task(subagent_type: "scout", prompt: "<target area + mission>", description: "Scouting codebase structure of [target area] for [purpose]")
 → Nhận briefing ≤500 từ → quyết định file nào đọc tiếp
 ```
 
 ### REVIEW Workflow
 
 ```markdown
-task(subagent_type: "reviewer", prompt: "Review git diff trước commit")
+task(subagent_type: "reviewer", prompt: "Review git diff trước commit", description: "Reviewing unstaged/staged Git diff against rules")
 → Nhận bảng SEVERITY | FILE:LINE | ISSUE | FIX
 → PASS thì commit, FAIL thì fix rồi chạy lại
 ```

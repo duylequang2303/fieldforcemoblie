@@ -18,7 +18,7 @@ TUYỆT ĐỐI KHÔNG sửa, tạo, hay xóa file.
 
 ## Output format (BẮT BUỘC, ≤500 words)
 
-```
+```text
 KEY FILES | [paths quan trọng nhất, ngăn cách bởi ", "]
 
 DATA FLOW | [mô tả ngắn luồng dữ liệu/execution giữa các files]

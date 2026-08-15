@@ -33,7 +33,7 @@
 
 | Server | Type | Command | Env cần có |
 |--------|------|---------|------------|
-| `odoo` | local | `npx -y odoo-mcp-server` | `ODOO_URL`, `ODOO_DB`, `ODOO_USERNAME`, `ODOO_PASSWORD` |
+| `odoo` | local | `npx -y odoo-mcp-server@1.1.0` | `ODOO_URL`, `ODOO_DB`, `ODOO_USERNAME`, `ODOO_PASSWORD` |
 | `dart` | local | `dart mcp-server` | Dart SDK (≥3.6, có `dart mcp-server` built-in) |
 
 ### Setup biến môi trường
@@ -55,20 +55,20 @@ set -a && . ./.env && set +a && opencode
 
 ### Env interpolation trong opencode.json
 
-opencode tự thay `${VAR}` bằng giá trị biến môi trường:
+opencode dùng field `environment` với syntax `{env:VAR}`:
 
 ```json
 {
   "mcp": {
     "odoo": {
       "type": "local",
-      "command": ["npx", "-y", "odoo-mcp-server"],
+      "command": ["npx", "-y", "odoo-mcp-server@1.1.0"],
       "enabled": true,
-      "env": {
-        "ODOO_URL": "${ODOO_URL}",
-        "ODOO_DB": "${ODOO_DB}",
-        "ODOO_USERNAME": "${ODOO_USERNAME}",
-        "ODOO_PASSWORD": "${ODOO_PASSWORD}"
+      "environment": {
+        "ODOO_URL": "{env:ODOO_URL}",
+        "ODOO_DB": "{env:ODOO_DB}",
+        "ODOO_USERNAME": "{env:ODOO_USERNAME}",
+        "ODOO_PASSWORD": "{env:ODOO_PASSWORD}"
       }
     }
   }
@@ -115,8 +115,8 @@ opencode tự thay `${VAR}` bằng giá trị biến môi trường:
 
 ## ❓ FAQ
 
-**Q: Có cần cài thêm gì cho odoo MCP không?**  
-A: Chỉ cần `npx` (đã có sẵn với Node.js). Server tự download khi start.
+**Q: Có cần cài thêm gì cho odoo MCP không?**
+A: Chỉ cần `npx` (đã có sẵn với Node.js). Dùng version pinned `odoo-mcp-server@1.1.0` để đảm bảo reproducibility.
 
 **Q: `dart mcp-server` có sẵn không?**  
 A: Có, built-in trong Dart SDK ≥3.6. Cần cài Dart SDK.

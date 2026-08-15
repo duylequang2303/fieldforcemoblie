@@ -25,7 +25,7 @@ TUYỆT ĐỐI KHÔNG sửa, tạo, hay xóa file.
 
 ## Output format (BẮT BUỘC)
 
-```
+```text
 ## REVIEW REPORT
 
 ### ISSUES FOUND

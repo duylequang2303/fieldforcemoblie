@@ -17,7 +17,7 @@ TUYỆT ĐỐI KHÔNG sửa, tạo, hay xóa file.
 
 ## Output format (BẮT BUỘC, 200 words max)
 
-```
+```text
 CLAIM | [validation result]
 EVIDENCE | [file:line code evidence ONLY - paste actual code snippets]
 RISK | [confirmed/denied risks from PROPOSER + SKEPTIC]

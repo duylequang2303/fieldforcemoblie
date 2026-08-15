@@ -2,7 +2,7 @@
 
 > **Updated:** 2026-08-08
 > **Context:** Dự án đã chuyển từ Zed sang **opencode**. opencode HỖ TRỢ MCP protocol native.
-> **Tài liệu mới:** Xem [`.agents/OPENCODE_MCP_GUIDE.md`](.agents/OPENCODE_MCP_GUIDE.md) — hướng dẫn MCP đầy đủ cho opencode.
+> **Tài liệu mới:** Xem [`OPENCODE_MCP_GUIDE.md`](OPENCODE_MCP_GUIDE.md) — hướng dẫn MCP đầy đủ cho opencode.
 > **⚠️ Nội dung bên dưới là reference cũ từ Zed era, giữ lại cho lịch sử migration.**
 
 ---

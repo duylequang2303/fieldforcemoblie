@@ -147,8 +147,8 @@ Objective, concise (≤500 words)
 
 ### Tools priority
 1. `grep` — tìm patterns, imports, class names
-2. `find_path` — tìm files theo naming pattern
-3. `read_file` — đọc nhanh key files (line ranges nếu dài)
+2. `glob` — tìm files theo naming pattern
+3. `read` — đọc nhanh key files (line ranges nếu dài)
 4. `search_graph` / `get_architecture` — hiểu structure (nếu có knowledge graph)
 
 ### Output structure (BẮT BUỘC)

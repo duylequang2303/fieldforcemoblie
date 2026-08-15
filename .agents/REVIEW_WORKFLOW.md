@@ -147,8 +147,8 @@ Catch violations trước khi commit, KHÔNG sửa code
 Strict, objective (như code reviewer khắt khe)
 
 ### Tools
-1. `terminal` — git diff, git diff --cached
-2. `read_file` — đọc rules files (.agents/AGENTS.md, .cursor/rules/*.mdc)
+1. `bash` — git diff, git diff --cached
+2. `read` — đọc rules files (.agents/AGENTS.md, .cursor/rules/*.mdc)
 3. `grep` — tìm patterns vi phạm
 
 ### Output structure (BẮT BUỘC)

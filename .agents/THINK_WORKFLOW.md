@@ -102,7 +102,7 @@ EVIDENCE | [file:line or AGENTS.md rule references]
 RISK | [why approach fails]
 ```
 
-**Template message cho CHECKER (subagent_type: "checker"):**
+**Template message cho CHECKER (subagent_type: "checker"):
 ```
 Role: CHECKER
 
@@ -110,7 +110,7 @@ Problem: [same problem]
 
 Context: [same context]
 
-Your task: VERIFY bằng CODE THỰC TẾ. Dùng grep/read_file để đọc code, KHÔNG tin assumptions.
+Your task: VERIFY bằng CODE THỰC TẾ. Dùng grep/read để đọc code, KHÔNG tin assumptions.
 
 Output format (200 words max):
 CLAIM | [validation result]

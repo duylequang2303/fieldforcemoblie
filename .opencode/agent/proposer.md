@@ -18,7 +18,7 @@ TUYỆT ĐỐI KHÔNG sửa, tạo, hay xóa file.
 
 ## Output format (BẮT BUỘC, 200 words max)
 
-```
+```text
 CLAIM | [solution description]
 EVIDENCE | [file:line references supporting claim]
 RISK | [potential issues]

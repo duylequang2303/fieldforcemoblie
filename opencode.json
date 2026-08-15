@@ -15,7 +15,7 @@
   "mcp": {
     "odoo": {
       "type": "local",
-      "command": ["npx", "-y", "odoo-mcp-server"],
+      "command": ["npx", "-y", "odoo-mcp-server@1.1.0"],
       "enabled": true,
       "environment": {
         "ODOO_URL": "${ODOO_URL}",

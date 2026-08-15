@@ -27,7 +27,7 @@ npm install -g opencode-ai
 opencode --version
 ```
 
-> Nếu gặp lỗi quyền trên macOS/Linux: thêm `--unsafe-perm` hoặc dùng sudo theo hướng dẫn của npm.
+> Nếu gặp lỗi quyền trên macOS/Linux: khuyến nghị dùng cài đặt Node.js owned-by-user (như `fnm`, `nvm`, hoặc installer chính thức) để tránh cần sudo.
 
 ## 3. Clone project về máy dev
 
@@ -91,7 +91,7 @@ Khi sửa `opencode.json`, `.opencode/agent/*.md`, `.agents/skills/*/SKILL.md`:
 | Vấn đề | Cách xử lý |
 |---|---|
 | `opencode: command not found` | Cài chưa thành công — chạy lại `npm install -g opencode-ai`, hoặc kiểm tra `npm global bin` đã có trong `PATH` |
-| Odoo MCP không kết nối | Kiểm tra `.env` đúng chưa, load `.env` trước khi chạy opencode, chạy thử `npx -y odoo-mcp-server` xem lỗi |
+| Odoo MCP không kết nối | Kiểm tra `.env` đúng chưa, load `.env` trước khi chạy opencode, chạy thử `npx -y odoo-mcp-server@1.1.0` xem lỗi |
 | Dart MCP fail | Kiểm tra `dart --version` ≥ 3.6; máy dev có Flutter nên sẽ chạy được |
 | Mở opencode thấy thiếu skill | Skills tự scan từ `.agents/skills/**/SKILL.md` — kiểm tra thư mục còn đầy đủ không |
 | Model không gọi được | Kiểm tra global config `~/.config/opencode/opencode.json` — nếu máy dev không dùng platform MonkeyCode thì cấu hình provider/model riêng (xem mục 8) |

@@ -7,18 +7,18 @@ Agent TỰ ĐỘNG quyết định khi nào cần subagent — người dùng KH
 
 ### A. Scout (nghiên cứu codebase / web)
 **Trigger tự động — Khi task cần đọc từ 5 file trở lên HOẶC cần hiểu vùng code chưa quen thuộc:**
-1. Gọi subagent `/scout` (xem `workflows/scout.md`) TRƯỚC khi bắt tay vào làm
+1. Gọi subagent qua `task` tool với `subagent_type: "scout"` (xem `.agents/SCOUT_WORKFLOW.md`) TRƯỚC khi bắt tay vào làm
 2. Subagent trả briefing ≤500 từ: key files, file:line refs, data flow — KHÔNG sửa file
 3. Chỉ sau khi nhận briefing, main agent mới quyết định file nào cần đọc tiếp / sửa
 
 **Ngoại lệ**: Không cần scout nếu task chỉ sửa 1-2 file đã rõ ràng ngữ cảnh.
 
 ### B. Review (kiểm tra git diff trước commit)
-**Trigger tự động — BẮT BUỘC trước mọi `git commit`** (do hook `hooks/commit-requires-review` chặn cứng nếu thiếu):
-1. Trước khi commit, gọi subagent `/review` (xem `workflows/review.md`)
+**Trigger tự động — BẮT BUỘC trước mọi `git commit`:**
+1. Trước khi commit, gọi subagent qua `task` tool với `subagent_type: "reviewer"` (xem `.agents/REVIEW_WORKFLOW.md`)
 2. Subagent đọc `git diff` → trả bảng `SEVERITY | FILE:LINE | ISSUE | FIX` — KHÔNG sửa file
-3. Nếu pass (không có lỗi `BLOCKER`/`HIGH`) → subagent ghi `.cline/review-marker` (thời gian hiện tại, hợp lệ 10 phút)
-4. Nếu có lỗi nghiêm trọng → FIX code trước, rồi chạy `/review` lại cho tới khi pass, rồi mới commit
+3. Nếu pass (không có lỗi `BLOCKER`/`HIGH`) → commit an toàn
+4. Nếu có lỗi nghiêm trọng → FIX code trước, rồi chạy `reviewer` lại cho tới khi pass, rồi mới commit
 5. **TUYỆT ĐỐI KHÔNG** sử dụng cờ `--no-verify` khi thực hiện `git commit` hoặc `git push` nhằm mục đích bỏ qua (bypass) kiểm tra chất lượng của git hook hoặc kết quả phân tích (`flutter analyze`). Mọi lỗi biên dịch (`error •`) bắt buộc phải được giải quyết triệt để ở tầng mã nguồn trước khi đẩy mã nguồn lên PR.
 
 ### C. Think (brainstorm nhiều góc nhìn)
@@ -26,7 +26,7 @@ Agent TỰ ĐỘNG quyết định khi nào cần subagent — người dùng KH
 - Task phức tạp, thiếu rõ ràng về giải pháp
 - Có >1 cách tiếp cận đáng phân vân
 - Rủi ro cao: đụng sync offline/Odoo/schema dễ gây lỗi ngầm
-→ Gọi `/think <problem>` (xem `workflows/think.md`) để PROPOSER/SKEPTIC/CHECKER phân tích, rồi tổng hợp `FINAL PLAN`
+→ Gọi 3 subagents song song qua `task` tool với `subagent_type: "proposer"`, `"skeptic"`, `"checker"` (xem `.agents/THINK_WORKFLOW.md`) để phân tích, rồi tổng hợp `FINAL PLAN`
 
 ## Ưu tiên đường vận chuyển subagent
 1. **opencode `task` tool** — subagent định nghĩa trong `.opencode/agent/` (scout, reviewer, proposer, skeptic, checker)
