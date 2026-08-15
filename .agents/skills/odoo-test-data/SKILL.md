@@ -11,8 +11,13 @@ Hướng dẫn tạo đơn hàng test chuẩn trên Odoo FSM backend để đơn
 
 - **Tài khoản đăng nhập (App)**: `worker1@gmail.com`
 - **Kỹ thuật viên phân công (Odoo)**:
-  Tài khoản đăng nhập tương ứng với user trên Odoo sẽ được phân giải động qua XML ID hoặc API lookup fsm.person / fsm.person.calendar.filter liên kết với `user_id` để lấy `person_id` tương chuẩn, tránh hardcode ID cố định.
+  Worker account và assigned technician được phân giải qua **XML IDs** hoặc **Odoo RPC/MCP** (gọi `fsm.person.search_read` + `res.users.search_read`) để lấy `person_id` tương ứng với `user_id`, thay vì hardcode numeric IDs. Validate relationships trước khi insert orders.
 - **Cơ chế lọc đơn hàng**: App di động lọc đơn qua người thực hiện gán cho user. Mọi đơn test cho thợ gán động theo tài khoản đang dùng.
+
+> ⚠️ **Lưu ý quan trọng:** Khi dùng Odoo RPC/MCP tạo đơn hàng test:
+> - Allow Odoo to populate `create_uid` và `write_uid` tự động (không truyền thủ công)
+> - Fail closed: nếu RPC/MCP thất bại, KHÔNG fallback sang SQL trực tiếp trừ khi có văn bản yêu cầu rõ ràng từ User
+> - SQL path chỉ được dùng khi có validation, transaction/rollback, cache-handling steps được ghi rõ trong docs/audit/backend_compatibility_audit.md
 
 ## Trường bắt buộc để đơn hiện lên Lịch trình
 
@@ -34,8 +39,24 @@ Hướng dẫn tạo đơn hàng test chuẩn trên Odoo FSM backend để đơn
 Khuyến nghị sử dụng Odoo RPC/MCP thay vì SQL trực tiếp:
 
 ```bash
-# Chuẩn bị payload tạo fsm.order bằng Node.js / Python hoặc script CLI gọi RPC
-# Ví dụ gọi fsm.order create qua call_kw
+# Ví dụ gọi fsm.order.create qua RPC (Node.js với odoo-xmlrpc)
+# const Odoo = require('odoo-xmlrpc');
+# const odoo = new Odoo({url, db, username, password});
+# odoo.connect(err => {
+#   if (err) throw err;
+#   odoo.execute_kw('fsm.order', 'create', [{
+#     name: 'Đơn FSM Test - ' + new Date().toISOString(),
+#     person_id: personId,  // resolved via search_read
+#     location_id: locationId,
+#     stage_id: stageId,
+#     company_id: 1,
+#     team_id: 1,
+#     warehouse_id: 1,
+#     scheduled_date_start: new Date('2026-08-08T08:00:00'),
+#     scheduled_date_end: new Date('2026-08-08T18:00:00'),
+#     scheduled_duration: 10.0
+#   }], (err, orderId) => { ... });
+# });
 ```
 
 Trong trường hợp bắt buộc phải sử dụng SQL insert, thực thi an toàn qua SSH pass psql stdin:

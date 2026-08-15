@@ -34,6 +34,16 @@
 | Server | Type | Command | Env cần có |
 |--------|------|---------|------------|
 | `odoo` | local | `npx -y odoo-mcp-server@1.1.0` | `ODOO_URL`, `ODOO_DB`, `ODOO_USERNAME`, `ODOO_PASSWORD` |
+
+### ✅ Package Pinning (Security)
+
+**odoo-mcp-server@1.1.0** — Pinned to a specific verified version. This prevents supply chain attacks where a malicious version could be published and auto-executed via `npx -y`.
+
+To verify the pinned version:
+```bash
+# Check exact version and integrity
+npm view odoo-mcp-server@1.1.0 dist
+```
 | `dart` | local | `dart mcp-server` | Dart SDK (≥3.6, có `dart mcp-server` built-in) |
 
 ### Setup biến môi trường
@@ -74,6 +84,8 @@ opencode dùng field `environment` với syntax `{env:VAR}`:
   }
 }
 ```
+
+> ⚠️ **Lưu ý:** OpenCode MCP config **không** tự động tải package tại startup. Package sẽ được tải khi agent lần đầu gọi tool của MCP server đó (lazy loading). Đừng ghi sai là "tự động resolved at startup".
 
 ---
 
