@@ -38,12 +38,12 @@ void main() {
             builder: (context, state) => Scaffold(body: OrderCard(order: order)),
           ),
           GoRoute(
-            path: RouteNames.workOrderDetailScreen,
-            name: 'workOrderDetailScreenUI',
+            path: RouteNames.orderDetail,
+            name: 'orderDetailUI',
             builder: (context, state) {
-              final order = state.extra as FsmOrder?;
+              final orderId = state.pathParameters['id'];
               return Scaffold(
-                body: Text(order?.name ?? 'No Order'),
+                body: Text('Order Detail Screen ID: ${orderId ?? 'none'}'),
               );
             },
           ),
@@ -56,8 +56,8 @@ void main() {
 
       expect(observer.pushedRoutes.length, greaterThanOrEqualTo(1));
       final lastPushed = observer.pushedRoutes.last;
-      expect(lastPushed.settings.name, 'workOrderDetailScreenUI');
-      expect(find.text('WO/2024/001'), findsAtLeast(1));
+      expect(lastPushed.settings.name, 'orderDetailUI');
+      expect(find.text('Order Detail Screen ID: 1'), findsAtLeast(1));
     });
 
     testWidgets('displays order name and partner info', (tester) async {

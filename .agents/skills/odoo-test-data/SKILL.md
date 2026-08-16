@@ -38,25 +38,57 @@ Hướng dẫn tạo đơn hàng test chuẩn trên Odoo FSM backend để đơn
 
 Khuyến nghị sử dụng Odoo RPC/MCP thay vì SQL trực tiếp:
 
-```bash
-# Ví dụ gọi fsm.order.create qua RPC (Node.js với odoo-xmlrpc)
-# const Odoo = require('odoo-xmlrpc');
-# const odoo = new Odoo({url, db, username, password});
-# odoo.connect(err => {
-#   if (err) throw err;
-#   odoo.execute_kw('fsm.order', 'create', [{
-#     name: 'Đơn FSM Test - ' + new Date().toISOString(),
-#     person_id: personId,  // resolved via search_read
-#     location_id: locationId,
-#     stage_id: stageId,
-#     company_id: 1,
-#     team_id: 1,
-#     warehouse_id: 1,
-#     scheduled_date_start: new Date('2026-08-08T08:00:00'),
-#     scheduled_date_end: new Date('2026-08-08T18:00:00'),
-#     scheduled_duration: 10.0
-#   }], (err, orderId) => { ... });
-# });
+```javascript
+// Ví dụ gọi fsm.order.create qua RPC (Node.js với odoo-xmlrpc) — self-contained
+const Odoo = require('odoo-xmlrpc');
+// Load connection values từ environment (không hardcode trong source)
+const odoo = new Odoo({
+  url: process.env.ODOO_URL,
+  db: process.env.ODOO_DB,
+  username: process.env.ODOO_USERNAME,
+  password: process.env.ODOO_PASSWORD,
+});
+
+// Ngày hiện tại, start 08:00, end 18:00 — để đơn hiện lên lịch của app trong ngày
+const today = new Date();
+const fmt = (d) => {
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+const start = `${fmt(today)} 08:00:00`;
+const end = `${fmt(today)} 18:00:00`;
+
+odoo.connect((err) => {
+  if (err) throw err;
+  // Phân giải ID động thay vì hardcode numeric IDs
+  odoo.execute_kw('fsm.person', 'search', [[['user_id', '!=', false]]], {limit: 1},
+    (err, personIds) => {
+      if (err) throw err;
+      odoo.execute_kw('fsm.location', 'search', [[[]]], {limit: 1},
+        (err, locationIds) => {
+          if (err) throw err;
+          odoo.execute_kw('fsm.stage', 'search', [[['name', 'ilike', 'New']]], {limit: 1},
+            (err, stageIds) => {
+              if (err) throw err;
+              odoo.execute_kw('fsm.order', 'create', [{
+                name: 'Đơn FSM Test - ' + today.toISOString(),
+                person_id: personIds[0],
+                location_id: locationIds[0],
+                stage_id: stageIds[0],
+                company_id: 1,
+                team_id: 1,
+                warehouse_id: 1,
+                scheduled_date_start: start,
+                scheduled_date_end: end,
+                scheduled_duration: 10.0
+              }], (err, orderId) => {
+                if (err) throw err;
+                console.log('Created order', orderId);
+              });
+            });
+        });
+    });
+});
 ```
 
 Trong trường hợp bắt buộc phải sử dụng SQL insert, thực thi an toàn qua SSH pass psql stdin:

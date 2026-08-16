@@ -1,12 +1,25 @@
 import 'package:odoo_rpc/odoo_rpc.dart';
-
-const serverUrl = 'http://demo002.crmhub.vn:8069';
-const database = 'demo002';
-const username = 'admin';
-const password = 'c)baL[0F0-qp]';
-const workerEmail = 'worker1@gmail.com';
+import 'package:dotenv/dotenv.dart';
 
 Future<void> main() async {
+  final dotenv = DotEnv()..load();
+  final serverUrl = dotenv['ODOO_URL'] ?? 'http://demo002.crmhub.vn:8069';
+  final database = dotenv['ODOO_DB'] ?? 'demo002';
+  final username = dotenv['ODOO_USER'] ?? 'admin';
+  final password = dotenv['ODOO_ADMIN_PASSWORD'] ?? '';
+  final workerEmail = dotenv['WORKER_EMAIL'] ?? 'worker1@gmail.com';
+
+  if (serverUrl.isEmpty || password.isEmpty) {
+    print('ERROR: Missing Odoo config. Provide ODOO_URL and ODOO_ADMIN_PASSWORD in .env');
+    return;
+  }
+  if (!serverUrl.startsWith('https://') &&
+      !serverUrl.startsWith('http://localhost') &&
+      !serverUrl.startsWith('http://127.0.0.1')) {
+    print('ERROR: Refusing non-HTTPS Odoo endpoint: $serverUrl');
+    return;
+  }
+
   final client = OdooClient(serverUrl);
 
   try {

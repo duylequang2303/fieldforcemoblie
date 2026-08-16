@@ -85,7 +85,7 @@ opencode dùng field `environment` với syntax `{env:VAR}`:
 }
 ```
 
-> ⚠️ **Lưu ý:** OpenCode MCP config **không** tự động tải package tại startup. Package sẽ được tải khi agent lần đầu gọi tool của MCP server đó (lazy loading). Đừng ghi sai là "tự động resolved at startup".
+> ⚠️ **Lưu ý:** Enabled local MCP servers start when OpenCode launches. Packages load on startup unless a verified pinned version demonstrably preserves lazy loading.
 
 ---
 

@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_xhvac_device,x_hvac.device,model_x_hvac_device,fieldforce_hvac.group_hvac_user,1,1,1,1
+access_xhvac_order_line,x_hvac.order_line,model_x_hvac_order_line,fieldforce_hvac.group_hvac_user,1,1,1,1
+access_xhvac_zns_message,x_hvac.zns_message,model_x_hvac_zns_message,fieldforce_hvac.group_hvac_user,1,1,1,1
+access_xhvac_commission_rule_user,x_hvac.commission_rule,model_x_hvac_commission_rule,fieldforce_hvac.group_hvac_user,1,0,0,0
+access_xhvac_commission_rule_manager,x_hvac.commission_rule,model_x_hvac_commission_rule,fieldforce_hvac.group_hvac_manager,1,1,1,1
+access_xhvac_phone_audit_log_user,x_hvac.phone_audit_log,model_x_hvac_phone_audit_log,fieldforce_hvac.group_hvac_user,1,0,1,0
+access_xhvac_phone_audit_log_manager,x_hvac.phone_audit_log,model_x_hvac_phone_audit_log,fieldforce_hvac.group_hvac_manager,1,1,1,1

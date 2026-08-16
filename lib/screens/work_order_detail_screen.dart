@@ -1008,8 +1008,13 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                   ),
                   ExpandableSection(
                     title: 'WORK REQUIRED',
-                    child: Text(_stripHtml(currentOrder.description),
-                        style: theme.textTheme.bodyMedium),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(_stripHtml(currentOrder.description),
+                            style: theme.textTheme.bodyMedium),
+                      ],
+                    ),
                   ),
                   _buildAttachments(),
                   ExpandableSection(

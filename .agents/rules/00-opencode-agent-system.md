@@ -53,22 +53,6 @@ task(subagent_type: "reviewer", prompt: "Review git diff trước commit", descr
 → Nhận bảng SEVERITY | FILE:LINE | ISSUE | FIX
 → PASS thì commit, FAIL thì fix rồi chạy lại cho tới khi pass, rồi mới commit
 ```
-
-### SCOUT Workflow
-
-```markdown
-task(subagent_type: "scout", prompt: "<target area + mission>", description: "Scouting codebase structure of [target area] for [purpose]")
-→ Nhận briefing ≤500 từ → quyết định file nào đọc tiếp
-```
-
-### REVIEW Workflow
-
-```markdown
-task(subagent_type: "reviewer", prompt: "Review git diff trước commit", description: "Reviewing unstaged/staged Git diff against rules")
-→ Nhận bảng SEVERITY | FILE:LINE | ISSUE | FIX
-→ PASS thì commit, FAIL thì fix rồi chạy lại
-```
-
 ## 4. Quy tắc quan trọng
 
 - **Subagent chỉ đọc, không sửa file** — mọi agent trong `.opencode/agent/` đều có `permission.edit: deny`.

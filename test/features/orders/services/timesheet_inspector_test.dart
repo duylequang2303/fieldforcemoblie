@@ -1,15 +1,27 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
+import 'package:dotenv/dotenv.dart';
 
 void main() {
+  final dotenv = DotEnv()..load();
+  final odooUrl = dotenv['ODOO_URL'] ?? 'https://demo002.crmhub.vn';
+  final odooDb = dotenv['ODOO_DB'] ?? 'demo002';
+  final odooUser = dotenv['ODOO_TEST_USER'] ?? dotenv['ODOO_USER'] ?? 'admin';
+  final odooPassword =
+      dotenv['ODOO_TEST_PASSWORD'] ?? dotenv['ODOO_ADMIN_PASSWORD'] ?? '';
+
   test('Inspect Odoo account.analytic.line Fields and Data', () async {
-    final client = OdooClient('https://demo002.crmhub.vn');
+    if (odooPassword.isEmpty) {
+      print('SKIP: ODOO_TEST_PASSWORD/ODOO_ADMIN_PASSWORD not set in .env');
+      return;
+    }
+    final client = OdooClient(odooUrl);
     try {
       print('Connecting to Odoo...');
       final session = await client.authenticate(
-        'demo002.crmhub.vn',
-        'admin',
-        'c)baL[0F0-qp]',
+        odooDb,
+        odooUser,
+        odooPassword,
       );
       print('Authenticated. Session ID: ${session.id}');
 

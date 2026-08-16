@@ -51,9 +51,10 @@ class RouteProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Deduplicate orders by odooId (in case same order fetched from multiple domains)
+      // Deduplicate and validate orders by odooId (invalid <= 0 are skipped)
       final uniqueOrders = <int, FsmOrder>{};
       for (final order in orders) {
+        if (order.odooId <= 0) continue;
         if (!uniqueOrders.containsKey(order.odooId)) {
           uniqueOrders[order.odooId] = order;
         }

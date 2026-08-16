@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- HVAC Security Category -->
+        <record id="module_category_hvac" model="ir.module.category">
+            <field name="name">FieldForce HVAC</field>
+            <field name="description">Security access levels for Fieldforce HVAC</field>
+            <field name="sequence">30</field>
+        </record>
+
+        <!-- HVAC User Group -->
+        <record id="group_hvac_user" model="res.groups">
+            <field name="name">HVAC User</field>
+            <field name="category_id" ref="module_category_hvac"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- HVAC Manager Group -->
+        <record id="group_hvac_manager" model="res.groups">
+            <field name="name">HVAC Manager / Admin</field>
+            <field name="category_id" ref="module_category_hvac"/>
+            <field name="implied_ids" eval="[(4, ref('group_hvac_user'))]"/>
+            <field name="users" eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"/>
+        </record>
+
+        <!-- Record Rule: Limit Commission Rules to Technician themselves or Managers see all -->
+        <record id="rule_commission_rule_personal" model="ir.rule">
+            <field name="name">Personal Commission Rules</field>
+            <field name="model_id" ref="model_x_hvac_commission_rule"/>
+            <field name="domain_force">[('technician_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_hvac_user'))]"/>
+        </record>
+
+        <record id="rule_commission_rule_manager" model="ir.rule">
+            <field name="name">Manager Commission Rules (All)</field>
+            <field name="model_id" ref="model_x_hvac_commission_rule"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_hvac_manager'))]"/>
+        </record>
+        
+        <!-- Record Rule: Users can only see their own phone audit logs -->
+        <record id="rule_phone_audit_log_personal" model="ir.rule">
+            <field name="name">Personal Phone Audit Logs</field>
+            <field name="model_id" ref="model_x_hvac_phone_audit_log"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_hvac_user'))]"/>
+        </record>
+
+        <record id="rule_phone_audit_log_manager" model="ir.rule">
+            <field name="name">Manager Phone Audit Logs (All)</field>
+            <field name="model_id" ref="model_x_hvac_phone_audit_log"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_hvac_manager'))]"/>
+        </record>
+    </data>
+</odoo>

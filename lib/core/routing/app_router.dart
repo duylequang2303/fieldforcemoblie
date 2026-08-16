@@ -57,17 +57,18 @@ final GoRouter appRouter = GoRouter(
     final isAuthenticated = authProvider.isAuthenticated;
     final location = state.matchedLocation;
     final isPublic = _publicRoutes.contains(location);
-    
+
     // Nếu chưa đăng nhập và truy cập route được bảo vệ -> redirect về login
     if (!isAuthenticated && !isPublic) {
       return RouteNames.login;
     }
-    
+
     // Nếu đã đăng nhập nhưng đang ở splash/login -> redirect về shell schedule
-    if (isAuthenticated && (location == RouteNames.splash || location == RouteNames.login)) {
+    if (isAuthenticated &&
+        (location == RouteNames.splash || location == RouteNames.login)) {
       return RouteNames.shellSchedule;
     }
-    
+
     return null; // Không redirect
   },
   routes: [
@@ -235,7 +236,6 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
-
   ],
 );
 
@@ -249,9 +249,8 @@ class _OrderDetailWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<OrdersProvider>(
       builder: (context, provider, _) {
-        final order = provider.orders
-            .where((o) => o.odooId == orderId)
-            .firstOrNull;
+        final order =
+            provider.orders.where((o) => o.odooId == orderId).firstOrNull;
 
         if (order == null) {
           // If not in provider, try to load from cache
@@ -272,7 +271,8 @@ class _OrderDetailWrapper extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                      const Icon(Icons.error_outline,
+                          size: 48, color: Colors.red),
                       const SizedBox(height: 16),
                       Text('Không tìm thấy đơn #$orderId'),
                       const SizedBox(height: 16),
@@ -288,16 +288,7 @@ class _OrderDetailWrapper extends StatelessWidget {
           );
         }
 
-        // Use post-frame callback to navigate with extra
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (context.mounted) {
-            context.push(RouteNames.workOrderDetailScreen, extra: order);
-          }
-        });
-
-        return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        );
+        return WorkOrderDetailScreen(order: order);
       },
     );
   }
