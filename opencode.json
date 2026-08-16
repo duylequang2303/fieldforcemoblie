@@ -35,10 +35,6 @@
         "ODOO_DB": "{env:ODOO_DB}",
         "ODOO_USERNAME": "{env:ODOO_USERNAME}",
         "ODOO_PASSWORD": "{env:ODOO_PASSWORD}"
-      },
-      "tools": {
-        "read": ["odoo_search", "odoo_search_read", "odoo_read", "odoo_search_count"],
-        "write": ["odoo_create", "odoo_write", "odoo_unlink", "odoo_execute_kw"]
       }
     },
     "dart": {
@@ -53,9 +49,17 @@
       "git --no-pager diff": "allow",
       "git --no-pager diff --cached": "allow",
       "git status": "allow",
-      "git add *": "allow",
-      "git commit -m *": "allow",
+      "git add *": "ask",
+      "git commit -m *": "ask",
       "git log*": "allow"
-    }
+    },
+    "odoo_search": "allow",
+    "odoo_search_read": "allow",
+    "odoo_read": "allow",
+    "odoo_search_count": "allow",
+    "odoo_create": "ask",
+    "odoo_write": "ask",
+    "odoo_unlink": "deny",
+    "odoo_execute_kw": "ask"
   }
 }

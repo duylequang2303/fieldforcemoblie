@@ -164,10 +164,14 @@ export default {
         const data = await res.json();
         
         if (data.result && data.result.uid) {
-          this.isAuthenticated = true;
           this.username = data.result.name;
           await this.getCsrfToken();
-          await this.fetchData();
+          const initialized = await this.fetchData();
+          if (initialized) {
+            this.isAuthenticated = true;
+          } else {
+            this.username = '';
+          }
         } else if (data.error) {
           this.error = data.error.data.message || 'Authentication failed.';
         } else {
@@ -225,9 +229,11 @@ export default {
           address: o.location_id ? o.location_id[1] : 'No Address',
           technicianId: o.person_id[0]
         }));
+        return true;
       } catch (err) {
         console.error('Error fetching data from Odoo:', err);
         this.error = 'Failed to retrieve records: ' + err.message;
+        return false;
       } finally {
         this.loading = false;
       }

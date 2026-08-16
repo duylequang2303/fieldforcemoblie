@@ -41,9 +41,9 @@ void main() {
             path: RouteNames.orderDetail,
             name: 'orderDetailUI',
             builder: (context, state) {
-              // Note: order is not passed via extra in OrderCard.onTap, so we display the ID or fixed text
-              return const Scaffold(
-                body: Text('Order Detail Screen'),
+              final orderId = state.pathParameters['id'];
+              return Scaffold(
+                body: Text('Order Detail Screen ID: ${orderId ?? 'none'}'),
               );
             },
           ),
@@ -57,7 +57,7 @@ void main() {
       expect(observer.pushedRoutes.length, greaterThanOrEqualTo(1));
       final lastPushed = observer.pushedRoutes.last;
       expect(lastPushed.settings.name, 'orderDetailUI');
-      expect(find.text('Order Detail Screen'), findsAtLeast(1));
+      expect(find.text('Order Detail Screen ID: 1'), findsAtLeast(1));
     });
 
     testWidgets('displays order name and partner info', (tester) async {

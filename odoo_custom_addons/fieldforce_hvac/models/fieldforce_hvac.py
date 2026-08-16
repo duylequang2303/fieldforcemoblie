@@ -1,6 +1,7 @@
 import json
 import logging
 import requests
+import uuid
 from odoo import models, fields, api, _
 from odoo.exceptions import AccessError
 
@@ -60,6 +61,17 @@ class FieldForceHVACZnsMessage(models.Model):
     retry_count = fields.Integer(string='Retries', default=0)
     error_msg = fields.Text(string='Error Log')
     scheduled_date = fields.Datetime(string='Scheduled Date', default=fields.Datetime.now, index=True)
+    tracking_id = fields.Char(string='Tracking ID', index=True, copy=False)
+    provider_message_id = fields.Char(string='Provider Delivery ID', index=True, copy=False)
+    last_attempt_date = fields.Datetime(string='Last Attempt')
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        # Stable outbound identifier for idempotent retries across queue runs
+        for vals in vals_list:
+            if not vals.get('tracking_id'):
+                vals['tracking_id'] = 'hvac-zns-%s' % uuid.uuid4().hex
+        return super(FieldForceHVACZnsMessage, self).create(vals_list)
 
     @api.model
     def process_zns_messages(self):
@@ -69,42 +81,74 @@ class FieldForceHVACZnsMessage(models.Model):
             ('scheduled_date', '<=', fields.Datetime.now()),
             ('retry_count', '<', 3)
         ], limit=50)
-        
+
         for msg in messages:
             try:
+                if self._reconcile_zns_message(msg):
+                    msg.write({'state': 'sent', 'error_msg': False})
+                    continue
                 self._send_zns_api_call(msg)
                 msg.write({'state': 'sent', 'error_msg': False})
             except Exception as e:
                 msg.write({
                     'retry_count': msg.retry_count + 1,
                     'error_msg': str(e),
+                    'last_attempt_date': fields.Datetime.now(),
                     'state': 'failed' if msg.retry_count >= 2 else 'pending'
                 })
+
+    def _reconcile_zns_message(self, msg):
+        # Before retrying, check whether a prior indeterminate attempt was
+        # actually delivered so a timeout must not trigger a duplicate send.
+        if not msg.provider_message_id:
+            return False
+        access_token = self.env['ir.config_parameter'].sudo().get_param('zalo.oa_access_token')
+        if not access_token:
+            return False
+        try:
+            response = requests.get(
+                'https://business.openapi.zalo.me/message/status',
+                params={'message_id': msg.provider_message_id},
+                headers={'access_token': access_token},
+                timeout=15
+            )
+            response.raise_for_status()
+            res_data = response.json()
+            if res_data.get('error') != 0:
+                _logger.error("Zalo status lookup error: %s", res_data.get('message'))
+                return False
+            status = res_data.get('data', {}).get('status')
+            # Zalo status: 1 = delivered, 0 = pending, -1 = failed/sendable again
+            return status == 1
+        except Exception as e:
+            _logger.error("Failed to reconcile ZNS delivery for %s: %s", msg.tracking_id, e)
+            return False
 
     def _send_zns_api_call(self, msg):
         # Actual HTTP post payload to Zalo ZNS endpoint with access token lookup
         access_token = self.env['ir.config_parameter'].sudo().get_param('zalo.oa_access_token')
         if not access_token:
             raise ValueError("Zalo OA Access Token isn't configured in settings.")
-        
+
         headers = {
             'Content-Type': 'application/json',
             'access_token': access_token,
         }
-        
+
         template_data = {}
         if msg.message_content:
             try:
                 template_data = json.loads(msg.message_content)
             except Exception:
                 template_data = {'content': msg.message_content}
-        
+
         payload = {
             'phone': msg.phone,
             'template_id': msg.template_id,
             'template_data': template_data,
+            'tracking_id': msg.tracking_id,
         }
-        
+
         try:
             response = requests.post(
                 'https://business.openapi.zalo.me/message/template',
@@ -116,8 +160,12 @@ class FieldForceHVACZnsMessage(models.Model):
             res_data = response.json()
             if res_data.get('error') != 0:
                 raise ValueError(f"Zalo ZNS API Error: {res_data.get('message')} (code: {res_data.get('error')})")
+            msg.write({
+                'provider_message_id': res_data.get('data', {}).get('message_id'),
+                'last_attempt_date': fields.Datetime.now(),
+            })
         except requests.exceptions.RequestException as e:
-            raise ValueError(f"HTTP Connection to Zalo API failed: {str(e)}")
+            raise ValueError(f"HTTP Connection to Zalo API failed: {e}") from e
 
     @api.model
     def refresh_zalo_tokens(self):

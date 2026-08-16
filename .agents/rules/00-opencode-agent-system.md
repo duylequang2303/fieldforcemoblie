@@ -54,7 +54,6 @@ task(subagent_type: "reviewer", prompt: "Review git diff trước commit", descr
 → PASS thì commit, FAIL thì fix rồi chạy lại cho tới khi pass, rồi mới commit
 ```
 ## 4. Quy tắc quan trọng
-## 4. Quy tắc quan trọng
 
 - **Subagent chỉ đọc, không sửa file** — mọi agent trong `.opencode/agent/` đều có `permission.edit: deny`.
 - **Prompt phải self-contained** — subagent không có context conversation của main agent. Luôn include: project context, task cụ thể, output format mong muốn.
