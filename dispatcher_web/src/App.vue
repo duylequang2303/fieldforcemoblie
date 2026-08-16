@@ -256,7 +256,11 @@ export default {
       });
       const data = await res.json();
       if (data.error) {
-        throw new Error(data.error.data.message || data.error.message);
+        const errMsg = data.error.data?.message || data.error.message || '';
+        if (errMsg.toLowerCase().includes('session expired') || errMsg.toLowerCase().includes('access denied') || errMsg.toLowerCase().includes('not logged in')) {
+          this.logout();
+        }
+        throw new Error(errMsg);
       }
       return data.result;
     },

@@ -1,8 +1,6 @@
 import json
 import logging
-
 import requests
-
 from odoo import models, fields, api, _
 from odoo.exceptions import AccessError
 
@@ -155,10 +153,19 @@ class FieldForceHVACZnsMessage(models.Model):
                 if 'refresh_token' in res_data:
                     self.env['ir.config_parameter'].sudo().set_param('zalo.oa_refresh_token', res_data['refresh_token'])
             else:
-                raise ValueError(f"Zalo OAuth token refresh response error: {res_data}")
+                _logger.error(f"Zalo OAuth token refresh response error: {res_data}")
+                return False
         except Exception as e:
             _logger.error("Failed to refresh Zalo OA access token: %s", e)
-            raise
+            self.env['x_hvac.zns_message'].sudo().create({
+                'partner_id': self.env.user.partner_id.id,
+                'phone': '0000000000',
+                'template_id': 'refresh_token_failure',
+                'message_content': f"Error details: {str(e)}",
+                'state': 'failed',
+                'error_msg': f"Failed to refresh access token: {str(e)}"
+            })
+            return False
 
 
 class FieldForceHVACCommissionRule(models.Model):
@@ -194,18 +201,22 @@ class ResPartner(models.Model):
     @api.depends('phone')
     def _compute_masked_phone(self):
         for partner in self:
-            if partner.phone and len(partner.phone) >= 7:
-                mask_length = len(partner.phone) - 3
-                partner.x_masked_phone = f"{'*' * mask_length}{partner.phone[-3:]}"
+            if partner.phone:
+                clean_phone = ''.join(c for c in partner.phone if c.isalnum() or c == '+')
+                if len(clean_phone) >= 7:
+                    mask_length = len(clean_phone) - 3
+                    partner.x_masked_phone = f"{'*' * mask_length}{clean_phone[-3:]}"
+                else:
+                    partner.x_masked_phone = clean_phone
             else:
-                partner.x_masked_phone = partner.phone
+                partner.x_masked_phone = False
 
     def get_unmasked_phone(self):
         """Method to fetch original phone. Log entry is created for auditing purposes."""
         self.ensure_one()
         if not self.env.user.has_group('fieldforce_hvac.group_hvac_user'):
             raise AccessError(_("You do not have authorization to view customer phone numbers."))
-        self.env['x_hvac.phone_audit_log'].create({
+        self.env['x_hvac.phone_audit_log'].sudo().create({
             'partner_id': self.id,
             'user_id': self.env.uid
         })

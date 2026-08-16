@@ -288,16 +288,7 @@ class _OrderDetailWrapper extends StatelessWidget {
           );
         }
 
-        // Use post-frame callback to navigate with extra
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (context.mounted) {
-            context.push(RouteNames.workOrderDetailScreen, extra: order);
-          }
-        });
-
-        return const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        );
+        return WorkOrderDetailScreen(order: order);
       },
     );
   }
