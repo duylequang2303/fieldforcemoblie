@@ -1,5 +1,12 @@
+import json
+import logging
+
+import requests
+
 from odoo import models, fields, api, _
 from odoo.exceptions import AccessError
+
+_logger = logging.getLogger(__name__)
 
 class FieldForceHVACDevice(models.Model):
     _name = 'x_hvac.device'
@@ -67,7 +74,6 @@ class FieldForceHVACZnsMessage(models.Model):
         
         for msg in messages:
             try:
-                # Simulating sending Zalo ZNS message
                 self._send_zns_api_call(msg)
                 msg.write({'state': 'sent', 'error_msg': False})
             except Exception as e:
@@ -79,8 +85,6 @@ class FieldForceHVACZnsMessage(models.Model):
 
     def _send_zns_api_call(self, msg):
         # Actual HTTP post payload to Zalo ZNS endpoint with access token lookup
-        import requests
-        import json
         access_token = self.env['ir.config_parameter'].sudo().get_param('zalo.oa_access_token')
         if not access_token:
             raise ValueError("Zalo OA Access Token isn't configured in settings.")
@@ -120,7 +124,6 @@ class FieldForceHVACZnsMessage(models.Model):
     @api.model
     def refresh_zalo_tokens(self):
         # Retrieve Refresh Token from config parameters and invoke refresh endpoint to fetch fresh access token
-        import requests
         refresh_token = self.env['ir.config_parameter'].sudo().get_param('zalo.oa_refresh_token')
         app_id = self.env['ir.config_parameter'].sudo().get_param('zalo.app_id')
         secret_key = self.env['ir.config_parameter'].sudo().get_param('zalo.secret_key')
@@ -154,14 +157,7 @@ class FieldForceHVACZnsMessage(models.Model):
             else:
                 raise ValueError(f"Zalo OAuth token refresh response error: {res_data}")
         except Exception as e:
-            self.env['x_hvac.zns_message'].create({
-                'partner_id': self.env.user.partner_id.id,
-                'phone': '0000000000',
-                'template_id': 'refresh_token_failure',
-                'message_content': f"Error details: {str(e)}",
-                'state': 'failed',
-                'error_msg': f"Failed to refresh access token: {str(e)}"
-            })
+            _logger.error("Failed to refresh Zalo OA access token: %s", e)
             raise
 
 

@@ -3,12 +3,15 @@ import 'package:odoo_rpc/odoo_rpc.dart';
 import 'package:dotenv/dotenv.dart';
 
 Future<void> main() async {
-  final dotenv = DotEnv()..load(File('.env').readAsLinesSync());
-  final serverUrl = 'http://demo002.crmhub.vn:8069';
-  final database = 'demo002';
-  final username = 'admin';
+  final dotenv = DotEnv();
+  if (File('.env').existsSync()) {
+    dotenv.load(File('.env').readAsLinesSync());
+  }
+  final serverUrl = dotenv['ODOO_URL'] ?? 'http://demo002.crmhub.vn:8069';
+  final database = dotenv['ODOO_DB'] ?? 'demo002';
+  final username = dotenv['ODOO_USER'] ?? 'admin';
   final password = dotenv['ODOO_ADMIN_PASSWORD'] ?? '';
-  final workerEmail = 'worker1@gmail.com';
+  final workerEmail = dotenv['WORKER_EMAIL'] ?? 'worker1@gmail.com';
 
   final client = OdooClient(serverUrl);
 

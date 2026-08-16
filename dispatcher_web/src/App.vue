@@ -181,7 +181,7 @@ export default {
     },
     async getCsrfToken() {
       try {
-        const res = await fetch('/web/session/info', {
+        const res = await fetch('/web/session/get_session_info', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
