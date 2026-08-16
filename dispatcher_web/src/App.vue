@@ -55,6 +55,25 @@
               >
                 <strong>{{ order.name }}</strong>
                 <p>{{ order.address }}</p>
+                <!-- Keyboard accessibility controls -->
+                <div class="keyboard-assign">
+                  <select 
+                    v-model="selectedTechs[order.id]" 
+                    :aria-label="'Select technician for ' + order.name"
+                  >
+                    <option value="">Assign to...</option>
+                    <option v-for="tech in technicians" :key="tech.id" :value="tech.id">
+                      {{ tech.name }}
+                    </option>
+                  </select>
+                  <button 
+                    @click="keyboardAssign(order)" 
+                    :disabled="!selectedTechs[order.id]"
+                    class="btn-keyboard-assign"
+                  >
+                    Assign
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -76,8 +95,20 @@
                     v-for="order in getOrdersForTech(tech.id)" 
                     :key="order.id"
                     class="order-block"
+                    draggable="true"
+                    @dragstart="onDragStart($event, order)"
                   >
                     <span>{{ order.name }}</span>
+                    <small style="display:block; font-size:10px; opacity:0.8;">{{ order.address }}</small>
+                    <!-- Keyboard-accessible unassign control -->
+                    <button 
+                      class="btn-keyboard-unassign" 
+                      @click="keyboardUnassign(order)" 
+                      title="Unassign Order"
+                      :aria-label="'Unassign order ' + order.name"
+                    >
+                      ✕
+                    </button>
                   </div>
                 </div>
               </div>
@@ -95,22 +126,18 @@ export default {
     return {
       isAuthenticated: false,
       username: '',
+      csrfToken: '',
       odooUrl: 'http://localhost:8069 (via Vite Proxy)',
       db: 'fieldforce',
       loginEmail: '',
       password: '',
       loading: false,
       error: '',
-      unassignedOrders: [
-        { id: 1, name: 'Aircon Cleaning #1042', address: '123 Main St' },
-        { id: 2, name: 'Compressor Repair #1043', address: '456 Elm St' }
-      ],
-      technicians: [
-        { id: 101, name: 'Nguyen Van A (Tech 1)', last_gps: '10.776, 106.701 (District 1)' },
-        { id: 102, name: 'Tran Van B (Tech 2)', last_gps: '10.802, 106.664 (Tan Binh)' }
-      ],
+      unassignedOrders: [],
+      technicians: [],
       assignedOrders: [],
-      draggedOrder: null
+      draggedOrder: null,
+      selectedTechs: {}
     };
   },
   methods: {
@@ -131,6 +158,7 @@ export default {
         const res = await fetch('/web/session/authenticate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
           body: JSON.stringify(payload)
         });
         const data = await res.json();
@@ -138,6 +166,8 @@ export default {
         if (data.result && data.result.uid) {
           this.isAuthenticated = true;
           this.username = data.result.name;
+          await this.getCsrfToken();
+          await this.fetchData();
         } else if (data.error) {
           this.error = data.error.data.message || 'Authentication failed.';
         } else {
@@ -149,27 +179,154 @@ export default {
         this.loading = false;
       }
     },
+    async getCsrfToken() {
+      try {
+        const res = await fetch('/web/session/info', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ jsonrpc: '2.0', method: 'call', params: {} })
+        });
+        const data = await res.json();
+        if (data.result && data.result.csrf_token) {
+          this.csrfToken = data.result.csrf_token;
+        }
+      } catch (err) {
+        console.error('Failed to get CSRF token', err);
+      }
+    },
+    async fetchData() {
+      this.loading = true;
+      try {
+        const devs = await this.callRPC('fsm.person', 'search_read', [[]], {
+          fields: ['id', 'display_name', 'partner_id']
+        });
+        this.technicians = devs.map(t => ({
+          id: t.id,
+          name: t.display_name || (t.partner_id ? t.partner_id[1] : `Technician #${t.id}`),
+          last_gps: 'Connected'
+        }));
+
+        const unassigned = await this.callRPC('fsm.order', 'search_read', [[['person_id', '=', false]]], {
+          fields: ['id', 'name', 'location_id']
+        });
+        this.unassignedOrders = unassigned.map(o => ({
+          id: o.id,
+          name: o.name,
+          address: o.location_id ? o.location_id[1] : 'No Address'
+        }));
+
+        const assigned = await this.callRPC('fsm.order', 'search_read', [[['person_id', '!=', false]]], {
+          fields: ['id', 'name', 'location_id', 'person_id']
+        });
+        this.assignedOrders = assigned.map(o => ({
+          id: o.id,
+          name: o.name,
+          address: o.location_id ? o.location_id[1] : 'No Address',
+          technicianId: o.person_id[0]
+        }));
+      } catch (err) {
+        console.error('Error fetching data from Odoo:', err);
+        this.error = 'Failed to retrieve records: ' + err.message;
+      } finally {
+        this.loading = false;
+      }
+    },
+    async callRPC(model, method, args = [], kwargs = {}) {
+      const payload = {
+        jsonrpc: '2.0',
+        method: 'call',
+        params: {
+          model,
+          method,
+          args,
+          kwargs,
+          csrf_token: this.csrfToken
+        }
+      };
+      const headers = { 'Content-Type': 'application/json' };
+      if (this.csrfToken) {
+        headers['X-Openerp-Csrf-Token'] = this.csrfToken;
+      }
+      const res = await fetch('/web/dataset/call_kw', {
+        method: 'POST',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.error) {
+        throw new Error(data.error.data.message || data.error.message);
+      }
+      return data.result;
+    },
     logout() {
       this.isAuthenticated = false;
       this.username = '';
+      this.csrfToken = '';
       this.loginEmail = '';
       this.password = '';
+      this.unassignedOrders = [];
+      this.technicians = [];
+      this.assignedOrders = [];
     },
     onDragStart(event, order) {
       this.draggedOrder = order;
       event.dataTransfer.effectAllowed = 'move';
     },
-    onDropToTechnician(event, techId) {
-      if (!this.draggedOrder) return;
-      // Remove from unassigned, add to assigned
-      this.unassignedOrders = this.unassignedOrders.filter(o => o.id !== this.draggedOrder.id);
-      
-      const newAssigned = { ...this.draggedOrder, technicianId: techId };
-      this.assignedOrders.push(newAssigned);
-      this.draggedOrder = null;
+    async assignOrderToTech(order, techId) {
+      try {
+        this.loading = true;
+        await this.callRPC('fsm.order', 'write', [[order.id], { person_id: techId }]);
+        if (order.technicianId !== undefined) {
+          const activeOrder = this.assignedOrders.find(o => o.id === order.id);
+          if (activeOrder) {
+            activeOrder.technicianId = techId;
+          }
+        } else {
+          this.unassignedOrders = this.unassignedOrders.filter(o => o.id !== order.id);
+          this.assignedOrders.push({ ...order, technicianId: techId });
+        }
+      } catch (err) {
+        alert('Failed to save assignment in Odoo: ' + err.message);
+      } finally {
+        this.loading = false;
+      }
     },
-    onDropToUnassigned() {
-      // Logic to revert assignment can also be implemented
+    async unassignOrder(order) {
+      try {
+        this.loading = true;
+        await this.callRPC('fsm.order', 'write', [[order.id], { person_id: false }]);
+        this.assignedOrders = this.assignedOrders.filter(o => o.id !== order.id);
+        const { technicianId, ...unassignedOrder } = order;
+        this.unassignedOrders.push(unassignedOrder);
+      } catch (err) {
+        alert('Failed to clear assignment in Odoo: ' + err.message);
+      } finally {
+        this.loading = false;
+      }
+    },
+    async onDropToTechnician(event, techId) {
+      if (!this.draggedOrder) return;
+      const order = this.draggedOrder;
+      this.draggedOrder = null;
+      await this.assignOrderToTech(order, techId);
+    },
+    async onDropToUnassigned() {
+      if (!this.draggedOrder) return;
+      const order = this.draggedOrder;
+      this.draggedOrder = null;
+      if (order.technicianId === undefined) return;
+      await this.unassignOrder(order);
+    },
+    async keyboardAssign(order) {
+      const techId = this.selectedTechs[order.id];
+      if (!techId) return;
+      await this.assignOrderToTech(order, techId);
+      delete this.selectedTechs[order.id];
+    },
+    async keyboardUnassign(order) {
+      await this.unassignOrder(order);
     },
     getOrdersForTech(techId) {
       return this.assignedOrders.filter(o => o.technicianId === techId);
@@ -311,5 +468,46 @@ export default {
   border-radius: 4px;
   font-size: 14px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.keyboard-assign {
+  margin-top: 10px;
+  display: flex;
+  gap: 5px;
+  flex-direction: column;
+}
+.keyboard-assign select {
+  font-size: 12px;
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+}
+.btn-keyboard-assign {
+  background-color: #3498db;
+  color: white;
+  border: none;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.btn-keyboard-assign:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+.btn-keyboard-unassign {
+  background-color: transparent;
+  color: white;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+.btn-keyboard-unassign:hover {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 </style>

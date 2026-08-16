@@ -1013,10 +1013,6 @@ class _WorkOrderDetailScreenState extends State<WorkOrderDetailScreen>
                       children: [
                         Text(_stripHtml(currentOrder.description),
                             style: theme.textTheme.bodyMedium),
-                        const SizedBox(height: 8),
-                        Text(
-                            'Báo giá & Thiết bị: Tùy chỉnh nội dung hoặc gọi API tại đây',
-                            style: theme.textTheme.bodyMedium),
                       ],
                     ),
                   ),

@@ -1,4 +1,5 @@
-from odoo import models, fields, api
+from odoo import models, fields, api, _
+from odoo.exceptions import AccessError
 
 class FieldForceHVACDevice(models.Model):
     _name = 'x_hvac.device'
@@ -30,7 +31,7 @@ class FieldForceHVACOrderLine(models.Model):
     @api.model
     def create(self, vals):
         # Automatically snapshot details if product_id is specified
-        if vals.get('product_id') and not vals.get('unit_price'):
+        if vals.get('product_id') and 'unit_price' not in vals:
             product = self.env['product.product'].browse(vals['product_id'])
             if product.exists():
                 vals['name'] = vals.get('name') or product.display_name
@@ -78,20 +79,90 @@ class FieldForceHVACZnsMessage(models.Model):
 
     def _send_zns_api_call(self, msg):
         # Actual HTTP post payload to Zalo ZNS endpoint with access token lookup
+        import requests
+        import json
         access_token = self.env['ir.config_parameter'].sudo().get_param('zalo.oa_access_token')
         if not access_token:
             raise ValueError("Zalo OA Access Token isn't configured in settings.")
-        # Logging standard structure
-        pass
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'access_token': access_token,
+        }
+        
+        template_data = {}
+        if msg.message_content:
+            try:
+                template_data = json.loads(msg.message_content)
+            except Exception:
+                template_data = {'content': msg.message_content}
+        
+        payload = {
+            'phone': msg.phone,
+            'template_id': msg.template_id,
+            'template_data': template_data,
+        }
+        
+        try:
+            response = requests.post(
+                'https://business.openapi.zalo.me/message/template',
+                headers=headers,
+                json=payload,
+                timeout=15
+            )
+            response.raise_for_status()
+            res_data = response.json()
+            if res_data.get('error') != 0:
+                raise ValueError(f"Zalo ZNS API Error: {res_data.get('message')} (code: {res_data.get('error')})")
+        except requests.exceptions.RequestException as e:
+            raise ValueError(f"HTTP Connection to Zalo API failed: {str(e)}")
 
     @api.model
     def refresh_zalo_tokens(self):
         # Retrieve Refresh Token from config parameters and invoke refresh endpoint to fetch fresh access token
+        import requests
         refresh_token = self.env['ir.config_parameter'].sudo().get_param('zalo.oa_refresh_token')
-        if refresh_token:
-            # Under realistic settings, call requests.post to Zalo developer platform refresh endpoint
-            # e.g., mapping response back into ir.config_parameter configs
-            pass
+        app_id = self.env['ir.config_parameter'].sudo().get_param('zalo.app_id')
+        secret_key = self.env['ir.config_parameter'].sudo().get_param('zalo.secret_key')
+        
+        if not refresh_token:
+            return
+            
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'secret_key': secret_key or '',
+        }
+        data = {
+            'refresh_token': refresh_token,
+            'app_id': app_id or '',
+            'grant_type': 'refresh_token',
+        }
+        
+        try:
+            response = requests.post(
+                'https://oauth.zaloapp.com/v4/oa/access_token',
+                headers=headers,
+                data=data,
+                timeout=15
+            )
+            response.raise_for_status()
+            res_data = response.json()
+            if 'access_token' in res_data:
+                self.env['ir.config_parameter'].sudo().set_param('zalo.oa_access_token', res_data['access_token'])
+                if 'refresh_token' in res_data:
+                    self.env['ir.config_parameter'].sudo().set_param('zalo.oa_refresh_token', res_data['refresh_token'])
+            else:
+                raise ValueError(f"Zalo OAuth token refresh response error: {res_data}")
+        except Exception as e:
+            self.env['x_hvac.zns_message'].create({
+                'partner_id': self.env.user.partner_id.id,
+                'phone': '0000000000',
+                'template_id': 'refresh_token_failure',
+                'message_content': f"Error details: {str(e)}",
+                'state': 'failed',
+                'error_msg': f"Failed to refresh access token: {str(e)}"
+            })
+            raise
 
 
 class FieldForceHVACCommissionRule(models.Model):
@@ -124,16 +195,20 @@ class ResPartner(models.Model):
 
     x_masked_phone = fields.Char(string='Masked Phone', compute='_compute_masked_phone')
 
+    @api.depends('phone')
     def _compute_masked_phone(self):
         for partner in self:
             if partner.phone and len(partner.phone) >= 7:
-                partner.x_masked_phone = f"{partner.phone[:3]}***{partner.phone[-4:]}"
+                mask_length = len(partner.phone) - 3
+                partner.x_masked_phone = f"{'*' * mask_length}{partner.phone[-3:]}"
             else:
                 partner.x_masked_phone = partner.phone
 
     def get_unmasked_phone(self):
         """Method to fetch original phone. Log entry is created for auditing purposes."""
         self.ensure_one()
+        if not self.env.user.has_group('fieldforce_hvac.group_hvac_user'):
+            raise AccessError(_("You do not have authorization to view customer phone numbers."))
         self.env['x_hvac.phone_audit_log'].create({
             'partner_id': self.id,
             'user_id': self.env.uid

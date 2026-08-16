@@ -9,7 +9,7 @@
             <field name="code">model.process_zns_messages()</field>
             <field name="interval_number">5</field>
             <field name="interval_type">minutes</field>
-            <field name="active">True</field>
+            <field name="active">False</field>
         </record>
 
         <!-- Cron to refresh Zalo OA tokens weekly -->
@@ -20,7 +20,7 @@
             <field name="code">model.refresh_zalo_tokens()</field>
             <field name="interval_number">1</field>
             <field name="interval_type">weeks</field>
-            <field name="active">True</field>
+            <field name="active">False</field>
         </record>
     </data>
 </odoo>

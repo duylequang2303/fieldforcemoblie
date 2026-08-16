@@ -5,13 +5,15 @@ export default defineConfig({
   plugins: [vue()],
   server: {
     port: 3000,
+    host: '0.0.0.0',
+    allowedHosts: ['.monkeycode-ai.live'],
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8069',
         changeOrigin: true,
         secure: false,
       },
-      '/web/session': {
+      '/web': {
         target: 'http://127.0.0.1:8069',
         changeOrigin: true,
         secure: false,
