@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Cron to process ZNS message queue -->
+        <record id="ir_cron_process_zns_queue" model="ir.cron">
+            <name>Zalo ZNS Outbox Processing Queue</name>
+            <model_id ref="model_x_hvac_zns_message"/>
+            <state>code</state>
+            <code>model.process_zns_messages()</code>
+            <interval_number>5</interval_number>
+            <interval_type>minutes</interval_type>
+            <numbercall>-1</numbercall>
+            <active>True</active>
+        </record>
+
+        <!-- Cron to refresh Zalo OA tokens weekly -->
+        <record id="ir_cron_refresh_zalo_tokens" model="ir.cron">
+            <name>Zalo OA Tokens Auto-Refresh (Weekly)</name>
+            <model_id ref="model_x_hvac_zns_message"/>
+            <state>code</state>
+            <code>model.refresh_zalo_tokens()</code>
+            <interval_number>1</interval_number>
+            <interval_type>weeks</interval_type>
+            <numbercall>-1</numbercall>
+            <active>True</active>
+        </record>
+    </data>
+</odoo>
