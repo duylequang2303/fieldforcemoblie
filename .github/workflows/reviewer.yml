@@ -11,12 +11,13 @@ permissions:
 jobs:
   review:
     runs-on: ubuntu-latest
+    if: ${{ secrets.ZHIPU_API_KEY != '' || secrets.LLM_API_KEY != '' }}
     steps:
       - name: OpenRabbit
         uses: aryanbrite/openrabbit@main
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          llm_api_key: ${{ secrets.ZHIPU_API_KEY }}
+          llm_api_key: ${{ secrets.ZHIPU_API_KEY || secrets.LLM_API_KEY }}
           llm_provider: openrouter
           llm_api_url: https://api.z.ai/api/paas/v4
           llm_model: glm-4.5-flash
