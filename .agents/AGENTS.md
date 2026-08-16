@@ -100,7 +100,7 @@
     ```
 - ⚠️ **Hạn chế hỏi quyền tối đa**: Tránh chạy các lệnh shell thăm dò hoặc truy vấn rời rạc làm phiền User phê duyệt quyền nhiều lần. Nếu cần thông tin hoặc tạo dữ liệu test, hãy hỏi trực tiếp User hoặc gom các lệnh SQL/CLI cần thiết vào duy nhất một lần thực thi.
 
-## 13. THINK Workflow & Subagent Delegation
+## 12. THINK Workflow & Subagent Delegation
 
 ### 🎯 THINK Workflow (Multi-agent Debate Pattern)
 

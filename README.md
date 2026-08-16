@@ -9,7 +9,7 @@ Dự án cấu hình sẵn agent system cho **opencode**:
 - **Config:** `opencode.json` (MCP servers, skills paths, permissions)
 - **Subagents:** `.opencode/agent/*.md` — `scout`, `reviewer`, `proposer`, `skeptic`, `checker`
 - **Rules:** `.agents/AGENTS.md`, `.agents/rules/*.md`, `.agent-rules/*.md`
-- **Workflows:** `.agents/THINK_WORKFLOW.md`, `SCOUT_WORKFLOW.md`, `REVIEW_WORKFLOW.md`
+- **Workflows:** `.agents/THINK_WORKFLOW.md`, `.agents/SCOUT_WORKFLOW.md`, `.agents/REVIEW_WORKFLOW.md`
 - **Skills:** `.agents/skills/*/SKILL.md` (FSM flow, Isar offline-first, Odoo RPC, Odoo test data, Flutter verify)
 - **MCP guide:** xem `.agents/OPENCODE_MCP_GUIDE.md` — setup Odoo MCP + Dart MCP
 

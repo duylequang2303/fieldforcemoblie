@@ -27,7 +27,7 @@ npm install -g opencode-ai
 opencode --version
 ```
 
-> Nếu gặp lỗi quyền trên macOS/Linux: khuyến nghị dùng cài đặt Node.js owned-by-user (như `fnm`, `nvm`, hoặc installer chính thức) để tránh cần sudo.
+> Nếu gặp lỗi quyền trên macOS/Linux: khuyến nghị dùng cài đặt Node.js owned-by-user (như `fnm`, `nvm`, hoặc installer chính thức) để tránh cần sudo. **Không dùng `--unsafe-perm` hay `sudo npm install -g`**.
 
 ## 3. Clone project về máy dev
 
