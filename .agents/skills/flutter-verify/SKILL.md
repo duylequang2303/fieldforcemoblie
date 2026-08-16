@@ -56,8 +56,7 @@ Nếu code sửa có test liên quan → chạy test đó. Nếu không có test
 - [ ] `flutter analyze` — 0 lỗi error
 - [ ] `flutter test` — tất cả pass
 - [ ] REVIEW workflow (`.opencode/agent/reviewer.md`) — không có BLOCKER/HIGH
-- [ ] **`.cline/review-marker` file exists** (created by REVIEW workflow after passing)
-- [ ] **TUYỆT ĐỐI KHÔNG** sử dụng cờ `--no-verify` khi thực hiện `git commit` hoặc `git push` để bỏ qua các bước kiểm tra chất lượng này. Mọi lỗi biên dịch (`error •`) bắt buộc phải được giải quyết triệt để ở tầng mã nguồn trước khi đẩy mã nguồn lên PR.
+- [ ] TUYỆT ĐỐI KHÔNG sử dụng cờ `--no-verify` khi thực hiện `git commit` hoặc `git push` để bỏ qua các bước kiểm tra chất lượng này. Mọi lỗi biên dịch (`error •`) bắt buộc phải được giải quyết triệt để ở tầng mã nguồn trước khi đẩy mã nguồn lên PR.
 
 ## Lưu ý
 

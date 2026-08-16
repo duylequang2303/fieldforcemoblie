@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:odoo_rpc/odoo_rpc.dart';
+import 'package:dotenv/dotenv.dart';
 
 void main() {
+  final dotenv = DotEnv()..load(File('.env').readAsLinesSync());
   test('Inspect Odoo account.analytic.line Fields and Data', () async {
     final client = OdooClient('https://demo002.crmhub.vn');
     try {
@@ -9,7 +12,7 @@ void main() {
       final session = await client.authenticate(
         'demo002.crmhub.vn',
         'admin',
-        'c)baL[0F0-qp]',
+        dotenv['ODOO_ADMIN_PASSWORD'] ?? '',
       );
       print('Authenticated. Session ID: ${session.id}');
 

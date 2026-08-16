@@ -1,12 +1,15 @@
+import 'dart:io';
 import 'package:odoo_rpc/odoo_rpc.dart';
-
-const serverUrl = 'http://demo002.crmhub.vn:8069';
-const database = 'demo002';
-const username = 'admin';
-const password = 'c)baL[0F0-qp]';
-const workerEmail = 'worker1@gmail.com';
+import 'package:dotenv/dotenv.dart';
 
 Future<void> main() async {
+  final dotenv = DotEnv()..load(File('.env').readAsLinesSync());
+  final serverUrl = 'http://demo002.crmhub.vn:8069';
+  final database = 'demo002';
+  final username = 'admin';
+  final password = dotenv['ODOO_ADMIN_PASSWORD'] ?? '';
+  final workerEmail = 'worker1@gmail.com';
+
   final client = OdooClient(serverUrl);
 
   try {

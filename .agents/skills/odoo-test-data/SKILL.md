@@ -38,25 +38,25 @@ Hướng dẫn tạo đơn hàng test chuẩn trên Odoo FSM backend để đơn
 
 Khuyến nghị sử dụng Odoo RPC/MCP thay vì SQL trực tiếp:
 
-```bash
-# Ví dụ gọi fsm.order.create qua RPC (Node.js với odoo-xmlrpc)
-# const Odoo = require('odoo-xmlrpc');
-# const odoo = new Odoo({url, db, username, password});
-# odoo.connect(err => {
-#   if (err) throw err;
-#   odoo.execute_kw('fsm.order', 'create', [{
-#     name: 'Đơn FSM Test - ' + new Date().toISOString(),
-#     person_id: personId,  // resolved via search_read
-#     location_id: locationId,
-#     stage_id: stageId,
-#     company_id: 1,
-#     team_id: 1,
-#     warehouse_id: 1,
-#     scheduled_date_start: new Date('2026-08-08T08:00:00'),
-#     scheduled_date_end: new Date('2026-08-08T18:00:00'),
-#     scheduled_duration: 10.0
-#   }], (err, orderId) => { ... });
-# });
+```javascript
+// Ví dụ gọi fsm.order.create qua RPC (Node.js với odoo-xmlrpc)
+const Odoo = require('odoo-xmlrpc');
+const odoo = new Odoo({url, db, username, password});
+odoo.connect(err => {
+  if (err) throw err;
+  odoo.execute_kw('fsm.order', 'create', [{
+    name: 'Đơn FSM Test - ' + new Date().toISOString(),
+    person_id: personId, // resolved via search_read
+    location_id: locationId,
+    stage_id: stageId,
+    company_id: 1,
+    team_id: 1,
+    warehouse_id: 1,
+    scheduled_date_start: '2026-08-15 08:00:00',
+    scheduled_date_end: '2026-08-15 18:00:00',
+    scheduled_duration: 10.0
+  }], (err, orderId) => { ... });
+});
 ```
 
 Trong trường hợp bắt buộc phải sử dụng SQL insert, thực thi an toàn qua SSH pass psql stdin:
